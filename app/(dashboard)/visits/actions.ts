@@ -1,0 +1,123 @@
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { createServerClient } from '@/lib/supabase'
+import { revalidatePath } from 'next/cache'
+
+async function getClinicId(): Promise<string> {
+  const supabase = createServerClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.user?.email) throw new Error('Not authenticated')
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { clinicId: true },
+  })
+  if (!user?.clinicId) throw new Error('No clinic')
+  return user.clinicId
+}
+
+export type VisitSetup = {
+  patient: {
+    id: string
+    firstName: string
+    lastName: string
+    phone: string
+  }
+  serviceCatalog: Array<{
+    id: string
+    name: string
+    category: string
+    sortOrder: number
+  }>
+  clinic: {
+    enrollmentDate: Date
+  }
+}
+
+export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
+  const clinicId = await getClinicId()
+
+  const [patient, clinic, services] = await Promise.all([
+    prisma.patient.findUnique({
+      where: { id: patientId },
+      select: { id: true, firstName: true, lastName: true, phone: true, clinicId: true },
+    }),
+    prisma.clinic.findUnique({
+      where: { id: clinicId },
+      select: { enrollmentDate: true },
+    }),
+    prisma.serviceCatalog.findMany({
+      where: { clinicId, isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true, category: true, sortOrder: true },
+    }),
+  ])
+
+  if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
+  if (!clinic) throw new Error('Clinic not found')
+
+  return {
+    patient: {
+      id: patient.id,
+      firstName: patient.firstName,
+      lastName: patient.lastName,
+      phone: patient.phone,
+    },
+    serviceCatalog: services,
+    clinic: {
+      enrollmentDate: clinic.enrollmentDate,
+    },
+  }
+}
+
+export type SaveVisitData = {
+  patientId: string
+  visitDate: string
+  diagnosis: string
+  toothNumber?: string
+  treatment: string
+  notes: string
+  grossAmount: number
+  isBracesReminder?: boolean
+  reminderWeeks?: number
+}
+
+export async function saveVisit(data: SaveVisitData): Promise<string> {
+  const clinicId = await getClinicId()
+
+  const gross = data.grossAmount
+  const net = parseFloat((gross / 1.12).toFixed(2))
+  const vat = parseFloat((gross - net).toFixed(2))
+
+  const visit = await prisma.visit.create({
+    data: {
+      clinicId,
+      patientId: data.patientId,
+      visitDate: new Date(data.visitDate),
+      diagnosis: data.diagnosis,
+      toothNumber: data.toothNumber || null,
+      treatment: data.treatment,
+      notes: data.notes,
+      grossAmount: gross,
+      netAmount: net,
+      vatAmount: vat,
+    },
+  })
+
+  if (data.isBracesReminder && data.reminderWeeks) {
+    const scheduledFor = new Date(data.visitDate)
+    scheduledFor.setDate(scheduledFor.getDate() + data.reminderWeeks * 7)
+    await prisma.scheduledReminder.create({
+      data: {
+        clinicId,
+        patientId: data.patientId,
+        visitId: visit.id,
+        reminderType: 'BRACES_ALIGNMENT',
+        scheduledFor,
+      },
+    })
+  }
+
+  revalidatePath(`/patients/${data.patientId}`)
+  return visit.id
+}

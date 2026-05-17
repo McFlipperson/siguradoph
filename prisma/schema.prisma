@@ -185,8 +185,8 @@ model Invoice {
   id                 String        @id @default(cuid())
   clinicId           String
   clinic             Clinic        @relation(fields: [clinicId], references: [id])
-  visitId            String        @unique
-  visit              Visit         @relation(fields: [visitId], references: [id])
+  visitId            String?       @unique
+  visit              Visit?        @relation(fields: [visitId], references: [id])
   orNumber           String
   sellerName         String
   sellerTin          String
@@ -372,4 +372,16 @@ model ServiceCatalog {
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ScheduledReminder {
+  id           String    @id @default(cuid())
+  clinicId     String
+  patientId    String
+  visitId      String?
+  reminderType String
+  scheduledFor DateTime
+  sent         Boolean   @default(false)
+  sentAt       DateTime?
+  createdAt    DateTime  @default(now())
 }
