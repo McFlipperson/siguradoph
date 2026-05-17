@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { QRSection } from './QRSection'
+import { PrinterSection } from './PrinterSection'
 
 export default async function SettingsPage() {
   const supabase = createServerClient()
@@ -26,6 +27,7 @@ export default async function SettingsPage() {
       </div>
 
       <QRSection clinicId={user.clinic.id} />
+      <PrinterSection />
     </div>
   )
 }

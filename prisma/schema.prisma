@@ -205,6 +205,7 @@ model Invoice {
   eisTransmitted     Boolean       @default(false)
   eisTransmittedAt   DateTime?
   eisResponse        String?
+  notes              String?
   createdAt          DateTime      @default(now())
 }
 
