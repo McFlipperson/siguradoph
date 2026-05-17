@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EntityType {
+  SOLE_PROPRIETOR
+  PARTNERSHIP
+  CORPORATION
+}
+
+enum FilingMethod {
+  EBIRFORMS
+  EFPS
+}
+
+enum UserRole {
+  CLINIC_OWNER
+  SECRETARY
+  CPA
+}
+
+enum PaymentMethod {
+  CASH
+  GCASH
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  VOID
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  WALK_IN
+  COMPLETED
+  CANCELLED
+}
+
+enum ExpenseCategory {
+  DENTAL_SUPPLIES
+  MEDICAL_SUPPLIES
+  RENT
+  UTILITIES
+  INTERNET_PHONE
+  PROFESSIONAL_FEES
+  LICENSES_PERMITS
+  MAINTENANCE
+  OTHER
+}
+
+model Clinic {
+  id                       String       @id @default(cuid())
+  name                     String
+  ownerName                String
+  street                   String
+  city                     String
+  province                 String
+  zip                      String
+  phone                    String
+  email                    String
+  facebookPageUrl          String?
+  messengerPageId          String?
+  tin                      String
+  rdoCode                  String
+  corNumber                String
+  entityType               EntityType
+  vatRegistered            Boolean      @default(true)
+  vatRegistrationDate      DateTime?
+  orSeriesStart            String
+  orSeriesCurrentNumber    Int          @default(1)
+  filingMethod             FilingMethod
+  enrollmentDate           DateTime
+  onboardingComplete       Boolean      @default(false)
+  hasEmployees             Boolean      @default(false)
+  sssEmployerNumber        String?
+  philhealthEmployerNumber String?
+  pagibigEmployerNumber    String?
+  loyaltyCardEnabled       Boolean      @default(true)
+  loyaltyCardPrice         Decimal      @default(500)
+  loyaltyCardValidityYears Int          @default(2)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  users             User[]
+  patients          Patient[]
+  visits            Visit[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  recurringExpenses RecurringExpense[]
+  employees         Employee[]
+  appointments      Appointment[]
+  loyaltyCards      LoyaltyCard[]
+  equipment         Equipment[]
+  suppliers         Supplier[]
+  incidentLogs      IncidentLog[]
+  serviceCatalog    ServiceCatalog[]
+  cpaAssignments    CpaClinicAssignment[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      UserRole
+  clinicId  String?
+  clinic    Clinic?  @relation(fields: [clinicId], references: [id])
+  createdAt DateTime @default(now())
+
+  cpaAssignments CpaClinicAssignment[]
+}
+
+model CpaClinicAssignment {
+  id         String   @id @default(cuid())
+  cpaUserId  String
+  clinicId   String
+  cpa        User     @relation(fields: [cpaUserId], references: [id])
+  clinic     Clinic   @relation(fields: [clinicId], references: [id])
+  assignedAt DateTime @default(now())
+}
+
+model Patient {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id])
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  address         String
+  phone           String
+  email           String?
+  medicalHistory  String?
+  medications     String?
+  allergies       String?
+  messengerLinked Boolean  @default(false)
+  messengerUserId String?
+  enrolledAt      DateTime
+  createdAt       DateTime @default(now())
+
+  consentRecords ConsentRecord[]
+  visits         Visit[]
+  appointments   Appointment[]
+  loyaltyCards   LoyaltyCard[]
+}
+
+model ConsentRecord {
+  id                      String   @id @default(cuid())
+  patientId               String
+  patient                 Patient  @relation(fields: [patientId], references: [id])
+  clinicId                String
+  npcConsentGiven         Boolean
+  truthfulnessDeclaration Boolean
+  surgicalConsentGiven    Boolean
+  isMinor                 Boolean  @default(false)
+  guardianName            String?
+  guardianRelationship    String?
+  consentDate             DateTime @default(now())
+  consentMethod           String   @default("digital")
+}
+
+model Visit {
+  id          String   @id @default(cuid())
+  clinicId    String
+  clinic      Clinic   @relation(fields: [clinicId], references: [id])
+  patientId   String
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  visitDate   DateTime @default(now())
+  diagnosis   String
+  toothNumber String?
+  treatment   String
+  notes       String?
+  grossAmount Decimal
+  netAmount   Decimal
+  vatAmount   Decimal
+  createdAt   DateTime @default(now())
+
+  invoice Invoice?
+}
+
+model Invoice {
+  id                 String        @id @default(cuid())
+  clinicId           String
+  clinic             Clinic        @relation(fields: [clinicId], references: [id])
+  visitId            String        @unique
+  visit              Visit         @relation(fields: [visitId], references: [id])
+  orNumber           String
+  sellerName         String
+  sellerTin          String
+  sellerAddress      String
+  buyerName          String?
+  buyerAddress       String?
+  serviceDescription String
+  grossAmount        Decimal
+  netAmount          Decimal
+  vatAmount          Decimal
+  discountAmount     Decimal       @default(0)
+  loyaltyCardId      String?
+  paymentMethod      PaymentMethod
+  status             InvoiceStatus @default(ISSUED)
+  transactionDate    DateTime      @default(now())
+  eisTransmitted     Boolean       @default(false)
+  eisTransmittedAt   DateTime?
+  eisResponse        String?
+  createdAt          DateTime      @default(now())
+}
+
+model LoyaltyCard {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id])
+  patientId       String
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  cardNumber      String   @unique
+  purchaseDate    DateTime @default(now())
+  expiryDate      DateTime
+  isActive        Boolean  @default(true)
+  cleaningUses50  Int      @default(2)
+  cleaningUses25  Int      @default(2)
+  fillingUses50   Int      @default(2)
+  fillingUses25   Int      @default(2)
+  rctUses         Int      @default(2)
+  dentureUses     Int      @default(2)
+  bracesUses      Int      @default(2)
+  wisdomToothUses Int      @default(2)
+  extractionUses  Int      @default(8)
+
+  usageHistory LoyaltyCardUsage[]
+}
+
+model LoyaltyCardUsage {
+  id             String      @id @default(cuid())
+  loyaltyCardId  String
+  loyaltyCard    LoyaltyCard @relation(fields: [loyaltyCardId], references: [id])
+  serviceType    String
+  discountPct    Decimal
+  discountAmount Decimal
+  invoiceId      String
+  usedAt         DateTime    @default(now())
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  clinicId     String
+  clinic       Clinic            @relation(fields: [clinicId], references: [id])
+  patientId    String
+  patient      Patient           @relation(fields: [patientId], references: [id])
+  scheduledAt  DateTime
+  type         String
+  status       AppointmentStatus @default(SCHEDULED)
+  notes        String?
+  reminderSent Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+}
+
+model Expense {
+  id                 String          @id @default(cuid())
+  clinicId           String
+  clinic             Clinic          @relation(fields: [clinicId], references: [id])
+  supplierId         String?
+  supplier           Supplier?       @relation(fields: [supplierId], references: [id])
+  date               DateTime
+  description        String
+  grossAmount        Decimal
+  inputVatAmount     Decimal         @default(0)
+  netAmount          Decimal
+  category           ExpenseCategory
+  receiptNumber      String?
+  isRecurring        Boolean         @default(false)
+  recurringExpenseId String?
+  createdAt          DateTime        @default(now())
+}
+
+model RecurringExpense {
+  id          String          @id @default(cuid())
+  clinicId    String
+  clinic      Clinic          @relation(fields: [clinicId], references: [id])
+  description String
+  amount      Decimal
+  category    ExpenseCategory
+  supplierId  String?
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+}
+
+model Supplier {
+  id            String          @id @default(cuid())
+  clinicId      String
+  clinic        Clinic          @relation(fields: [clinicId], references: [id])
+  name          String
+  address       String?
+  tin           String?
+  vatRegistered Boolean         @default(false)
+  category      ExpenseCategory
+  createdAt     DateTime        @default(now())
+
+  expenses Expense[]
+}
+
+model Employee {
+  id               String   @id @default(cuid())
+  clinicId         String
+  clinic           Clinic   @relation(fields: [clinicId], references: [id])
+  fullName         String
+  position         String
+  dateHired        DateTime
+  monthlySalary    Decimal
+  sssNumber        String
+  philhealthNumber String
+  pagibigNumber    String
+  tin              String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  payrollRecords PayrollRecord[]
+}
+
+model PayrollRecord {
+  id                 String   @id @default(cuid())
+  employeeId         String
+  employee           Employee @relation(fields: [employeeId], references: [id])
+  clinicId           String
+  periodMonth        Int
+  periodYear         Int
+  basicSalary        Decimal
+  sssEmployee        Decimal
+  sssEmployer        Decimal
+  philhealthEmployee Decimal
+  philhealthEmployer Decimal
+  pagibigEmployee    Decimal
+  pagibigEmployer    Decimal
+  withholdingTax     Decimal
+  netPay             Decimal
+  createdAt          DateTime @default(now())
+}
+
+model Equipment {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id])
+  name            String
+  purchaseDate    DateTime
+  purchaseCost    Decimal
+  usefulLifeYears Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+}
+
+model IncidentLog {
+  id            String    @id @default(cuid())
+  clinicId      String
+  clinic        Clinic    @relation(fields: [clinicId], references: [id])
+  incidentDate  DateTime
+  incidentType  String
+  dataAffected  String
+  actionTaken   String
+  reportedToNpc Boolean   @default(false)
+  reportedAt    DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+model ServiceCatalog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  name      String
+  category  String
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
