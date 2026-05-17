@@ -271,6 +271,8 @@ model Expense {
   netAmount          Decimal
   category           ExpenseCategory
   receiptNumber      String?
+  paymentMethod      String          @default("CASH")
+  notes              String?
   isRecurring        Boolean         @default(false)
   recurringExpenseId String?
   createdAt          DateTime        @default(now())
@@ -283,6 +285,8 @@ model RecurringExpense {
   description String
   amount      Decimal
   category    ExpenseCategory
+  frequency   String          @default("MONTHLY")
+  nextDueDate DateTime?
   supplierId  String?
   isActive    Boolean         @default(true)
   createdAt   DateTime        @default(now())

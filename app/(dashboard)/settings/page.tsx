@@ -1,33 +1,66 @@
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
-import { QRSection } from './QRSection'
-import { PrinterSection } from './PrinterSection'
+import { createServerClient } from '@/lib/supabase'
+import { redirect } from 'next/navigation'
+import SettingsClient from './SettingsClient'
+
+export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
   const supabase = createServerClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
+  const { data: { session } } = await supabase.auth.getSession()
   if (!session) redirect('/login')
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email! },
     include: { clinic: true },
   })
-
   if (!user?.clinic) redirect('/onboarding')
+  const clinic = user.clinic
+
+  const [services, suppliers] = await Promise.all([
+    prisma.serviceCatalog.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }],
+    }),
+    prisma.supplier.findMany({
+      where: { clinicId: clinic.id },
+      orderBy: { name: 'asc' },
+    }),
+  ])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-bold">Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">{user.clinic.name}</p>
-      </div>
-
-      <QRSection clinicId={user.clinic.id} />
-      <PrinterSection />
-    </div>
+    <SettingsClient
+      clinic={{
+        id: clinic.id,
+        name: clinic.name,
+        ownerName: clinic.ownerName,
+        street: clinic.street,
+        city: clinic.city,
+        province: clinic.province,
+        zip: clinic.zip,
+        phone: clinic.phone,
+        email: clinic.email,
+        tin: clinic.tin,
+        vatRegistered: clinic.vatRegistered,
+        orSeriesStart: clinic.orSeriesStart,
+        orSeriesCurrentNumber: clinic.orSeriesCurrentNumber,
+        enrollmentDate: clinic.enrollmentDate.toISOString(),
+      }}
+      initialServices={services.map(s => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        isActive: s.isActive,
+        sortOrder: s.sortOrder,
+      }))}
+      initialSuppliers={suppliers.map(s => ({
+        id: s.id,
+        name: s.name,
+        address: s.address ?? null,
+        tin: s.tin ?? null,
+        vatRegistered: s.vatRegistered,
+        category: s.category,
+      }))}
+    />
   )
 }
