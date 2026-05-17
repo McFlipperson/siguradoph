@@ -136,10 +136,11 @@ model Patient {
   medicalHistory  String?
   medications     String?
   allergies       String?
-  messengerLinked Boolean  @default(false)
-  messengerUserId String?
-  enrolledAt      DateTime
-  createdAt       DateTime @default(now())
+  messengerLinked              Boolean  @default(false)
+  messengerUserId              String?
+  pendingLoyaltyCardPurchase   Boolean  @default(false)
+  enrolledAt                   DateTime
+  createdAt                    DateTime @default(now())
 
   consentRecords ConsentRecord[]
   visits         Visit[]

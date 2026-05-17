@@ -1,3 +1,9 @@
-export default function DashboardPage() {
-  return <h1>Dashboard</h1>
+import { getDashboardData } from './actions'
+import DashboardClient from './DashboardClient'
+
+export const dynamic = 'force-dynamic'
+
+export default async function DashboardPage() {
+  const data = await getDashboardData()
+  return <DashboardClient data={data} />
 }

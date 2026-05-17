@@ -88,9 +88,12 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
   const { pct: availablePct, isCheckup } = getAvailableDiscount(serviceCategory, loyaltyCard)
   const canApplyDiscount = availablePct > 0 && !!loyaltyCard
 
+  // Pending loyalty card renewal: auto-enable purchase if no current card
+  const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
+
   // Form state
   const [applyDiscount, setApplyDiscount] = useState(canApplyDiscount)
-  const [purchaseCard, setPurchaseCard] = useState(false)
+  const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [notes, setNotes] = useState('')
   const [sendEmail, setSendEmail] = useState(!!visitData.patientEmail)
   const [emailInput, setEmailInput] = useState(visitData.patientEmail ?? '')
@@ -423,6 +426,11 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
           <CardTitle className="text-base">Loyalty Card</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {hasPendingRenewal && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+              Loyalty card renewal pending for this patient.
+            </div>
+          )}
           {loyaltyCard ? (
             <>
               <div className="text-sm text-muted-foreground">

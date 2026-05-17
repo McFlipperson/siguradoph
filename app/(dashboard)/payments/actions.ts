@@ -31,6 +31,7 @@ export type CheckoutVisitData = {
   patientName: string
   patientEmail?: string
   patientAddress: string
+  pendingLoyaltyCardPurchase: boolean
   clinic: {
     id: string
     name: string
@@ -80,6 +81,7 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
           lastName: true,
           email: true,
           address: true,
+          pendingLoyaltyCardPurchase: true,
           loyaltyCards: {
             where: { isActive: true },
             orderBy: { purchaseDate: 'desc' },
@@ -149,6 +151,7 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
       patientName,
       patientEmail: visit.patient.email ?? undefined,
       patientAddress: visit.patient.address,
+      pendingLoyaltyCardPurchase: visit.patient.pendingLoyaltyCardPurchase,
       clinic: {
         id: visit.clinic.id,
         name: visit.clinic.name,
