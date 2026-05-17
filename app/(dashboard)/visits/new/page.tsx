@@ -5,9 +5,10 @@ import NewVisitForm from './NewVisitForm'
 export default async function NewVisitPage({
   searchParams,
 }: {
-  searchParams: { patientId?: string }
+  searchParams: { patientId?: string; appointmentId?: string }
 }) {
   const patientId = searchParams.patientId
+  const appointmentId = searchParams.appointmentId
 
   if (!patientId) {
     redirect('/patients')
@@ -18,7 +19,7 @@ export default async function NewVisitPage({
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold font-heading">New Visit</h1>
-      <NewVisitForm setup={setup} />
+      <NewVisitForm setup={setup} appointmentId={appointmentId} />
     </div>
   )
 }

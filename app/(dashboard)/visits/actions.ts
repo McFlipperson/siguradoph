@@ -80,6 +80,7 @@ export type SaveVisitData = {
   grossAmount: number
   isBracesReminder?: boolean
   reminderWeeks?: number
+  appointmentId?: string
 }
 
 export async function saveVisit(data: SaveVisitData): Promise<string> {
@@ -115,6 +116,13 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
         reminderType: 'BRACES_ALIGNMENT',
         scheduledFor,
       },
+    })
+  }
+
+  if (data.appointmentId) {
+    await prisma.appointment.update({
+      where: { id: data.appointmentId },
+      data: { status: 'COMPLETED' },
     })
   }
 

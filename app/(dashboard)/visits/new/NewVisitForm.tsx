@@ -27,7 +27,7 @@ const inputClass =
 const textareaClass =
   'w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring resize-none'
 
-export default function NewVisitForm({ setup }: { setup: VisitSetup }) {
+export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSetup; appointmentId?: string }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [pendingAction, setPendingAction] = useState<'checkout' | 'save' | null>(null)
@@ -72,6 +72,7 @@ export default function NewVisitForm({ setup }: { setup: VisitSetup }) {
         grossAmount: gross,
         isBracesReminder: isBracesCategory && isBracesReminder,
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
+        appointmentId,
       })
       if (action === 'checkout') {
         router.push(`/payments?visitId=${visitId}`)
