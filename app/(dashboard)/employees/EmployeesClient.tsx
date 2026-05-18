@@ -127,6 +127,7 @@ function EmployeeSheet({
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₱</span>
               <input type="number" min="0" step="0.01" value={monthlySalary} onChange={e => setMonthlySalary(e.target.value)} placeholder="0.00" className="w-full min-h-[48px] rounded-lg border border-input bg-background pl-8 pr-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" />
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Daily-paid? Multiply daily rate × 26 days (e.g. ₱500/day = ₱13,000/month)</p>
           </div>
           <div>
             <label className="text-xs font-medium text-muted-foreground">SSS Number <span className="text-red-500">*</span></label>

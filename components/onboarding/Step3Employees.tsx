@@ -115,7 +115,7 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Basic Salary (₱)</Label>
+                  <Label>Monthly Salary (₱)</Label>
                   <Input
                     type="number"
                     min="0"
@@ -125,6 +125,7 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                     placeholder="0.00"
                     className="min-h-[48px]"
                   />
+                  <p className="text-xs text-muted-foreground">Daily-paid? Daily rate × 26 days (e.g. ₱500/day = ₱13,000/month)</p>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Date Hired</Label>
