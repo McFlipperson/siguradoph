@@ -15,8 +15,14 @@ export default async function EmployeesPage() {
   })
 
   const now = new Date()
+  const currentWeek = Math.min(Math.ceil(now.getDate() / 7), 4)
   const payrollRecords = await prisma.payrollRecord.findMany({
-    where: { clinicId: user.clinicId, periodYear: now.getFullYear(), periodMonth: now.getMonth() + 1 },
+    where: {
+      clinicId: user.clinicId,
+      periodYear: now.getFullYear(),
+      periodMonth: now.getMonth() + 1,
+      periodWeek: currentWeek,
+    },
     include: { employee: { select: { fullName: true } } },
   })
 
@@ -40,6 +46,7 @@ export default async function EmployeesPage() {
         employeeName: r.employee.fullName,
         periodMonth: r.periodMonth,
         periodYear: r.periodYear,
+        periodWeek: r.periodWeek,
         basicSalary: Number(r.basicSalary),
         sssEmployee: Number(r.sssEmployee),
         sssEmployer: Number(r.sssEmployer),

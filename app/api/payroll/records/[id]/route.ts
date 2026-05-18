@@ -18,6 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     employeeName: record.employee.fullName,
     periodMonth: record.periodMonth,
     periodYear: record.periodYear,
+    periodWeek: record.periodWeek,
     basicSalary: Number(record.basicSalary),
     sssEmployee: Number(record.sssEmployee),
     sssEmployer: Number(record.sssEmployer),

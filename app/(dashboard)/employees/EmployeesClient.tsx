@@ -23,6 +23,7 @@ type PayrollRow = {
   employeeName: string
   periodMonth: number
   periodYear: number
+  periodWeek: number
   basicSalary: number
   sssEmployee: number
   sssEmployer: number
@@ -43,6 +44,31 @@ type EmployeeFormData = {
   philhealthNumber: string
   pagibigNumber: string
   tin: string
+}
+
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
+function weekOfMonth(date: Date): number {
+  return Math.min(Math.ceil(date.getDate() / 7), 4)
+}
+
+function prevWeek(month: number, year: number, week: number) {
+  if (week > 1) return { month, year, week: week - 1 }
+  // go to last week of previous month
+  const d = new Date(year, month - 1, 0) // last day of prev month
+  return { month: d.getMonth() + 1, year: d.getFullYear(), week: 4 }
+}
+
+function nextWeek(month: number, year: number, week: number) {
+  if (week < 4) return { month, year, week: week + 1 }
+  // go to first week of next month
+  const d = new Date(year, month, 1) // first day of next month
+  return { month: d.getMonth() + 1, year: d.getFullYear(), week: 1 }
+}
+
+function weekLabel(month: number, year: number, week: number): string {
+  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
+  return `Week ${week} — ${monthName}`
 }
 
 // ─── EmployeeSheet ────────────────────────────────────────────────────────────
@@ -168,10 +194,11 @@ export default function EmployeesClient({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState<EmployeeRow | null>(null)
 
-  // Payroll tab state
+  // Payroll tab state — weekly period
   const now = new Date()
   const [payrollMonth, setPayrollMonth] = useState(now.getMonth() + 1)
   const [payrollYear, setPayrollYear] = useState(now.getFullYear())
+  const [payrollWeek, setPayrollWeek] = useState(weekOfMonth(now))
   const [payrollRecords, setPayrollRecords] = useState<PayrollRow[]>(initialPayroll)
   const [loadingPayroll, setLoadingPayroll] = useState(false)
   const [runningPayroll, setRunningPayroll] = useState(false)
@@ -184,21 +211,24 @@ export default function EmployeesClient({
     return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
   }
 
-  const monthLabel = new Date(payrollYear, payrollMonth - 1, 1).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' })
-
-  function prevPayrollMonth() {
-    if (payrollMonth === 1) { setPayrollMonth(12); setPayrollYear(y => y - 1) }
-    else setPayrollMonth(m => m - 1)
-  }
-  function nextPayrollMonth() {
-    if (payrollMonth === 12) { setPayrollMonth(1); setPayrollYear(y => y + 1) }
-    else setPayrollMonth(m => m + 1)
+  function goToPrevWeek() {
+    const p = prevWeek(payrollMonth, payrollYear, payrollWeek)
+    setPayrollMonth(p.month)
+    setPayrollYear(p.year)
+    setPayrollWeek(p.week)
   }
 
-  const fetchPayroll = useCallback(async (month: number, year: number) => {
+  function goToNextWeek() {
+    const n = nextWeek(payrollMonth, payrollYear, payrollWeek)
+    setPayrollMonth(n.month)
+    setPayrollYear(n.year)
+    setPayrollWeek(n.week)
+  }
+
+  const fetchPayroll = useCallback(async (month: number, year: number, week: number) => {
     setLoadingPayroll(true)
     try {
-      const res = await fetch(`/api/payroll/records?month=${month}&year=${year}`)
+      const res = await fetch(`/api/payroll/records?month=${month}&year=${year}&week=${week}`)
       if (!res.ok) throw new Error('Failed to load payroll')
       setPayrollRecords(await res.json())
     } catch (err) {
@@ -209,8 +239,8 @@ export default function EmployeesClient({
   }, [])
 
   useEffect(() => {
-    if (tab === 'payroll') fetchPayroll(payrollMonth, payrollYear)
-  }, [tab, payrollMonth, payrollYear, fetchPayroll])
+    if (tab === 'payroll') fetchPayroll(payrollMonth, payrollYear, payrollWeek)
+  }, [tab, payrollMonth, payrollYear, payrollWeek, fetchPayroll])
 
   async function fetchEmployees() {
     try {
@@ -283,12 +313,17 @@ export default function EmployeesClient({
           fetch('/api/payroll/records', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ employeeId: emp.id, periodMonth: payrollMonth, periodYear: payrollYear }),
+            body: JSON.stringify({
+              employeeId: emp.id,
+              periodMonth: payrollMonth,
+              periodYear: payrollYear,
+              periodWeek: payrollWeek,
+            }),
           })
         )
       )
-      toast.success(`Payroll run for ${activeWithoutRecord.length} employee(s)`)
-      fetchPayroll(payrollMonth, payrollYear)
+      toast.success(`Week ${payrollWeek} payroll run for ${activeWithoutRecord.length} employee${activeWithoutRecord.length !== 1 ? 's' : ''}`)
+      fetchPayroll(payrollMonth, payrollYear, payrollWeek)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to run payroll')
     } finally {
@@ -302,19 +337,21 @@ export default function EmployeesClient({
       if (!res.ok) throw new Error('Failed to delete record')
       toast.success('Payroll record deleted')
       setDeletingRecordId(null)
-      fetchPayroll(payrollMonth, payrollYear)
+      fetchPayroll(payrollMonth, payrollYear, payrollWeek)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete')
     }
   }
 
   // Payroll summary
-  const totalGrossPayroll = payrollRecords.reduce((s, r) => s + r.basicSalary, 0)
+  const totalWeeklyGross = payrollRecords.reduce((s, r) => s + r.basicSalary, 0)
   const totalEmployerContributions = payrollRecords.reduce((s, r) => s + r.sssEmployer + r.philhealthEmployer + r.pagibigEmployer, 0)
   const totalNetPayroll = payrollRecords.reduce((s, r) => s + r.netPay, 0)
 
   const activeEmployees = employees.filter(e => e.isActive)
   const activeWithoutRecord = activeEmployees.filter(e => !payrollRecords.find(r => r.employeeId === e.id))
+
+  const currentWeekLabel = weekLabel(payrollMonth, payrollYear, payrollWeek)
 
   return (
     <div className="space-y-4 pb-4">
@@ -367,7 +404,10 @@ export default function EmployeesClient({
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">{emp.position}</p>
-                  <p className="text-sm font-medium mt-1">₱{fmt(emp.monthlySalary)}<span className="text-xs text-muted-foreground font-normal">/month</span></p>
+                  <p className="text-sm font-medium mt-1">
+                    ₱{fmt(emp.monthlySalary / 4)}<span className="text-xs text-muted-foreground font-normal">/week</span>
+                    <span className="text-xs text-muted-foreground font-normal ml-2">(₱{fmt(emp.monthlySalary)}/month)</span>
+                  </p>
                   <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
                     <span>SSS: {emp.sssNumber}</span>
                     <span>PhilHealth: {emp.philhealthNumber}</span>
@@ -393,11 +433,14 @@ export default function EmployeesClient({
       {/* ── PAYROLL TAB ── */}
       {tab === 'payroll' && (
         <div className="space-y-4">
-          {/* Month navigation */}
+          {/* Week navigation */}
           <div className="flex items-center justify-between gap-2">
-            <button onClick={prevPayrollMonth} className="p-2 rounded-lg border min-h-[44px] min-w-[44px] flex items-center justify-center text-lg">‹</button>
-            <span className="font-medium text-sm">{monthLabel}</span>
-            <button onClick={nextPayrollMonth} className="p-2 rounded-lg border min-h-[44px] min-w-[44px] flex items-center justify-center text-lg">›</button>
+            <button onClick={goToPrevWeek} className="p-2 rounded-lg border min-h-[44px] min-w-[44px] flex items-center justify-center text-lg">‹</button>
+            <div className="text-center">
+              <p className="font-medium text-sm">{currentWeekLabel}</p>
+              <p className="text-xs text-muted-foreground">Weekly payroll</p>
+            </div>
+            <button onClick={goToNextWeek} className="p-2 rounded-lg border min-h-[44px] min-w-[44px] flex items-center justify-center text-lg">›</button>
           </div>
 
           {/* Run Payroll button */}
@@ -407,7 +450,7 @@ export default function EmployeesClient({
               disabled={runningPayroll}
               className="w-full min-h-[48px] rounded-xl bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
             >
-              {runningPayroll ? 'Running…' : `Run Payroll for ${activeWithoutRecord.length} Employee${activeWithoutRecord.length !== 1 ? 's' : ''}`}
+              {runningPayroll ? 'Running…' : `Run Week ${payrollWeek} Payroll for ${activeWithoutRecord.length} Employee${activeWithoutRecord.length !== 1 ? 's' : ''}`}
             </button>
           )}
 
@@ -415,15 +458,15 @@ export default function EmployeesClient({
             <p className="text-sm text-muted-foreground text-center py-8">Loading…</p>
           ) : (
             <div className="space-y-3">
-              {/* Active employees with no record */}
+              {/* Active employees with no record this week */}
               {activeWithoutRecord.map(emp => (
                 <div key={emp.id} className="rounded-xl border bg-background p-4 opacity-50">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm">{emp.fullName}</p>
-                      <p className="text-xs text-muted-foreground">{emp.position} · ₱{fmt(emp.monthlySalary)}/month</p>
+                      <p className="text-xs text-muted-foreground">{emp.position} · ₱{fmt(emp.monthlySalary / 4)}/week</p>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">No payroll run</span>
+                    <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">Not run</span>
                   </div>
                 </div>
               ))}
@@ -435,11 +478,11 @@ export default function EmployeesClient({
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <p className="font-semibold text-sm">{rec.employeeName}</p>
-                        <p className="text-xs text-muted-foreground">{monthLabel}</p>
+                        <p className="text-xs text-muted-foreground">{currentWeekLabel}</p>
 
                         <div className="mt-3 space-y-1 text-sm">
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">Basic Salary</span>
+                            <span className="text-muted-foreground">Weekly Gross</span>
                             <span>₱{fmt(rec.basicSalary)}</span>
                           </div>
                           <div className="flex justify-between text-red-600">
@@ -507,7 +550,7 @@ export default function EmployeesClient({
             <div className="rounded-xl border bg-muted/30 p-4 text-sm space-y-1">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Gross Payroll</span>
-                <span className="font-medium">₱{fmt(totalGrossPayroll)}</span>
+                <span className="font-medium">₱{fmt(totalWeeklyGross)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Employer Contributions</span>

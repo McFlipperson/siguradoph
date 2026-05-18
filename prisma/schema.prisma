@@ -334,7 +334,8 @@ model PayrollRecord {
   clinicId           String
   periodMonth        Int
   periodYear         Int
-  basicSalary        Decimal
+  periodWeek         Int      @default(1)  // 1–4 (week of the month)
+  basicSalary        Decimal               // weekly gross (monthlySalary ÷ 4)
   sssEmployee        Decimal
   sssEmployer        Decimal
   philhealthEmployee Decimal
