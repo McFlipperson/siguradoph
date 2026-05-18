@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { IntakeForm } from '@/app/intake/[clinicId]/IntakeForm'
 

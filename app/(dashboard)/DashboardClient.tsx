@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { Users, Banknote, Clock, CalendarDays } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -106,7 +107,7 @@ export default function DashboardClient({ data }: Props) {
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <img src="/logo.png" alt="SiguradoPH" className="h-8 object-contain" />
+        <Image src="/logo.png" alt="SiguradoPH" width={120} height={32} className="h-8 w-auto object-contain" />
         <span className="text-sm text-muted-foreground font-medium">{todayLabel}</span>
       </div>
 
