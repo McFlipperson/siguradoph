@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
 import { getSessionUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import type { Invoice, Expense } from '@prisma/client'
 import ClinicReportClient from './ClinicReportClient'
 
 export const dynamic = 'force-dynamic'
@@ -72,7 +73,7 @@ export default async function ClinicReportPage({
     }),
   ])
 
-  const invoiceData = invoices.map((inv) => ({
+  const invoiceData = invoices.map((inv: Invoice) => ({
     id: inv.id,
     orNumber: inv.orNumber,
     transactionDate: inv.transactionDate.toISOString(),
@@ -86,7 +87,7 @@ export default async function ClinicReportPage({
     status: inv.status as string,
   }))
 
-  const expenseData = expenses.map((e) => ({
+  const expenseData = expenses.map((e: Expense) => ({
     id: e.id,
     date: e.date.toISOString(),
     category: e.category as string,
