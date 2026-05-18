@@ -111,12 +111,8 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Logo must be under 2 MB')
-      return
-    }
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file')
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be under 5 MB')
       return
     }
 
@@ -194,7 +190,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/heic, image/heif, image/svg+xml"
               className="hidden"
               onChange={handleLogoChange}
             />
@@ -219,7 +215,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
             )}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">PNG, JPG or SVG. Max 2 MB. Square logos work best.</p>
+        <p className="text-xs text-muted-foreground">PNG, JPG, screenshot — anything works. Max 5 MB.</p>
       </div>
 
       <div className="flex flex-col gap-2">
