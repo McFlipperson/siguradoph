@@ -6,37 +6,39 @@ const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 export function middleware(req: NextRequest) {
   const hostname = req.headers.get('host') || ''
   const url = req.nextUrl.clone()
-
-  // Strip port for local dev
   const host = hostname.replace(/:\d+$/, '')
 
-  // Root domain, www, localhost, and Vercel preview deployments serve normally
+  // Vercel preview deployments — serve normally
+  if (host.endsWith('.vercel.app')) {
+    return NextResponse.next()
+  }
+
+  // Root domain (sigurado.xyz / www.sigurado.xyz / localhost)
   if (
     host === ROOT_DOMAIN ||
     host === `www.${ROOT_DOMAIN}` ||
-    host === 'localhost' ||
-    host.endsWith('.vercel.app')
+    host === 'localhost'
   ) {
+    // Rewrite / to the coming soon page
+    if (url.pathname === '/') {
+      url.pathname = '/landing'
+      return NextResponse.rewrite(url)
+    }
     return NextResponse.next()
   }
 
-  // Extract subdomain
+  // Clinic subdomains (mine.sigurado.xyz, omega.sigurado.xyz, etc.)
+  // CPA portal
   const subdomain = host.replace(`.${ROOT_DOMAIN}`, '')
-
-  if (!subdomain || subdomain === 'www') {
-    return NextResponse.next()
-  }
-
-  // CPA portal lives at cpa.sigurado.xyz
   if (subdomain === 'cpa') {
     url.pathname = `/cpa${url.pathname === '/' ? '' : url.pathname}`
     return NextResponse.rewrite(url)
   }
 
-  // Clinic subdomains: pass everything through to the main app as-is
-  // mine.sigurado.xyz/ → dashboard
-  // mine.sigurado.xyz/login → login page
-  // mine.sigurado.xyz/patients/intake → intake form (authenticated)
+  // All other subdomains pass through to the main Next.js app as-is
+  // mine.sigurado.xyz/          → dashboard (/)
+  // mine.sigurado.xyz/login     → login page
+  // mine.sigurado.xyz/patients  → patients page
   return NextResponse.next()
 }
 

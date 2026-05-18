@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -9,8 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
+
 export default function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -30,8 +30,22 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/')
-    router.refresh()
+    // Fetch their clinic slug and redirect to subdomain dashboard
+    try {
+      const res = await fetch('/api/my-clinic-slug')
+      if (res.ok) {
+        const { slug } = await res.json() as { slug: string | null }
+        if (slug) {
+          window.location.href = `https://${slug}.${ROOT_DOMAIN}/`
+          return
+        }
+      }
+    } catch {
+      // no slug yet — fall through to onboarding
+    }
+
+    // No clinic yet — go to onboarding
+    window.location.href = '/onboarding'
   }
 
   return (

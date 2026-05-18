@@ -337,7 +337,18 @@ export default function OnboardingPage() {
           if (!clinicId) throw new Error('No clinic ID')
           await completeOnboarding(clinicId)
           toast('Setup complete! Welcome to Sigurado.')
-          router.push('/')
+          // Redirect to their clinic subdomain dashboard
+          const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
+          const slugRes = await fetch('/api/my-clinic-slug')
+          if (slugRes.ok) {
+            const { slug } = await slugRes.json() as { slug: string | null }
+            if (slug) {
+              window.location.href = `https://${slug}.${rootDomain}/`
+              resolve()
+              return
+            }
+          }
+          window.location.href = '/'
           resolve()
         } catch (err) {
           toast('Something went wrong. Please try again.')
