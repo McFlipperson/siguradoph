@@ -1,10 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { createClient } from '@/lib/supabase-browser'
+import { toast } from 'sonner'
 import type { Step1Data } from '@/app/(onboarding)/onboarding/actions'
 
 interface Step1IdentityProps {
@@ -34,6 +37,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
   const [form, setForm] = useState<Step1Data>({
     slug: initialData.slug ?? '',
+    logoUrl: initialData.logoUrl ?? null,
     clinicName: initialData.clinicName ?? '',
     ownerName: initialData.ownerName ?? '',
     street: initialData.street ?? '',
@@ -46,11 +50,13 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     enrollmentDate: initialData.enrollmentDate ?? today,
   })
   const [slugStatus, setSlugStatus] = useState<SlugStatus>(slugLocked ? 'available' : 'idle')
-  const [slugEdited, setSlugEdited] = useState(false) // true once user manually edits slug
+  const [slugEdited, setSlugEdited] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  function set(field: keyof Step1Data, value: string) {
+  function set(field: keyof Step1Data, value: string | null) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -101,6 +107,49 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     }
   })()
 
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Logo must be under 2 MB')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file')
+      return
+    }
+
+    setLogoUploading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const ext = file.name.split('.').pop() ?? 'png'
+      const path = `${user.id}/logo.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('clinic-logos')
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('clinic-logos')
+        .getPublicUrl(path)
+
+      setForm(prev => ({ ...prev, logoUrl: publicUrl }))
+      toast.success('Logo uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setLogoUploading(false)
+      // reset file input so same file can be re-selected
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
@@ -120,6 +169,57 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       <div>
         <h2 className="text-xl font-semibold mb-1">Clinic Identity</h2>
         <p className="text-sm text-muted-foreground">Tell us about your dental clinic.</p>
+      </div>
+
+      {/* Logo upload */}
+      <div className="flex flex-col gap-2">
+        <Label>Clinic Logo (optional)</Label>
+        <div className="flex items-center gap-4">
+          {/* Preview */}
+          <div className="w-16 h-16 rounded-xl border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+            {form.logoUrl ? (
+              <Image
+                src={form.logoUrl}
+                alt="Clinic logo"
+                width={64}
+                height={64}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
+            ) : (
+              <span className="text-2xl text-muted-foreground select-none">🏥</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 flex-1">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLogoChange}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-[48px]"
+              disabled={logoUploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {logoUploading ? 'Uploading…' : form.logoUrl ? 'Change Logo' : 'Upload Logo'}
+            </Button>
+            {form.logoUrl && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="min-h-[40px] text-destructive hover:text-destructive"
+                onClick={() => setForm(prev => ({ ...prev, logoUrl: null }))}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">PNG, JPG or SVG. Max 2 MB. Square logos work best.</p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -278,7 +378,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isSaving} className="w-full min-h-[48px]">
+      <Button type="submit" disabled={isSaving || logoUploading} className="w-full min-h-[48px]">
         {isSaving ? 'Saving…' : 'Next →'}
       </Button>
     </form>

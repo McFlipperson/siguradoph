@@ -80,6 +80,7 @@ export default function OnboardingPage() {
           const s: WizardState = {
             step1: {
               slug: clinic.slug ?? '',
+              logoUrl: clinic.logoUrl ?? null,
               clinicName: clinic.name,
               ownerName: clinic.ownerName,
               street: clinic.street,

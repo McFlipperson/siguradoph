@@ -57,6 +57,7 @@ enum ExpenseCategory {
 model Clinic {
   id                       String       @id @default(cuid())
   slug                     String?      @unique
+  logoUrl                  String?
   name                     String
   ownerName                String
   street                   String

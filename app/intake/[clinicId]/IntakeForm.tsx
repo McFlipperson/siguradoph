@@ -1,9 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { submitIntake, type IntakeFormData } from './actions'
 
-type Clinic = { id: string; name: string }
+type Clinic = { id: string; name: string; logoUrl?: string | null }
 
 const GUARDIAN_RELATIONSHIPS = [
   'Mother',
@@ -148,6 +149,18 @@ export function IntakeForm({ clinic }: { clinic: Clinic }) {
 
         {/* Header */}
         <div className="mb-8 text-center">
+          {clinic.logoUrl && (
+            <div className="flex justify-center mb-4">
+              <Image
+                src={clinic.logoUrl}
+                alt={clinic.name}
+                width={80}
+                height={80}
+                className="h-20 w-auto object-contain"
+                unoptimized
+              />
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-900">{clinic.name}</h1>
           <p className="text-lg font-semibold text-gray-700 mt-1">
             Patient Intake Form

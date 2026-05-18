@@ -46,6 +46,7 @@ type RecentInvoice = {
 
 type DashboardData = {
   clinicName: string
+  logoUrl: string | null
   stats: {
     patientsSeen: number
     todayRevenue: number
@@ -107,7 +108,14 @@ export default function DashboardClient({ data }: Props) {
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <Image src="/logo.png" alt="SiguradoPH" width={120} height={32} className="h-8 w-auto object-contain" />
+        <Image
+          src={data.logoUrl ?? '/logo.png'}
+          alt={data.clinicName}
+          width={120}
+          height={32}
+          className="h-8 w-auto object-contain"
+          unoptimized={!!data.logoUrl}
+        />
         <span className="text-sm text-muted-foreground font-medium">{todayLabel}</span>
       </div>
 

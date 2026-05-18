@@ -10,7 +10,7 @@ export default async function SlugIntakePage({
 }) {
   const clinic = await prisma.clinic.findUnique({
     where: { slug: params.slug },
-    select: { id: true, name: true, enrollmentDate: true },
+    select: { id: true, name: true, logoUrl: true, enrollmentDate: true },
   })
 
   if (!clinic) {
@@ -23,5 +23,5 @@ export default async function SlugIntakePage({
     )
   }
 
-  return <IntakeForm clinic={{ id: clinic.id, name: clinic.name }} />
+  return <IntakeForm clinic={{ id: clinic.id, name: clinic.name, logoUrl: clinic.logoUrl }} />
 }

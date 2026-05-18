@@ -105,6 +105,7 @@ export async function getDashboardData() {
 
   return {
     clinicName: clinic.name,
+    logoUrl: clinic.logoUrl ?? null,
     stats: {
       patientsSeen,
       todayRevenue: Number(todayRevenue._sum.grossAmount ?? 0),
