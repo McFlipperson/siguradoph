@@ -46,7 +46,7 @@ export default function RegisterPage() {
     return (
       <div className="flex flex-col gap-4 text-center">
         <div className="flex flex-col items-center gap-3">
-          <Image src="/logo.png" alt="SiguradoPH" width={64} height={64} className="rounded-xl object-contain" />
+          <Image src="/logo.png" alt="Sigurado" width={64} height={64} className="rounded-xl object-contain" />
           <h1 className="text-2xl font-bold">Check your email</h1>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -63,7 +63,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Image src="/logo.png" alt="SiguradoPH" width={64} height={64} className="rounded-xl object-contain" />
+        <Image src="/logo.png" alt="Sigurado" width={64} height={64} className="rounded-xl object-contain" />
         <div>
           <h1 className="text-2xl font-bold">Create your account</h1>
           <p className="text-sm text-muted-foreground mt-1">You&apos;ll set up your clinic after signing in</p>

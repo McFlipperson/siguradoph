@@ -16,7 +16,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "SiguradoPH",
+  title: "Sigurado",
   description: "Dental clinic practice management for the Philippines",
 };
 

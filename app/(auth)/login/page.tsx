@@ -55,9 +55,9 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-3 text-center">
-        <Image src="/logo.png" alt="SiguradoPH" width={64} height={64} className="rounded-xl object-contain" />
+        <Image src="/logo.png" alt="Sigurado" width={64} height={64} className="rounded-xl object-contain" />
         <div>
-          <h1 className="text-2xl font-bold">SiguradoPH</h1>
+          <h1 className="text-2xl font-bold">Sigurado</h1>
           <p className="text-sm text-muted-foreground mt-1">Sign in to your clinic account</p>
         </div>
       </div>

@@ -183,7 +183,7 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
             <td style="padding:16px 28px;text-align:center;">
               <p style="margin:0;font-size:12px;color:#9ca3af;">
                 This is an official receipt issued by ${data.clinicName}.<br>
-                Powered by SiguradoPH
+                Powered by Sigurado
               </p>
             </td>
           </tr>

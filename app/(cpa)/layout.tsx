@@ -10,7 +10,7 @@ export default async function CpaLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="w-56 bg-white border-r flex flex-col py-6 px-4 gap-1 shrink-0">
-        <div className="font-bold text-sm text-primary mb-4 px-2">SiguradoPH CPA</div>
+        <div className="font-bold text-sm text-primary mb-4 px-2">Sigurado CPA</div>
         <Link href="/cpa/clinics" className="px-3 py-2 rounded-lg text-sm hover:bg-muted transition-colors">
           My Clinics
         </Link>

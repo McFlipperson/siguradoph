@@ -108,7 +108,7 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
   e = e
     .align('center')
     .line('Thank you for your visit!')
-    .line('Powered by SiguradoPH')
+    .line('Powered by Sigurado')
     .newline()
     .newline()
     .newline()

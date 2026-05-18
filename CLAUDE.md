@@ -1,4 +1,4 @@
-# SiguradoPH — Claude Code Context
+# Sigurado — Claude Code Context
 
 ## What this is
 Dental clinic practice management SaaS for the Philippines.

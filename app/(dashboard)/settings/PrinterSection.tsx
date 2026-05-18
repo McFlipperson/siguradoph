@@ -97,7 +97,7 @@ export function PrinterSection() {
         '@/lib/thermal'
       )
       const bytes = await buildReceiptBytes({
-        clinicName: 'SiguradoPH Clinic',
+        clinicName: 'Sigurado Clinic',
         clinicAddress: '123 Main St, City, Province 1000',
         clinicTin: '000-000-000-000',
         orNumber: 'TEST-0001',

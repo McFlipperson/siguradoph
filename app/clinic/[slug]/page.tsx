@@ -39,7 +39,7 @@ export default async function ClinicSlugPage({
           </Link>
         </div>
 
-        <p className="text-xs text-gray-400">Powered by SiguradoPH</p>
+        <p className="text-xs text-gray-400">Powered by Sigurado</p>
       </div>
     </div>
   )

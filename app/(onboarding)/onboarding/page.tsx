@@ -336,7 +336,7 @@ export default function OnboardingPage() {
         try {
           if (!clinicId) throw new Error('No clinic ID')
           await completeOnboarding(clinicId)
-          toast('Setup complete! Welcome to SiguradoPH.')
+          toast('Setup complete! Welcome to Sigurado.')
           router.push('/')
           resolve()
         } catch (err) {
