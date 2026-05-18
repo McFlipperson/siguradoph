@@ -6,12 +6,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 
-export function QRSection({ clinicId }: { clinicId: string }) {
-  const intakeUrl = `https://siguradoph.app/intake/${clinicId}`
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
+
+export function QRSection({ clinicId, slug }: { clinicId: string; slug?: string | null }) {
+  const intakeUrl = slug
+    ? `https://${slug}.${ROOT_DOMAIN}/intake`
+    : `https://${ROOT_DOMAIN}/intake/${clinicId}`
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [qrReady, setQrReady] = useState(false)
 
   useEffect(() => {
+    setQrReady(false)
     if (!canvasRef.current) return
     QRCode.toCanvas(canvasRef.current, intakeUrl, {
       width: 256,

@@ -19,6 +19,7 @@ const SUPPLIER_CATEGORIES = [
 
 type ClinicData = {
   id: string
+  slug: string | null
   name: string
   ownerName: string
   street: string
@@ -668,7 +669,7 @@ export default function SettingsClient({
       {/* ── DEVICES TAB ── */}
       {tab === 'devices' && (
         <div className="space-y-6">
-          <QRSection clinicId={clinic.id} />
+          <QRSection clinicId={clinic.id} slug={clinic.slug} />
           <PrinterSection />
         </div>
       )}

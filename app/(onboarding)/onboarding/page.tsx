@@ -79,6 +79,7 @@ export default function OnboardingPage() {
           // Populate state from clinic
           const s: WizardState = {
             step1: {
+              slug: clinic.slug ?? '',
               clinicName: clinic.name,
               ownerName: clinic.ownerName,
               street: clinic.street,

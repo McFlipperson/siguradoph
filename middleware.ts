@@ -1,51 +1,43 @@
-import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/register', '/intake']
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+export function middleware(req: NextRequest) {
+  const hostname = req.headers.get('host') || ''
+  const url = req.nextUrl.clone()
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return req.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            res.cookies.set(name, value, options)
-          })
-        },
-      },
-    }
-  )
+  // Strip port for local dev
+  const host = hostname.replace(/:\d+$/, '')
 
-  const { data: { session } } = await supabase.auth.getSession()
-
-  const { pathname } = req.nextUrl
-
-  // /intake/[clinicId] is fully public — no auth check
-  if (pathname.startsWith('/intake')) return res
-
-  const isPublicPath = PUBLIC_PATHS.some(p => pathname.startsWith(p))
-
-  // Unauthenticated user hitting a protected route
-  if (!session && !isPublicPath) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  // Root domain, www, localhost, and Vercel preview deployments serve normally
+  if (
+    host === ROOT_DOMAIN ||
+    host === `www.${ROOT_DOMAIN}` ||
+    host === 'localhost' ||
+    host.endsWith('.vercel.app')
+  ) {
+    return NextResponse.next()
   }
 
-  // Authenticated user hitting auth pages
-  if (session && isPublicPath) {
-    return NextResponse.redirect(new URL('/', req.url))
+  // Extract subdomain
+  const subdomain = host.replace(`.${ROOT_DOMAIN}`, '')
+
+  if (!subdomain || subdomain === 'www') {
+    return NextResponse.next()
   }
 
-  return res
+  // CPA portal lives at cpa.sigurado.xyz
+  if (subdomain === 'cpa') {
+    url.pathname = `/cpa${url.pathname === '/' ? '' : url.pathname}`
+    return NextResponse.rewrite(url)
+  }
+
+  // Otherwise treat as clinic slug
+  url.pathname = `/clinic/${subdomain}${url.pathname === '/' ? '' : url.pathname}`
+  return NextResponse.rewrite(url)
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 }

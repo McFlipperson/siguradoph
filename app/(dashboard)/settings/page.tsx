@@ -32,6 +32,7 @@ export default async function SettingsPage() {
     <SettingsClient
       clinic={{
         id: clinic.id,
+        slug: clinic.slug ?? null,
         name: clinic.name,
         ownerName: clinic.ownerName,
         street: clinic.street,

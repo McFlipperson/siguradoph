@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -13,10 +13,27 @@ interface Step1IdentityProps {
   isSaving: boolean
 }
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 const today = new Date().toISOString().split('T')[0]
+const SLUG_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/[\s]+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 40)
+}
+
+type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
 
 export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityProps) {
+  const slugLocked = Boolean(initialData.slug) // slug is immutable once saved
+
   const [form, setForm] = useState<Step1Data>({
+    slug: initialData.slug ?? '',
     clinicName: initialData.clinicName ?? '',
     ownerName: initialData.ownerName ?? '',
     street: initialData.street ?? '',
@@ -28,15 +45,69 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     facebookPageUrl: initialData.facebookPageUrl ?? '',
     enrollmentDate: initialData.enrollmentDate ?? today,
   })
+  const [slugStatus, setSlugStatus] = useState<SlugStatus>(slugLocked ? 'available' : 'idle')
+  const [slugEdited, setSlugEdited] = useState(false) // true once user manually edits slug
   const [error, setError] = useState<string | null>(null)
+  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function set(field: keyof Step1Data, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  // Auto-generate slug from clinic name (only if not manually edited and not locked)
+  useEffect(() => {
+    if (slugLocked || slugEdited) return
+    const generated = toSlug(form.clinicName)
+    if (generated.length >= 3) {
+      setForm(prev => ({ ...prev, slug: generated }))
+    }
+  }, [form.clinicName, slugEdited, slugLocked])
+
+  const checkSlug = useCallback((slug: string) => {
+    if (checkTimer.current) clearTimeout(checkTimer.current)
+    if (slug.length < 3) { setSlugStatus('invalid'); return }
+    if (!SLUG_RE.test(slug)) { setSlugStatus('invalid'); return }
+    setSlugStatus('checking')
+    checkTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(slug)}`)
+        const data = await res.json() as { available: boolean }
+        setSlugStatus(data.available ? 'available' : 'taken')
+      } catch {
+        setSlugStatus('idle')
+      }
+    }, 400)
+  }, [])
+
+  function handleSlugChange(value: string) {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, '')
+    setSlugEdited(true)
+    set('slug', cleaned)
+    checkSlug(cleaned)
+  }
+
+  function handleSlugBlur() {
+    if (!slugLocked) checkSlug(form.slug)
+  }
+
+  const slugHint: { text: string; color: string } | null = (() => {
+    if (slugLocked) return { text: 'Your clinic address is locked and cannot be changed.', color: 'text-muted-foreground' }
+    switch (slugStatus) {
+      case 'checking': return { text: 'Checking availability…', color: 'text-muted-foreground' }
+      case 'available': return { text: '✓ Available', color: 'text-green-600' }
+      case 'taken': return { text: '✗ Already taken — try a different one', color: 'text-destructive' }
+      case 'invalid': return { text: 'Use only lowercase letters, numbers, and hyphens (min 3 characters)', color: 'text-destructive' }
+      default: return null
+    }
+  })()
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
+    if (!slugLocked && slugStatus !== 'available') {
+      setError('Please choose a valid, available clinic address before continuing.')
+      return
+    }
     try {
       await onSave(form)
     } catch (err) {
@@ -61,6 +132,37 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
           className="min-h-[48px]"
           placeholder="e.g. Dela Cruz Dental Clinic"
         />
+      </div>
+
+      {/* Slug / Clinic URL */}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="slug">Your Clinic Address *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">
+          This is the web address your staff will use to log in. Choose something short and recognizable — like your clinic name.{' '}
+          <span className="font-medium">You cannot change this later.</span>
+        </p>
+        <div className="flex items-center gap-0 border border-input rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-ring">
+          <span className="bg-muted text-muted-foreground text-sm px-3 py-3 border-r border-input whitespace-nowrap select-none">
+            {ROOT_DOMAIN}/
+          </span>
+          <Input
+            id="slug"
+            value={form.slug}
+            onChange={e => handleSlugChange(e.target.value)}
+            onBlur={handleSlugBlur}
+            disabled={slugLocked}
+            className="border-0 rounded-none shadow-none focus-visible:ring-0 min-h-[48px]"
+            placeholder="dela-cruz-dental"
+          />
+        </div>
+        {form.slug && (
+          <p className="text-xs text-muted-foreground font-mono">
+            {form.slug}.{ROOT_DOMAIN}
+          </p>
+        )}
+        {slugHint && (
+          <p className={`text-xs ${slugHint.color}`}>{slugHint.text}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
@@ -174,15 +276,9 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
         </CardContent>
       </Card>
 
-      {error && (
-        <p className="text-sm text-destructive">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button
-        type="submit"
-        disabled={isSaving}
-        className="w-full min-h-[48px]"
-      >
+      <Button type="submit" disabled={isSaving} className="w-full min-h-[48px]">
         {isSaving ? 'Saving…' : 'Next →'}
       </Button>
     </form>

@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
+
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -28,6 +30,22 @@ export default function LoginPage() {
       setError('Incorrect email or password.')
       setLoading(false)
       return
+    }
+
+    // In production, redirect to the clinic's subdomain
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        const res = await fetch('/api/my-clinic-slug')
+        if (res.ok) {
+          const { slug } = await res.json() as { slug: string | null }
+          if (slug) {
+            window.location.href = `https://${slug}.${ROOT_DOMAIN}/`
+            return
+          }
+        }
+      } catch {
+        // Fall through to default redirect
+      }
     }
 
     router.push('/')
