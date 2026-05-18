@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
 import { Step1Identity } from '@/components/onboarding/Step1Identity'
@@ -61,7 +60,6 @@ const initialState: WizardState = {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [clinicId, setClinicId] = useState<string | null>(null)
   const [isSaving, startSaving] = useTransition()
