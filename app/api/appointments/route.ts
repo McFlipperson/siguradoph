@@ -6,7 +6,7 @@ import { addDays, setHours, setMinutes, setSeconds, setMilliseconds } from 'date
 
 const TZ = 'Asia/Manila'
 
-async function getClinicId(req: NextRequest) {
+async function getClinicId() {
   const supabase = createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
@@ -15,8 +15,8 @@ async function getClinicId(req: NextRequest) {
 }
 
 // GET: today's appointments for the clinic
-export async function GET(req: NextRequest) {
-  const clinicId = await getClinicId(req)
+export async function GET() {
+  const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const now = new Date()
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
 
 // POST: create appointment + reminder
 export async function POST(req: NextRequest) {
-  const clinicId = await getClinicId(req)
+  const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()

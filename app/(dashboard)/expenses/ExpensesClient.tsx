@@ -15,7 +15,6 @@ const EXPENSE_CATEGORIES = [
   { value: 'OTHER', label: 'Other' },
 ] as const
 
-type CategoryValue = typeof EXPENSE_CATEGORIES[number]['value']
 
 type ExpenseRow = {
   id: string

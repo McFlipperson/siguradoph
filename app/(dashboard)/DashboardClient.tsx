@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { Users, Banknote, Clock, CalendarDays } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import {
   BarChart,
   Bar,

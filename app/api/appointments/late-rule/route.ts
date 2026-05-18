@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
@@ -6,7 +6,7 @@ import { setHours, setMinutes, setSeconds, setMilliseconds, subMinutes } from 'd
 
 const TZ = 'Asia/Manila'
 
-export async function POST(req: NextRequest) {
+export async function POST() {
   const supabase = createServerClient()
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

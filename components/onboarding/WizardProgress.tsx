@@ -1,6 +1,6 @@
 'use client'
 
-import { ProgressTrack, ProgressIndicator } from '@/components/ui/progress'
+import { Progress, ProgressTrack, ProgressIndicator } from '@/components/ui/progress'
 
 interface WizardProgressProps {
   currentStep: number
@@ -16,9 +16,11 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
         <span className="font-medium">Step {currentStep} of {totalSteps}</span>
         <span className="text-muted-foreground">{pct}%</span>
       </div>
-      <ProgressTrack>
-        <ProgressIndicator style={{ width: `${pct}%` }} />
-      </ProgressTrack>
+      <Progress value={pct}>
+        <ProgressTrack>
+          <ProgressIndicator style={{ width: `${pct}%` }} />
+        </ProgressTrack>
+      </Progress>
     </div>
   )
 }

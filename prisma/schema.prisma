@@ -83,7 +83,7 @@ model Clinic {
   pagibigEmployerNumber    String?
   loyaltyCardEnabled       Boolean      @default(true)
   loyaltyCardPrice         Decimal      @default(500)
-  loyaltyCardValidityYears Int          @default(2)
+  loyaltyValidityMonths    Int          @default(24)
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
 
@@ -100,7 +100,8 @@ model Clinic {
   suppliers         Supplier[]
   incidentLogs      IncidentLog[]
   serviceCatalog    ServiceCatalog[]
-  cpaAssignments    CpaClinicAssignment[]
+  cpaAssignments        CpaClinicAssignment[]
+  loyaltyCardTemplates  LoyaltyCardTemplate[]
 }
 
 model User {
@@ -390,4 +391,18 @@ model ScheduledReminder {
   sent         Boolean   @default(false)
   sentAt       DateTime?
   createdAt    DateTime  @default(now())
+}
+
+model LoyaltyCardTemplate {
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  serviceName   String
+  isFree        Boolean  @default(false)
+  tier1Uses     Int      @default(0)
+  tier1Discount Decimal  @default(0)
+  tier2Uses     Int?
+  tier2Discount Decimal?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
 }

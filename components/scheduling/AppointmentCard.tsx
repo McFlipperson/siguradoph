@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { toZonedTime } from 'date-fns-tz'
 import { Card, CardContent } from '@/components/ui/card'
@@ -54,7 +53,6 @@ const TYPE_LABELS: Record<string, string> = {
 const TZ = 'Asia/Manila'
 
 export default function AppointmentCard({ appointment, showLateWarning, onAction }: Props) {
-  const router = useRouter()
   const [expanded, setExpanded] = useState(false)
 
   const scheduledManila = toZonedTime(new Date(appointment.scheduledAt), TZ)

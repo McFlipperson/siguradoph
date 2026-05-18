@@ -33,6 +33,7 @@ import type {
   EquipmentData,
   SupplierData,
   ServiceData,
+  Step8Data,
 } from './actions'
 
 export type WizardState = {
@@ -43,7 +44,7 @@ export type WizardState = {
   step5: EquipmentData[]
   step6: SupplierData[]
   step7: ServiceData[]
-  step8: { loyaltyCardEnabled: boolean }
+  step8: Step8Data
 }
 
 const TOTAL_STEPS = 9
@@ -56,7 +57,7 @@ const initialState: WizardState = {
   step5: [],
   step6: [],
   step7: [],
-  step8: { loyaltyCardEnabled: true },
+  step8: { loyaltyCardEnabled: true, loyaltyCardPrice: 500, loyaltyValidityMonths: 24, templates: [] },
 }
 
 export default function OnboardingPage() {
@@ -146,7 +147,19 @@ export default function OnboardingPage() {
               isActive: sc.isActive,
               sortOrder: sc.sortOrder,
             })),
-            step8: { loyaltyCardEnabled: clinic.loyaltyCardEnabled },
+            step8: {
+              loyaltyCardEnabled: clinic.loyaltyCardEnabled,
+              loyaltyCardPrice: Number(clinic.loyaltyCardPrice),
+              loyaltyValidityMonths: clinic.loyaltyValidityMonths,
+              templates: clinic.loyaltyCardTemplates.map(t => ({
+                serviceName: t.serviceName,
+                isFree: t.isFree,
+                tier1Uses: t.tier1Uses,
+                tier1Discount: Number(t.tier1Discount),
+                tier2Uses: t.tier2Uses ?? null,
+                tier2Discount: t.tier2Discount !== null && t.tier2Discount !== undefined ? Number(t.tier2Discount) : null,
+              })),
+            },
           }
           setAllData(s)
 
@@ -298,13 +311,13 @@ export default function OnboardingPage() {
   }
 
   // Step 8
-  function handleSaveStep8(loyaltyCardEnabled: boolean): Promise<void> {
+  function handleSaveStep8(data: Step8Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
-          await saveStep8(clinicId, loyaltyCardEnabled)
-          setAllData(prev => ({ ...prev, step8: { loyaltyCardEnabled } }))
+          await saveStep8(clinicId, data)
+          setAllData(prev => ({ ...prev, step8: data }))
           setCurrentStep(9)
           resolve()
         } catch (err) {
@@ -322,7 +335,7 @@ export default function OnboardingPage() {
           if (!clinicId) throw new Error('No clinic ID')
           await completeOnboarding(clinicId)
           toast('Setup complete! Welcome to SiguradoPH.')
-          router.push('/dashboard')
+          router.push('/')
           resolve()
         } catch (err) {
           toast('Something went wrong. Please try again.')
@@ -364,7 +377,6 @@ export default function OnboardingPage() {
 
       {currentStep === 3 && clinicId && (
         <Step3Employees
-          clinicId={clinicId}
           initialData={allData.step3}
           onSave={handleSaveStep3}
           onBack={handleBack}
@@ -414,7 +426,6 @@ export default function OnboardingPage() {
 
       {currentStep === 8 && clinicId && (
         <Step8Loyalty
-          clinicId={clinicId}
           initialData={allData.step8}
           onSave={handleSaveStep8}
           onBack={handleBack}

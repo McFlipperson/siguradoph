@@ -10,7 +10,7 @@ async function getClinicId() {
   return user?.clinicId ?? null
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 

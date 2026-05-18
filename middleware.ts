@@ -40,7 +40,7 @@ export async function middleware(req: NextRequest) {
 
   // Authenticated user hitting auth pages
   if (session && isPublicPath) {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   return res

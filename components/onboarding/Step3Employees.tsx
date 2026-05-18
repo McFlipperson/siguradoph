@@ -4,13 +4,10 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { computeSSS, computePhilHealth, computePagIbig, computeWithholdingTax } from '@/lib/contributions'
+import { Card, CardContent } from '@/components/ui/card'
 import type { Step3Data, EmployeeData } from '@/app/(onboarding)/onboarding/actions'
 
 interface Step3EmployeesProps {
-  clinicId: string
   initialData: Partial<Step3Data>
   onSave: (data: Step3Data) => Promise<void>
   onBack: () => void
@@ -20,7 +17,7 @@ interface Step3EmployeesProps {
 const emptyEmployee = (): EmployeeData => ({
   fullName: '',
   position: '',
-  dateHired: '',
+  dateHired: new Date().toISOString().split('T')[0],
   monthlySalary: 0,
   sssNumber: '',
   philhealthNumber: '',
@@ -28,19 +25,11 @@ const emptyEmployee = (): EmployeeData => ({
   tin: '',
 })
 
-function fmt(n: number) {
-  return n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3EmployeesProps) {
-  const [hasEmployees, setHasEmployees] = useState(initialData.hasEmployees ?? false)
-  const [sssEmployerNumber, setSssEmployerNumber] = useState(initialData.sssEmployerNumber ?? '')
-  const [philhealthEmployerNumber, setPhilhealthEmployerNumber] = useState(initialData.philhealthEmployerNumber ?? '')
-  const [pagibigEmployerNumber, setPagibigEmployerNumber] = useState(initialData.pagibigEmployerNumber ?? '')
   const [employees, setEmployees] = useState<EmployeeData[]>(
     initialData.employees && initialData.employees.length > 0
       ? initialData.employees
-      : [emptyEmployee(), emptyEmployee()]
+      : []
   )
   const [error, setError] = useState<string | null>(null)
 
@@ -64,15 +53,13 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
     e.preventDefault()
     setError(null)
     try {
-      const validEmployees = hasEmployees
-        ? employees.filter(emp => emp.fullName.trim() !== '')
-        : []
+      const valid = employees.filter(e => e.fullName.trim() !== '')
       await onSave({
-        hasEmployees,
-        sssEmployerNumber: hasEmployees ? sssEmployerNumber : undefined,
-        philhealthEmployerNumber: hasEmployees ? philhealthEmployerNumber : undefined,
-        pagibigEmployerNumber: hasEmployees ? pagibigEmployerNumber : undefined,
-        employees: validEmployees,
+        hasEmployees: valid.length > 0,
+        sssEmployerNumber: initialData.sssEmployerNumber ?? '',
+        philhealthEmployerNumber: initialData.philhealthEmployerNumber ?? '',
+        pagibigEmployerNumber: initialData.pagibigEmployerNumber ?? '',
+        employees: valid,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save. Please try again.')
@@ -83,243 +70,121 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Employees</h2>
-        <p className="text-sm text-muted-foreground">Set up payroll and contribution tracking.</p>
+        <p className="text-sm text-muted-foreground">Add staff who will be on payroll. You can skip this and add them later.</p>
       </div>
 
-      {/* Large toggle */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex items-center justify-between min-h-[48px]">
-            <div>
-              <p className="font-medium">
-                {hasEmployees ? 'Yes, I have employees' : 'No employees yet'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {hasEmployees
-                  ? 'Payroll and contributions will be tracked.'
-                  : 'You can add employees later in Settings.'}
-              </p>
-            </div>
-            <Switch
-              checked={hasEmployees}
-              onCheckedChange={setHasEmployees}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {hasEmployees && (
-        <>
-          {/* Employer numbers */}
-          <div>
-            <h3 className="font-medium mb-3">Employer Numbers</h3>
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="sssEmployer">SSS Employer Number</Label>
-                <Input
-                  id="sssEmployer"
-                  value={sssEmployerNumber}
-                  onChange={e => setSssEmployerNumber(e.target.value)}
-                  className="min-h-[48px]"
-                  placeholder="03-XXXXXXX-X"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="phEmployer">PhilHealth Employer Number</Label>
-                <Input
-                  id="phEmployer"
-                  value={philhealthEmployerNumber}
-                  onChange={e => setPhilhealthEmployerNumber(e.target.value)}
-                  className="min-h-[48px]"
-                  placeholder="XX-XXXXXXXX-X"
-                />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="piEmployer">Pag-IBIG Employer Number</Label>
-                <Input
-                  id="piEmployer"
-                  value={pagibigEmployerNumber}
-                  onChange={e => setPagibigEmployerNumber(e.target.value)}
-                  className="min-h-[48px]"
-                  placeholder="XXXX-XXXX-XXXX"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Employee rows */}
-          <div className="flex flex-col gap-4">
-            <h3 className="font-medium">Employees</h3>
-            {employees.map((emp, idx) => {
-              const salary = Number(emp.monthlySalary) || 0
-              const sss = computeSSS(salary)
-              const ph = computePhilHealth(salary)
-              const pi = computePagIbig(salary)
-              const wt = computeWithholdingTax(salary)
-              const net = salary - sss.employee - ph.employee - pi.employee - wt
-
-              return (
-                <Card key={idx}>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center justify-between">
-                      Employee {idx + 1}
-                      {employees.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeEmployee(idx)}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex flex-col gap-3">
-                    <div className="flex flex-col gap-2">
-                      <Label>Full Name *</Label>
-                      <Input
-                        value={emp.fullName}
-                        onChange={e => updateEmployee(idx, 'fullName', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="Juan dela Cruz"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>Position *</Label>
-                      <Input
-                        value={emp.position}
-                        onChange={e => updateEmployee(idx, 'position', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="Dental Assistant"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>Date Hired *</Label>
-                      <Input
-                        type="date"
-                        value={emp.dateHired}
-                        onChange={e => updateEmployee(idx, 'dateHired', e.target.value)}
-                        max={new Date().toISOString().split('T')[0]}
-                        className="min-h-[48px]"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>Monthly Salary (₱) *</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={emp.monthlySalary || ''}
-                        onChange={e => updateEmployee(idx, 'monthlySalary', parseFloat(e.target.value) || 0)}
-                        className="min-h-[48px]"
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>SSS Number *</Label>
-                      <Input
-                        value={emp.sssNumber}
-                        onChange={e => updateEmployee(idx, 'sssNumber', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="XX-XXXXXXX-X"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>PhilHealth Number *</Label>
-                      <Input
-                        value={emp.philhealthNumber}
-                        onChange={e => updateEmployee(idx, 'philhealthNumber', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="XX-XXXXXXXXX-X"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>Pag-IBIG Number *</Label>
-                      <Input
-                        value={emp.pagibigNumber}
-                        onChange={e => updateEmployee(idx, 'pagibigNumber', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="XXXX-XXXX-XXXX"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <Label>TIN (optional)</Label>
-                      <Input
-                        value={emp.tin}
-                        onChange={e => updateEmployee(idx, 'tin', e.target.value)}
-                        className="min-h-[48px]"
-                        placeholder="XXX-XXX-XXX-XXX"
-                      />
-                    </div>
-
-                    {salary > 0 && (
-                      <Card className="bg-muted/40">
-                        <CardHeader>
-                          <CardTitle className="text-xs">Auto-computed contributions</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-xs space-y-1">
-                          <div className="flex justify-between">
-                            <span>SSS (employee)</span>
-                            <span>₱{fmt(sss.employee)}</span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>SSS (employer)</span>
-                            <span>₱{fmt(sss.employer)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>PhilHealth (employee)</span>
-                            <span>₱{fmt(ph.employee)}</span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>PhilHealth (employer)</span>
-                            <span>₱{fmt(ph.employer)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Pag-IBIG (employee)</span>
-                            <span>₱{fmt(pi.employee)}</span>
-                          </div>
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Pag-IBIG (employer)</span>
-                            <span>₱{fmt(pi.employer)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Withholding Tax</span>
-                            <span>₱{fmt(wt)}</span>
-                          </div>
-                          <div className="flex justify-between font-semibold border-t pt-1 mt-1">
-                            <span>Net Pay</span>
-                            <span>₱{fmt(net)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addEmployee}
-              className="min-h-[48px]"
-            >
-              + Add Employee
-            </Button>
-          </div>
-        </>
-      )}
-
-      {!hasEmployees && (
+      {employees.length === 0 ? (
         <Card className="bg-muted/40">
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">
-              No payroll tracking will be set up. You can add employees later in the Employees section of your dashboard.
-            </p>
+          <CardContent className="pt-5 pb-5 text-center">
+            <p className="text-sm text-muted-foreground">No employees added — that&apos;s fine. Add them later in the dashboard.</p>
           </CardContent>
         </Card>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {employees.map((emp, idx) => (
+            <Card key={idx}>
+              <CardContent className="pt-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Employee {idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeEmployee(idx)}
+                    className="text-muted-foreground hover:text-destructive text-lg leading-none"
+                    aria-label="Remove employee"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Name</Label>
+                  <Input
+                    value={emp.fullName}
+                    onChange={e => updateEmployee(idx, 'fullName', e.target.value)}
+                    placeholder="Juan dela Cruz"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Position</Label>
+                  <Input
+                    value={emp.position}
+                    onChange={e => updateEmployee(idx, 'position', e.target.value)}
+                    placeholder="Dental Assistant"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Basic Salary (₱)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={emp.monthlySalary || ''}
+                    onChange={e => updateEmployee(idx, 'monthlySalary', parseFloat(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Date Hired</Label>
+                  <Input
+                    type="date"
+                    value={emp.dateHired}
+                    onChange={e => updateEmployee(idx, 'dateHired', e.target.value)}
+                    max={new Date().toISOString().split('T')[0]}
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>SSS Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    value={emp.sssNumber}
+                    onChange={e => updateEmployee(idx, 'sssNumber', e.target.value)}
+                    placeholder="XX-XXXXXXX-X"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>PhilHealth Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    value={emp.philhealthNumber}
+                    onChange={e => updateEmployee(idx, 'philhealthNumber', e.target.value)}
+                    placeholder="XX-XXXXXXXXX-X"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Pag-IBIG Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    value={emp.pagibigNumber}
+                    onChange={e => updateEmployee(idx, 'pagibigNumber', e.target.value)}
+                    placeholder="XXXX-XXXX-XXXX"
+                    className="min-h-[48px]"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>TIN <span className="text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    value={emp.tin}
+                    onChange={e => updateEmployee(idx, 'tin', e.target.value)}
+                    placeholder="XXX-XXX-XXX-XXX"
+                    className="min-h-[48px]"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
+
+      <Button type="button" variant="outline" onClick={addEmployee} className="min-h-[48px]">
+        + Add Employee
+      </Button>
+
+      <p className="text-xs text-muted-foreground">
+        You can add, edit, or remove employees anytime from the Employees section in your dashboard.
+      </p>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

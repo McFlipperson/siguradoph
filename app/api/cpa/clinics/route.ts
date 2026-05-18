@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const user = await getSessionUser()
   if (!user || user.role !== 'CPA') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 

@@ -59,10 +59,6 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function fmtMoney(n: number): string {
-  return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2 }).format(n)
-}
-
 const STATUS_BADGE: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
   EXPIRED: 'bg-red-100 text-red-800',

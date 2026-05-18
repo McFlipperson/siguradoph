@@ -221,7 +221,7 @@ export async function confirmPayment(
           orSeriesStart: true,
           orSeriesCurrentNumber: true,
           loyaltyCardPrice: true,
-          loyaltyCardValidityYears: true,
+          loyaltyValidityMonths: true,
         },
       },
     },
@@ -369,8 +369,8 @@ export async function confirmPayment(
       const cardNumber = `${prefix}-${String(count + 1).padStart(4, '0')}`
 
       const expiryDate = new Date()
-      expiryDate.setFullYear(
-        expiryDate.getFullYear() + clinic.loyaltyCardValidityYears
+      expiryDate.setMonth(
+        expiryDate.getMonth() + clinic.loyaltyValidityMonths
       )
 
       const newCard = await tx.loyaltyCard.create({

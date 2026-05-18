@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
-import { seedServiceCatalog } from '@/prisma/seed'
+import { seedServiceCatalog } from '@/prisma/seed-catalog'
 import { computeSSS, computePhilHealth, computePagIbig, computeWithholdingTax } from '@/lib/contributions'
 import { EntityType, FilingMethod, ExpenseCategory } from '@prisma/client'
 
@@ -80,6 +80,22 @@ export type ServiceData = {
   sortOrder: number
 }
 
+export type LoyaltyTemplateRow = {
+  serviceName: string
+  isFree: boolean
+  tier1Uses: number
+  tier1Discount: number
+  tier2Uses?: number | null
+  tier2Discount?: number | null
+}
+
+export type Step8Data = {
+  loyaltyCardEnabled: boolean
+  loyaltyCardPrice: number
+  loyaltyValidityMonths: number
+  templates: LoyaltyTemplateRow[]
+}
+
 export async function getClinicForCurrentUser() {
   try {
     const supabase = createServerClient()
@@ -96,6 +112,7 @@ export async function getClinicForCurrentUser() {
             equipment: true,
             suppliers: true,
             serviceCatalog: { orderBy: { sortOrder: 'asc' } },
+          loyaltyCardTemplates: { orderBy: { sortOrder: 'asc' } },
           },
         },
       },
@@ -304,11 +321,30 @@ export async function saveStep7(clinicId: string, services: ServiceData[]): Prom
   }
 }
 
-export async function saveStep8(clinicId: string, loyaltyCardEnabled: boolean): Promise<void> {
+export async function saveStep8(clinicId: string, data: Step8Data): Promise<void> {
   await prisma.clinic.update({
     where: { id: clinicId },
-    data: { loyaltyCardEnabled },
+    data: {
+      loyaltyCardEnabled: data.loyaltyCardEnabled,
+      loyaltyCardPrice: data.loyaltyCardPrice,
+      loyaltyValidityMonths: data.loyaltyValidityMonths,
+    },
   })
+  await prisma.loyaltyCardTemplate.deleteMany({ where: { clinicId } })
+  if (data.loyaltyCardEnabled && data.templates.length > 0) {
+    await prisma.loyaltyCardTemplate.createMany({
+      data: data.templates.map((t, i) => ({
+        clinicId,
+        serviceName: t.serviceName,
+        isFree: t.isFree,
+        tier1Uses: t.tier1Uses,
+        tier1Discount: t.tier1Discount,
+        tier2Uses: t.tier2Uses ?? null,
+        tier2Discount: t.tier2Discount ?? null,
+        sortOrder: i,
+      })),
+    })
+  }
 }
 
 export async function completeOnboarding(clinicId: string): Promise<{ success: true }> {
