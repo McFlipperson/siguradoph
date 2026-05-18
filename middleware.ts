@@ -34,7 +34,12 @@ export function middleware(req: NextRequest) {
   }
 
   // Otherwise treat as clinic slug
-  url.pathname = `/clinic/${subdomain}${url.pathname === '/' ? '' : url.pathname}`
+  // Root of subdomain goes straight to intake form
+  if (url.pathname === '/') {
+    url.pathname = `/clinic/${subdomain}/intake`
+    return NextResponse.rewrite(url)
+  }
+  url.pathname = `/clinic/${subdomain}${url.pathname}`
   return NextResponse.rewrite(url)
 }
 
