@@ -17,7 +17,9 @@ import {
   Calculator,
   Settings,
   X,
+  LogOut,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase-browser'
 
 const NAV_ITEMS = [
   { label: 'Home', href: '/', icon: Home },
@@ -50,6 +52,12 @@ export default function BottomNav() {
   function navigate(href: string) {
     setSheetOpen(false)
     router.push(href)
+  }
+
+  async function handleLogout() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    window.location.href = '/login'
   }
 
   return (
@@ -125,6 +133,15 @@ export default function BottomNav() {
                 )
               })}
             </div>
+
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="mt-4 w-full flex items-center justify-center gap-2 min-h-[48px] rounded-xl border border-destructive/30 text-destructive active:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm font-medium">Sign out</span>
+            </button>
           </div>
         </div>
       )}

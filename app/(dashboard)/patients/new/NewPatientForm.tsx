@@ -228,30 +228,23 @@ export default function NewPatientForm() {
           <CardTitle>Consent & Guardian</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
-          {/* Consent toggle */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                role="switch"
-                aria-checked={consentGiven}
-                onClick={() => setConsentGiven((v) => !v)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                  consentGiven ? 'bg-primary' : 'bg-muted'
-                }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-6 w-6 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
-                    consentGiven ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
-              </button>
-              <span className="text-sm font-medium">Patient has given verbal consent</span>
-            </div>
-            <p className="text-xs text-muted-foreground pl-0">
-              By enabling this, you confirm the patient has been informed of and verbally agreed to
-              the clinic&apos;s data privacy, treatment, and anesthesia consent terms.
+          {/* Digital consent */}
+          <div className="flex flex-col gap-3 bg-muted/50 rounded-xl p-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              In compliance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, this clinic collects your personal and medical information solely for the purpose of providing dental care. Your data is stored securely, will not be shared with third parties without your consent, and may be retained for up to 10 years as required by law.
             </p>
+            <div className="flex items-start gap-3">
+              <input
+                id="consentCheck"
+                type="checkbox"
+                checked={consentGiven}
+                onChange={e => setConsentGiven(e.target.checked)}
+                className="h-5 w-5 rounded mt-0.5 shrink-0"
+              />
+              <label htmlFor="consentCheck" className="text-sm leading-relaxed">
+                I have read and understood the above. I consent to this clinic collecting and processing my personal and medical information for dental care purposes.
+              </label>
+            </div>
           </div>
 
           {/* Minor toggle */}
