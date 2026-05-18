@@ -33,14 +33,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(url)
   }
 
-  // Otherwise treat as clinic slug
-  // Root of subdomain goes straight to intake form
-  if (url.pathname === '/') {
-    url.pathname = `/clinic/${subdomain}/intake`
-    return NextResponse.rewrite(url)
-  }
-  url.pathname = `/clinic/${subdomain}${url.pathname}`
-  return NextResponse.rewrite(url)
+  // Clinic subdomains: pass everything through to the main app as-is
+  // mine.sigurado.xyz/ → dashboard
+  // mine.sigurado.xyz/login → login page
+  // mine.sigurado.xyz/patients/intake → intake form (authenticated)
+  return NextResponse.next()
 }
 
 export const config = {

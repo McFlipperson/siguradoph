@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { QRSection } from './QRSection'
 import { PrinterSection } from './PrinterSection'
 
 const SUPPLIER_CATEGORIES = [
@@ -669,7 +668,6 @@ export default function SettingsClient({
       {/* ── DEVICES TAB ── */}
       {tab === 'devices' && (
         <div className="space-y-6">
-          <QRSection clinicId={clinic.id} slug={clinic.slug} />
           <PrinterSection />
         </div>
       )}

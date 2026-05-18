@@ -126,7 +126,13 @@ export default function PatientListClient({
         )}
       </div>
 
-      {/* FAB */}
+      {/* FABs */}
+      <Link
+        href="/patients/intake"
+        className="fixed bottom-6 left-4 z-50 flex items-center justify-center min-h-[56px] rounded-full bg-green-600 text-white shadow-lg font-semibold text-sm px-5"
+      >
+        Intake Form
+      </Link>
       <Link
         href="/patients/new"
         className="fixed bottom-6 right-4 z-50 flex items-center justify-center min-w-[56px] min-h-[56px] rounded-full bg-primary text-primary-foreground shadow-lg text-2xl font-bold leading-none px-4"
