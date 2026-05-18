@@ -46,6 +46,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
 
   const selectedService = setup.serviceCatalog.find((s) => s.id === selectedServiceId) ?? null
   const isBracesCategory = selectedService?.category === 'BRACES'
+  const isCleaningCategory = selectedService?.category === 'CLEANING'
 
   const gross = parseFloat(price) || 0
   const vat = gross > 0 ? computeVat(gross) : null
@@ -72,6 +73,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         grossAmount: gross,
         isBracesReminder: isBracesCategory && isBracesReminder,
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
+        isCleaningService: isCleaningCategory,
         appointmentId,
       })
       if (action === 'checkout') {
@@ -243,6 +245,17 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 </select>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cleaning recall notice */}
+      {isCleaningCategory && (
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">
+              📅 A 6-month recall reminder will be scheduled automatically for this patient via Messenger.
+            </p>
           </CardContent>
         </Card>
       )}

@@ -104,6 +104,8 @@ model Clinic {
   serviceCatalog    ServiceCatalog[]
   cpaAssignments        CpaClinicAssignment[]
   loyaltyCardTemplates  LoyaltyCardTemplate[]
+  scheduledReminders    ScheduledReminder[]
+  unlinkedMessengers    UnlinkedMessenger[]
 }
 
 model User {
@@ -145,10 +147,11 @@ model Patient {
   enrolledAt                   DateTime
   createdAt                    DateTime @default(now())
 
-  consentRecords ConsentRecord[]
-  visits         Visit[]
-  appointments   Appointment[]
-  loyaltyCards   LoyaltyCard[]
+  consentRecords     ConsentRecord[]
+  visits             Visit[]
+  appointments       Appointment[]
+  loyaltyCards       LoyaltyCard[]
+  scheduledReminders ScheduledReminder[]
 }
 
 model ConsentRecord {
@@ -167,20 +170,21 @@ model ConsentRecord {
 }
 
 model Visit {
-  id          String   @id @default(cuid())
-  clinicId    String
-  clinic      Clinic   @relation(fields: [clinicId], references: [id])
-  patientId   String
-  patient     Patient  @relation(fields: [patientId], references: [id])
-  visitDate   DateTime @default(now())
-  diagnosis   String
-  toothNumber String?
-  treatment   String
-  notes       String?
-  grossAmount Decimal
-  netAmount   Decimal
-  vatAmount   Decimal
-  createdAt   DateTime @default(now())
+  id            String   @id @default(cuid())
+  clinicId      String
+  clinic        Clinic   @relation(fields: [clinicId], references: [id])
+  patientId     String
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  visitDate     DateTime @default(now())
+  diagnosis     String
+  toothNumber   String?
+  treatment     String
+  notes         String?
+  grossAmount   Decimal
+  netAmount     Decimal
+  vatAmount     Decimal
+  intervalWeeks Int?     // braces only — weeks until next alignment
+  createdAt     DateTime @default(now())
 
   invoice Invoice?
 }
@@ -385,15 +389,27 @@ model ServiceCatalog {
 }
 
 model ScheduledReminder {
-  id           String    @id @default(cuid())
-  clinicId     String
-  patientId    String
-  visitId      String?
-  reminderType String
-  scheduledFor DateTime
-  sent         Boolean   @default(false)
-  sentAt       DateTime?
-  createdAt    DateTime  @default(now())
+  id             String    @id @default(cuid())
+  clinicId       String
+  clinic         Clinic    @relation(fields: [clinicId], references: [id])
+  patientId      String
+  patient        Patient   @relation(fields: [patientId], references: [id])
+  visitId        String?
+  appointmentId  String?
+  reminderType   String    // APPOINTMENT | CLEANING_RECALL | BRACES_ALIGNMENT
+  scheduledFor   DateTime
+  status         String    @default("PENDING")  // PENDING | SENT | FAILED
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model UnlinkedMessenger {
+  id         String   @id @default(cuid())
+  clinicId   String
+  clinic     Clinic   @relation(fields: [clinicId], references: [id])
+  psid       String
+  receivedAt DateTime @default(now())
+  isLinked   Boolean  @default(false)
 }
 
 model LoyaltyCardTemplate {

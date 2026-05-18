@@ -84,7 +84,6 @@ export async function POST(req: NextRequest) {
         patientId,
         reminderType: 'APPOINTMENT',
         scheduledFor: reminderUtc,
-        sent: false,
       },
     }),
   ])

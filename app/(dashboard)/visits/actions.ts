@@ -80,6 +80,7 @@ export type SaveVisitData = {
   grossAmount: number
   isBracesReminder?: boolean
   reminderWeeks?: number
+  isCleaningService?: boolean
   appointmentId?: string
 }
 
@@ -102,6 +103,7 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
       grossAmount: gross,
       netAmount: net,
       vatAmount: vat,
+      intervalWeeks: data.reminderWeeks ?? null,
     },
   })
 
@@ -114,6 +116,20 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
         patientId: data.patientId,
         visitId: visit.id,
         reminderType: 'BRACES_ALIGNMENT',
+        scheduledFor,
+      },
+    })
+  }
+
+  if (data.isCleaningService) {
+    const scheduledFor = new Date(data.visitDate)
+    scheduledFor.setMonth(scheduledFor.getMonth() + 6)
+    await prisma.scheduledReminder.create({
+      data: {
+        clinicId,
+        patientId: data.patientId,
+        visitId: visit.id,
+        reminderType: 'CLEANING_RECALL',
         scheduledFor,
       },
     })

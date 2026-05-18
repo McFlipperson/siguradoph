@@ -16,6 +16,7 @@ import {
   Shield,
   Calculator,
   Settings,
+  Bell,
   X,
   LogOut,
 } from 'lucide-react'
@@ -33,6 +34,7 @@ const MORE_ITEMS = [
   { label: 'Expenses', href: '/expenses', icon: Wallet },
   { label: 'Loyalty Cards', href: '/loyalty', icon: CreditCard },
   { label: 'Employees', href: '/employees', icon: Briefcase },
+  { label: 'Reminders', href: '/reminders', icon: Bell },
   { label: 'Reports', href: '/reports', icon: BarChart2 },
   { label: 'Compliance', href: '/compliance', icon: Shield },
   { label: 'CPA', href: '/cpa', icon: Calculator },
