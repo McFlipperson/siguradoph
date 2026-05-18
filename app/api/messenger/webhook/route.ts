@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { nanoid } from 'nanoid'
 
 // ─── GET — Meta webhook verification ─────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -16,7 +15,13 @@ export async function GET(req: NextRequest) {
 
 // ─── POST — incoming Messenger messages ──────────────────────────────────────
 // Meta requires a 200 response within 20 seconds.
-// We store the PSID for staff to link to a patient later.
+//
+// Auto-linking strategy (MVP):
+// When a PSID messages the page, we find the most recently registered patient
+// who chose Messenger reminders but doesn't have a PSID linked yet, and link them.
+//
+// TODO: improve PSID matching — consider adding a one-time token to the m.me link
+// (e.g. https://m.me/PAGE_ID?ref=PATIENT_TOKEN) so the webhook can match exactly.
 
 type MessagingEntry = {
   sender: { id: string }
@@ -40,53 +45,58 @@ export async function POST(req: NextRequest) {
   const body = await req.json() as WebhookPayload
 
   if (body.object !== 'page') {
-    return NextResponse.json({ ok: true }) // not a page event, ignore
+    return NextResponse.json({ ok: true })
   }
 
   for (const entry of body.entry) {
     const pageId = entry.id
 
-    // Resolve clinic by Facebook Page ID (MVP: single clinic via env var)
-    // TODO: when scaling, look up clinic by messengerPageId = pageId
-    const clinic = await prisma.clinic.findFirst({
+    // Resolve clinic by Facebook Page ID
+    // TODO: when scaling to multi-clinic, each clinic stores their own messengerPageId
+    let clinic = await prisma.clinic.findFirst({
       where: { messengerPageId: pageId },
       select: { id: true },
     })
 
+    // MVP fallback: use the first clinic if no page ID match
     if (!clinic) {
-      // Fallback: find the first clinic (MVP single-clinic mode)
-      const fallback = await prisma.clinic.findFirst({ select: { id: true } })
-      if (!fallback) continue
+      clinic = await prisma.clinic.findFirst({ select: { id: true } })
     }
+    if (!clinic) continue
 
-    const clinicId = clinic?.id ?? (
-      await prisma.clinic.findFirst({ select: { id: true } })
-    )?.id
-
-    if (!clinicId) continue
+    const clinicId = clinic.id
 
     for (const event of entry.messaging) {
       const psid = event.sender.id
       if (!psid) continue
 
-      // Skip if this PSID already belongs to a linked patient
+      // Skip if this PSID is already linked to a patient
       const alreadyLinked = await prisma.patient.findFirst({
         where: { clinicId, messengerUserId: psid },
         select: { id: true },
       })
       if (alreadyLinked) continue
 
-      // Skip if we already have an unlinked record for this PSID
-      const existingUnlinked = await prisma.unlinkedMessenger.findFirst({
-        where: { clinicId, psid },
+      // Find the most recently registered patient who chose Messenger but has no PSID yet
+      const unlinkedPatient = await prisma.patient.findFirst({
+        where: {
+          clinicId,
+          reminderChannel: 'MESSENGER',
+          messengerUserId: null,
+        },
+        orderBy: { createdAt: 'desc' },
         select: { id: true },
       })
-      if (existingUnlinked) continue
 
-      // Create unlinked record for staff to link
-      await prisma.unlinkedMessenger.create({
-        data: { id: nanoid(), clinicId, psid },
-      })
+      if (unlinkedPatient) {
+        await prisma.patient.update({
+          where: { id: unlinkedPatient.id },
+          data: {
+            messengerUserId: psid,
+            messengerLinked: true,
+          },
+        })
+      }
     }
   }
 

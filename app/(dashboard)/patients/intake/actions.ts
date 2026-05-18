@@ -16,6 +16,8 @@ async function getClinicId(): Promise<string> {
   return user.clinicId
 }
 
+export type ReminderChannel = 'MESSENGER' | 'EMAIL' | 'SMS' | 'NONE'
+
 export type IntakeFormData = {
   firstName: string
   lastName: string
@@ -29,10 +31,11 @@ export type IntakeFormData = {
   isMinor: boolean
   guardianName?: string
   guardianRelationship?: string
+  reminderChannel: ReminderChannel
 }
 
 export type IntakeResult =
-  | { success: true; firstName: string }
+  | { success: true; firstName: string; patientId: string }
   | { success: false; error: string }
 
 export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> {
@@ -68,6 +71,8 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
         medications: data.medications.trim(),
         allergies: data.allergies.trim(),
         enrolledAt: new Date(),
+        reminderChannel: data.reminderChannel,
+        messengerLinked: false,
       },
     })
 
@@ -87,7 +92,7 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
     })
 
     revalidatePath('/patients')
-    return { success: true, firstName: data.firstName }
+    return { success: true, firstName: data.firstName, patientId: patient.id }
   } catch (err) {
     console.error('submitIntake error:', err)
     return { success: false, error: 'server_error' }

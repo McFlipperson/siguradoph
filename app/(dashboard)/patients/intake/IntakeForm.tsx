@@ -2,25 +2,39 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { submitIntake, type IntakeFormData } from './actions'
+import QRCode from 'react-qr-code'
+import { submitIntake, type IntakeFormData, type ReminderChannel } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 
 const GUARDIAN_RELATIONSHIPS = [
-  'Mother',
-  'Father',
-  'Legal Guardian',
-  'Grandparent',
-  'Sibling (18+)',
-  'Other',
+  'Mother', 'Father', 'Legal Guardian', 'Grandparent', 'Sibling (18+)', 'Other',
 ]
 
-export function IntakeForm({ clinicName }: { clinicName: string }) {
+const REMINDER_OPTIONS: Array<{
+  channel: ReminderChannel
+  emoji: string
+  label: string
+  description: string
+}> = [
+  { channel: 'MESSENGER', emoji: '📱', label: 'Messenger',  description: 'Via Facebook Messenger' },
+  { channel: 'EMAIL',     emoji: '📧', label: 'Email',      description: 'To your email address' },
+  { channel: 'SMS',       emoji: '📞', label: 'SMS',        description: 'To your phone number' },
+  { channel: 'NONE',      emoji: '✕',  label: 'No reminders', description: 'Skip reminders' },
+]
+
+const FB_PAGE_ID = process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID ?? ''
+
+export function IntakeForm({ clinicName, clinicFacebookPageUrl }: { clinicName: string; clinicFacebookPageUrl?: string | null }) {
   const router = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
 
+  // step: 'form' → 'reminders' → 'done'
+  const [step, setStep] = useState<'form' | 'reminders' | 'done'>('form')
+
+  // Patient details
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
@@ -34,13 +48,24 @@ export function IntakeForm({ clinicName }: { clinicName: string }) {
   const [guardianName, setGuardianName] = useState('')
   const [guardianRelationship, setGuardianRelationship] = useState('')
   const [consentGiven, setConsentGiven] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  // Reminder
+  const [reminderChannel, setReminderChannel] = useState<ReminderChannel | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+
+  function goToReminders(e: React.FormEvent) {
     e.preventDefault()
     if (!consentGiven) {
-      toast.error('Patient must consent before submitting.')
+      toast.error('Patient must consent before continuing.')
+      return
+    }
+    setStep('reminders')
+    window.scrollTo({ top: 0 })
+  }
+
+  async function handleSubmit() {
+    if (!reminderChannel) {
+      toast.error('Please select a reminder preference.')
       return
     }
     setSubmitting(true)
@@ -52,13 +77,14 @@ export function IntakeForm({ clinicName }: { clinicName: string }) {
       isMinor,
       guardianName: isMinor ? guardianName : undefined,
       guardianRelationship: isMinor ? guardianRelationship : undefined,
+      reminderChannel,
     }
 
     const result = await submitIntake(data)
     setSubmitting(false)
 
     if (result.success) {
-      setDone(true)
+      setStep('done')
     } else {
       toast.error('Something went wrong. Please try again.')
     }
@@ -68,17 +94,34 @@ export function IntakeForm({ clinicName }: { clinicName: string }) {
     setFirstName(''); setLastName(''); setDateOfBirth(''); setAddress('')
     setPhone(''); setEmail(''); setMedicalHistory(''); setMedications('')
     setAllergies(''); setIsMinor(false); setGuardianName('')
-    setGuardianRelationship(''); setConsentGiven(false); setDone(false)
-    formRef.current?.scrollTo({ top: 0 })
+    setGuardianRelationship(''); setConsentGiven(false)
+    setReminderChannel(null); setStep('form')
+    window.scrollTo({ top: 0 })
   }
 
-  if (done) {
+  // ── Done ──────────────────────────────────────────────────────────────────
+  if (step === 'done') {
     return (
       <div className="flex flex-col items-center justify-center gap-6 py-16 text-center">
         <div className="text-5xl">✓</div>
         <div>
           <h2 className="text-xl font-bold">Thank you, {firstName}!</h2>
           <p className="text-muted-foreground mt-1">Your information has been recorded.</p>
+          {reminderChannel === 'MESSENGER' && (
+            <p className="text-sm text-muted-foreground mt-2">
+              When you message our Facebook Page from your phone, your Messenger reminders will activate automatically.
+            </p>
+          )}
+          {reminderChannel === 'EMAIL' && email && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Reminders will be sent to <strong>{email}</strong>.
+            </p>
+          )}
+          {reminderChannel === 'SMS' && (
+            <p className="text-sm text-muted-foreground mt-2">
+              SMS reminders will be sent to <strong>{phone}</strong> when available.
+            </p>
+          )}
         </div>
         <div className="flex gap-3 w-full max-w-xs">
           <Button variant="outline" className="flex-1 min-h-[48px]" onClick={() => router.push('/patients')}>
@@ -92,8 +135,124 @@ export function IntakeForm({ clinicName }: { clinicName: string }) {
     )
   }
 
+  // ── Reminders step ────────────────────────────────────────────────────────
+  if (step === 'reminders') {
+    const messengerUrl = FB_PAGE_ID ? `https://m.me/${FB_PAGE_ID}` : null
+
+    return (
+      <div className="flex flex-col gap-6 pb-10">
+        <div>
+          <h2 className="text-lg font-semibold">Appointment Reminders</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            How would you like to receive appointment reminders from {clinicName}?
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {REMINDER_OPTIONS.map((opt) => {
+            const selected = reminderChannel === opt.channel
+            return (
+              <button
+                key={opt.channel}
+                type="button"
+                onClick={() => setReminderChannel(opt.channel)}
+                className={[
+                  'flex flex-col items-center justify-center gap-2 min-h-[88px] rounded-xl border-2 px-3 py-4 text-center transition-colors',
+                  selected
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border bg-background text-foreground',
+                ].join(' ')}
+              >
+                <span className="text-2xl">{opt.emoji}</span>
+                <div>
+                  <p className="text-sm font-semibold">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{opt.description}</p>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Channel-specific info */}
+        {reminderChannel === 'MESSENGER' && (
+          <div className="flex flex-col items-center gap-4 rounded-xl border bg-background p-5 text-center">
+            {messengerUrl ? (
+              <>
+                <div className="bg-white p-3 rounded-xl border">
+                  <QRCode value={messengerUrl} size={180} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold">{clinicName}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Scan this QR code with your phone and send us any message to activate Messenger reminders.
+                  </p>
+                  {clinicFacebookPageUrl && (
+                    <p className="text-xs text-muted-foreground break-all">{clinicFacebookPageUrl}</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Messenger QR code will appear here once the clinic&apos;s Facebook Page is configured.
+              </p>
+            )}
+          </div>
+        )}
+
+        {reminderChannel === 'EMAIL' && (
+          <div className="rounded-xl border bg-background p-4 text-center">
+            {email ? (
+              <p className="text-sm text-muted-foreground">
+                Reminders will be sent to <strong className="text-foreground">{email}</strong>
+              </p>
+            ) : (
+              <p className="text-sm text-destructive">
+                No email address on file. Go back and add one, or choose another reminder method.
+              </p>
+            )}
+          </div>
+        )}
+
+        {reminderChannel === 'SMS' && (
+          <div className="rounded-xl border bg-background p-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Reminders will be sent to <strong className="text-foreground">{phone}</strong>
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">SMS reminders coming soon.</p>
+          </div>
+        )}
+
+        {reminderChannel === 'NONE' && (
+          <div className="rounded-xl border bg-background p-4 text-center">
+            <p className="text-sm text-muted-foreground">No reminders will be sent.</p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            className="flex-1 min-h-[48px]"
+            onClick={() => setStep('form')}
+          >
+            ← Back
+          </Button>
+          <Button
+            type="button"
+            disabled={!reminderChannel || submitting || (reminderChannel === 'EMAIL' && !email)}
+            className="flex-1 min-h-[48px]"
+            onClick={handleSubmit}
+          >
+            {submitting ? 'Submitting…' : 'Complete Registration'}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Form step ─────────────────────────────────────────────────────────────
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col gap-6 pb-10">
+    <form ref={formRef} onSubmit={goToReminders} className="flex flex-col gap-6 pb-10">
 
       {/* Personal Info */}
       <section className="flex flex-col gap-4">
@@ -230,10 +389,10 @@ export function IntakeForm({ clinicName }: { clinicName: string }) {
 
       <Button
         type="submit"
-        disabled={submitting || !consentGiven}
+        disabled={!consentGiven}
         className="w-full min-h-[56px] text-base"
       >
-        {submitting ? 'Submitting…' : 'Submit Intake Form'}
+        Continue →
       </Button>
     </form>
   )

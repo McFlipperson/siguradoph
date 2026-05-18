@@ -31,6 +31,27 @@ export type ReceiptEmailData = {
   notes?: string
 }
 
+// ─── Reminder emails ──────────────────────────────────────────────────────────
+export async function sendReminderEmail(
+  to: string,
+  subject: string,
+  bodyHtml: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const { error } = await getResend().emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? 'noreply@sigurado.xyz',
+      to,
+      subject,
+      html: bodyHtml,
+    })
+    if (error) return { ok: false, error: error.message }
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown email error' }
+  }
+}
+
+// ─── Receipt emails ───────────────────────────────────────────────────────────
 export async function sendReceiptEmail(data: ReceiptEmailData): Promise<void> {
   await getResend().emails.send({
     from: 'receipts@siguradoph.app',

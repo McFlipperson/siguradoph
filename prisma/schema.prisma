@@ -105,7 +105,6 @@ model Clinic {
   cpaAssignments        CpaClinicAssignment[]
   loyaltyCardTemplates  LoyaltyCardTemplate[]
   scheduledReminders    ScheduledReminder[]
-  unlinkedMessengers    UnlinkedMessenger[]
 }
 
 model User {
@@ -142,7 +141,8 @@ model Patient {
   medications     String?
   allergies       String?
   messengerLinked              Boolean  @default(false)
-  messengerUserId              String?
+  messengerUserId              String?  // Facebook Page-Scoped ID (PSID)
+  reminderChannel              String   @default("NONE")  // MESSENGER | EMAIL | SMS | NONE
   pendingLoyaltyCardPurchase   Boolean  @default(false)
   enrolledAt                   DateTime
   createdAt                    DateTime @default(now())
@@ -403,14 +403,6 @@ model ScheduledReminder {
   createdAt      DateTime  @default(now())
 }
 
-model UnlinkedMessenger {
-  id         String   @id @default(cuid())
-  clinicId   String
-  clinic     Clinic   @relation(fields: [clinicId], references: [id])
-  psid       String
-  receivedAt DateTime @default(now())
-  isLinked   Boolean  @default(false)
-}
 
 model LoyaltyCardTemplate {
   id            String   @id @default(cuid())

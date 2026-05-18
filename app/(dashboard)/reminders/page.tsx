@@ -9,29 +9,35 @@ export default async function RemindersPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
 
-  const [clinic, unlinked, reminders] = await Promise.all([
+  const [clinic, reminders, channelCounts] = await Promise.all([
     prisma.clinic.findUnique({
       where: { id: user.clinicId },
       select: { name: true, facebookPageUrl: true, messengerPageId: true },
-    }),
-    prisma.unlinkedMessenger.findMany({
-      where: { clinicId: user.clinicId, isLinked: false },
-      orderBy: { receivedAt: 'desc' },
     }),
     prisma.scheduledReminder.findMany({
       where: { clinicId: user.clinicId },
       include: { patient: { select: { firstName: true, lastName: true } } },
       orderBy: { scheduledFor: 'asc' },
     }),
+    prisma.patient.groupBy({
+      by: ['reminderChannel'],
+      where: { clinicId: user.clinicId },
+      _count: true,
+    }),
   ])
 
-  const patients = await prisma.patient.findMany({
-    where: { clinicId: user.clinicId },
-    select: { id: true, firstName: true, lastName: true },
-    orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-  })
-
   const messengerConfigured = Boolean(process.env.FACEBOOK_PAGE_ACCESS_TOKEN)
+
+  const channelStats = {
+    MESSENGER: 0,
+    EMAIL: 0,
+    SMS: 0,
+    NONE: 0,
+  }
+  for (const row of channelCounts) {
+    const ch = row.reminderChannel as keyof typeof channelStats
+    if (ch in channelStats) channelStats[ch] = row._count
+  }
 
   return (
     <RemindersClient
@@ -40,11 +46,6 @@ export default async function RemindersPage() {
         facebookPageUrl: clinic?.facebookPageUrl ?? null,
         messengerConfigured,
       }}
-      unlinked={unlinked.map((u) => ({
-        id: u.id,
-        psid: u.psid,
-        receivedAt: u.receivedAt.toISOString(),
-      }))}
       reminders={reminders.map((r) => ({
         id: r.id,
         patientName: `${r.patient.firstName} ${r.patient.lastName}`,
@@ -53,7 +54,7 @@ export default async function RemindersPage() {
         status: r.status,
         sentAt: r.sentAt?.toISOString() ?? null,
       }))}
-      patients={patients}
+      channelStats={channelStats}
     />
   )
 }
