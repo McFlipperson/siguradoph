@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         if (patient) {
           await prisma.patient.update({
             where: { id: patient.id },
-            data: { messengerPsid: psid, messengerLinked: true },
+            data: { messengerPsid: psid },
           })
         }
       } else {

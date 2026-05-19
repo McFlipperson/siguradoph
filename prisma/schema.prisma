@@ -100,7 +100,6 @@ model Clinic {
   loyaltyCards      LoyaltyCard[]
   equipment         Equipment[]
   suppliers         Supplier[]
-  incidentLogs      IncidentLog[]
   serviceCatalog    ServiceCatalog[]
   cpaAssignments        CpaClinicAssignment[]
   loyaltyCardTemplates  LoyaltyCardTemplate[]
@@ -150,9 +149,7 @@ model Patient {
   medicalHistory  String?
   medications     String?
   allergies       String?
-  messengerLinked              Boolean  @default(false)
-  messengerUserId              String?  // legacy — kept for backward compat
-  messengerPsid                String?  // canonical Facebook Page-Scoped ID
+  messengerPsid                String?  // Facebook Page-Scoped ID for Messenger reminders
   reminderChannel              String   @default("NONE")  // MESSENGER | EMAIL | SMS | NONE
   bracesComplete               Boolean  @default(false)
   pendingLoyaltyCardPurchase   Boolean  @default(false)
@@ -273,7 +270,6 @@ model Appointment {
   type         String
   status       AppointmentStatus @default(SCHEDULED)
   notes        String?
-  reminderSent Boolean           @default(false)
   createdAt    DateTime          @default(now())
 }
 
@@ -373,19 +369,6 @@ model Equipment {
   usefulLifeYears Int
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
-}
-
-model IncidentLog {
-  id            String    @id @default(cuid())
-  clinicId      String
-  clinic        Clinic    @relation(fields: [clinicId], references: [id])
-  incidentDate  DateTime
-  incidentType  String
-  dataAffected  String
-  actionTaken   String
-  reportedToNpc Boolean   @default(false)
-  reportedAt    DateTime?
-  createdAt     DateTime  @default(now())
 }
 
 model ServiceCatalog {

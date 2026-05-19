@@ -88,8 +88,7 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
 
     revalidatePath('/patients')
     return { success: true, patientId: patient.id, firstName: data.firstName }
-  } catch (err) {
-    console.error('submitIntakeStep1 error:', err)
+  } catch {
     return { success: false, error: 'server_error' }
   }
 }
@@ -119,8 +118,7 @@ export async function submitIntakeStep2(
 
     revalidatePath(`/patients/${patientId}`)
     return { success: true }
-  } catch (err) {
-    console.error('submitIntakeStep2 error:', err)
+  } catch {
     return { success: false, error: 'server_error' }
   }
 }

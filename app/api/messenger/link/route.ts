@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   const [updatedPatient] = await prisma.$transaction([
     prisma.patient.update({
       where: { id: patientId },
-      data: { messengerPsid: unlinked.psid, messengerLinked: true, reminderChannel: 'MESSENGER' },
+      data: { messengerPsid: unlinked.psid, reminderChannel: 'MESSENGER' },
       select: { id: true, firstName: true, lastName: true },
     }),
     prisma.unlinkedMessenger.update({
