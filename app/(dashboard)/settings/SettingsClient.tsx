@@ -27,11 +27,22 @@ type ClinicData = {
   zip: string
   phone: string
   email: string
+  facebookPageUrl: string
+  messengerPageId: string
   tin: string
+  rdoCode: string
+  corNumber: string
+  entityType: string
+  filingMethod: string
   vatRegistered: boolean
+  vatRegistrationDate: string | null
   orSeriesStart: string
   orSeriesCurrentNumber: number
   enrollmentDate: string
+  hasEmployees: boolean
+  sssEmployerNumber: string
+  philhealthEmployerNumber: string
+  pagibigEmployerNumber: string
 }
 
 type ServiceItem = {
@@ -217,7 +228,13 @@ export default function SettingsClient({
   const [zip, setZip] = useState(clinic.zip)
   const [phone, setPhone] = useState(clinic.phone)
   const [email, setEmail] = useState(clinic.email)
+  const [facebookPageUrl, setFacebookPageUrl] = useState(clinic.facebookPageUrl)
+  const [messengerPageId, setMessengerPageId] = useState(clinic.messengerPageId)
   const [orSeriesStart, setOrSeriesStart] = useState(clinic.orSeriesStart)
+  const [hasEmployees, setHasEmployees] = useState(clinic.hasEmployees)
+  const [sssEmployerNumber, setSssEmployerNumber] = useState(clinic.sssEmployerNumber)
+  const [philhealthEmployerNumber, setPhilhealthEmployerNumber] = useState(clinic.philhealthEmployerNumber)
+  const [pagibigEmployerNumber, setPagibigEmployerNumber] = useState(clinic.pagibigEmployerNumber)
   const [savingClinic, setSavingClinic] = useState(false)
 
   // Compute current OR number display
@@ -234,7 +251,12 @@ export default function SettingsClient({
       const res = await fetch('/api/settings/clinic', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: clinicName, ownerName, street, city, province, zip, phone, email, orSeriesStart }),
+        body: JSON.stringify({
+          name: clinicName, ownerName, street, city, province, zip, phone, email,
+          facebookPageUrl, messengerPageId,
+          orSeriesStart,
+          hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
+        }),
       })
       if (!res.ok) throw new Error('Failed to save clinic settings')
       toast.success('Clinic settings saved')
@@ -411,14 +433,11 @@ export default function SettingsClient({
 
       {/* ── CLINIC TAB ── */}
       {tab === 'clinic' && (
-        <div className="space-y-4">
-          {clinic.orSeriesCurrentNumber > 1 && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-              Your OR series is already in use (OR #{clinic.orSeriesCurrentNumber} issued). Changing the OR Series prefix will affect future receipts only.
-            </div>
-          )}
+        <div className="space-y-6">
 
+          {/* ── Basic Info ── */}
           <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Basic Info</h2>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Clinic Name</label>
               <input value={clinicName} onChange={e => setClinicName(e.target.value)} className={`${inputClass} mt-1`} />
@@ -453,31 +472,125 @@ export default function SettingsClient({
               <label className="text-xs font-medium text-muted-foreground">Email</label>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" className={`${inputClass} mt-1`} />
             </div>
+          </div>
+
+          {/* ── Social & Messenger ── */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Social & Messenger</h2>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Facebook Page URL</label>
+              <input
+                value={facebookPageUrl}
+                onChange={e => setFacebookPageUrl(e.target.value)}
+                placeholder="https://facebook.com/yourclinic"
+                className={`${inputClass} mt-1`}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Messenger Page ID</label>
+              <input
+                value={messengerPageId}
+                onChange={e => setMessengerPageId(e.target.value)}
+                placeholder="e.g. 123456789012345"
+                className={`${inputClass} mt-1`}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Found in Meta Business Suite → Settings → Page Info. Used to route patient Messenger messages to your clinic.
+              </p>
+            </div>
+          </div>
+
+          {/* ── OR Series ── */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Official Receipts</h2>
+            {clinic.orSeriesCurrentNumber > 1 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-800">
+                OR series already in use (#{formattedCurrentOr} issued). Changing the prefix affects future receipts only.
+              </div>
+            )}
             <div>
               <label className="text-xs font-medium text-muted-foreground">OR Series Prefix (e.g. OR-000001)</label>
               <input value={orSeriesStart} onChange={e => setOrSeriesStart(e.target.value)} className={`${inputClass} mt-1`} />
             </div>
           </div>
 
-          {/* Read-only info */}
-          <div className="rounded-xl border divide-y">
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">TIN</span>
-              <span className="text-sm font-medium">{clinic.tin}</span>
+          {/* ── Payroll & Gov't Numbers ── */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payroll</h2>
+            <div className="flex items-center justify-between min-h-[48px] rounded-xl border px-4">
+              <span className="text-sm font-medium">Clinic has employees</span>
+              <button
+                onClick={() => setHasEmployees(v => !v)}
+                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors ${hasEmployees ? 'bg-primary' : 'bg-muted'}`}
+              >
+                <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform ${hasEmployees ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
             </div>
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">VAT Status</span>
-              <span className="text-sm font-medium">{clinic.vatRegistered ? 'VAT Registered' : 'Non-VAT'}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">Current OR Number</span>
-              <span className="text-sm font-medium font-mono">{formattedCurrentOr}</span>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-xs text-muted-foreground">Enrollment Date</span>
-              <span className="text-sm font-medium">
-                {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </span>
+            {hasEmployees && (
+              <>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">SSS Employer Number</label>
+                  <input value={sssEmployerNumber} onChange={e => setSssEmployerNumber(e.target.value)} placeholder="03-XXXXXXX-X" className={`${inputClass} mt-1`} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">PhilHealth Employer Number</label>
+                  <input value={philhealthEmployerNumber} onChange={e => setPhilhealthEmployerNumber(e.target.value)} placeholder="XX-000000000-X" className={`${inputClass} mt-1`} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Pag-IBIG Employer Number</label>
+                  <input value={pagibigEmployerNumber} onChange={e => setPagibigEmployerNumber(e.target.value)} placeholder="XXXX-XXXX-XXXX" className={`${inputClass} mt-1`} />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* ── BIR & Tax (read-only) ── */}
+          <div className="space-y-2">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BIR & Tax</h2>
+            <p className="text-xs text-muted-foreground">These are set during registration. Contact support to update BIR details.</p>
+            <div className="rounded-xl border divide-y">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">TIN</span>
+                <span className="text-sm font-medium font-mono">{clinic.tin}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">RDO Code</span>
+                <span className="text-sm font-medium">{clinic.rdoCode}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">COR Number</span>
+                <span className="text-sm font-medium">{clinic.corNumber}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">Entity Type</span>
+                <span className="text-sm font-medium capitalize">{clinic.entityType.replace('_', ' ').toLowerCase()}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">Filing Method</span>
+                <span className="text-sm font-medium">{clinic.filingMethod}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">VAT Status</span>
+                <span className="text-sm font-medium">{clinic.vatRegistered ? 'VAT Registered' : 'Non-VAT'}</span>
+              </div>
+              {clinic.vatRegistrationDate && (
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="text-xs text-muted-foreground">VAT Registration Date</span>
+                  <span className="text-sm font-medium">
+                    {new Date(clinic.vatRegistrationDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">Current OR Number</span>
+                <span className="text-sm font-medium font-mono">{formattedCurrentOr}</span>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-xs text-muted-foreground">Enrollment Date</span>
+                <span className="text-sm font-medium">
+                  {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </span>
+              </div>
             </div>
           </div>
 

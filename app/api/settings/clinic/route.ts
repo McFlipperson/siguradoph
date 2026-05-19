@@ -27,11 +27,22 @@ export async function GET() {
     zip: clinic.zip,
     phone: clinic.phone,
     email: clinic.email,
+    facebookPageUrl: clinic.facebookPageUrl ?? '',
+    messengerPageId: clinic.messengerPageId ?? '',
     tin: clinic.tin,
+    rdoCode: clinic.rdoCode,
+    corNumber: clinic.corNumber,
+    entityType: clinic.entityType,
+    filingMethod: clinic.filingMethod,
     vatRegistered: clinic.vatRegistered,
+    vatRegistrationDate: clinic.vatRegistrationDate?.toISOString() ?? null,
     orSeriesStart: clinic.orSeriesStart,
     orSeriesCurrentNumber: clinic.orSeriesCurrentNumber,
     enrollmentDate: clinic.enrollmentDate.toISOString(),
+    hasEmployees: clinic.hasEmployees,
+    sssEmployerNumber: clinic.sssEmployerNumber ?? '',
+    philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
+    pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
   })
 }
 
@@ -40,8 +51,14 @@ export async function PATCH(req: NextRequest) {
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  // Only allow safe fields — never accept orSeriesCurrentNumber or tin
-  const { name, ownerName, street, city, province, zip, phone, email, orSeriesStart } = body
+
+  // Explicitly allow-list every writable field — TIN, OR current number, enrollment date are immutable
+  const {
+    name, ownerName, street, city, province, zip, phone, email,
+    facebookPageUrl, messengerPageId,
+    orSeriesStart,
+    hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
+  } = body
 
   const updated = await prisma.clinic.update({
     where: { id: clinicId },
@@ -54,7 +71,13 @@ export async function PATCH(req: NextRequest) {
       ...(zip !== undefined && { zip }),
       ...(phone !== undefined && { phone }),
       ...(email !== undefined && { email }),
+      ...(facebookPageUrl !== undefined && { facebookPageUrl: facebookPageUrl || null }),
+      ...(messengerPageId !== undefined && { messengerPageId: messengerPageId || null }),
       ...(orSeriesStart !== undefined && { orSeriesStart }),
+      ...(hasEmployees !== undefined && { hasEmployees }),
+      ...(sssEmployerNumber !== undefined && { sssEmployerNumber: sssEmployerNumber || null }),
+      ...(philhealthEmployerNumber !== undefined && { philhealthEmployerNumber: philhealthEmployerNumber || null }),
+      ...(pagibigEmployerNumber !== undefined && { pagibigEmployerNumber: pagibigEmployerNumber || null }),
     },
   })
 
