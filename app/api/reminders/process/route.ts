@@ -7,51 +7,30 @@ const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN
 
 // ─── Message builders ─────────────────────────────────────────────────────────
 
-function buildMessageText(reminderType: string, firstName: string, clinicName: string): string {
-  switch (reminderType) {
+function buildText(type: string, firstName: string, clinicName: string): string {
+  switch (type) {
     case 'APPOINTMENT':
-      return `Hi ${firstName}! This is a reminder from ${clinicName} that you have an appointment tomorrow. See you then! Reply to this message if you need to reschedule.`
+      return `Hi ${firstName}! This is a reminder from ${clinicName} that you have an appointment tomorrow. See you then! Reply if you need to reschedule.`
     case 'CLEANING_RECALL':
       return `Hi ${firstName}! It's been 6 months since your last cleaning at ${clinicName}. Time for your next visit! Reply to book an appointment.`
     case 'BRACES_ALIGNMENT':
-      return `Hi ${firstName}! It's time for your next braces adjustment at ${clinicName}. Please book your next appointment at your earliest convenience.`
+      return `Hi ${firstName}! It's time for your next braces adjustment at ${clinicName}. Please book your appointment at your earliest convenience.`
     default:
-      return `Hi ${firstName}! You have an upcoming reminder from ${clinicName}.`
+      return `Hi ${firstName}! You have a reminder from ${clinicName}.`
   }
 }
 
-function buildEmailSubject(reminderType: string, clinicName: string): string {
-  switch (reminderType) {
-    case 'APPOINTMENT':    return `Reminder: Your appointment at ${clinicName} tomorrow`
-    case 'CLEANING_RECALL': return `Time for your 6-month cleaning at ${clinicName}`
-    case 'BRACES_ALIGNMENT': return `Time for your next braces adjustment at ${clinicName}`
+function buildEmailSubject(type: string, clinicName: string): string {
+  switch (type) {
+    case 'APPOINTMENT':    return `Reminder: Appointment tomorrow at ${clinicName}`
+    case 'CLEANING_RECALL': return `Time for your 6-month cleaning — ${clinicName}`
+    case 'BRACES_ALIGNMENT': return `Braces adjustment reminder — ${clinicName}`
     default: return `Reminder from ${clinicName}`
   }
 }
 
-function buildEmailHtml(reminderType: string, firstName: string, clinicName: string): string {
-  const text = buildMessageText(reminderType, firstName, clinicName)
-  return `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:520px;background:#ffffff;border-radius:12px;padding:32px;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
-        <tr><td>
-          <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">${clinicName}</p>
-          <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.6;">${text}</p>
-          <p style="margin:0;font-size:12px;color:#9ca3af;">Powered by Sigurado</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
-}
-
-// ─── Send via Facebook Messenger ──────────────────────────────────────────────
-async function sendMessengerMessage(psid: string, text: string): Promise<boolean> {
+// ─── Messenger send ───────────────────────────────────────────────────────────
+async function sendViaMessenger(psid: string, text: string): Promise<boolean> {
   if (!PAGE_ACCESS_TOKEN) return false
   try {
     const res = await fetch('https://graph.facebook.com/v19.0/me/messages', {
@@ -68,8 +47,28 @@ async function sendMessengerMessage(psid: string, text: string): Promise<boolean
   }
 }
 
-// ─── POST — process all due pending reminders ─────────────────────────────────
-// Called manually from the reminders UI or internally by the cron route.
+// ─── Schedule the next braces reminder ───────────────────────────────────────
+async function scheduleNextBracesReminder(
+  clinicId: string,
+  patientId: string,
+  intervalWeeks: number
+): Promise<void> {
+  const patient = await prisma.patient.findFirst({
+    where: { id: patientId },
+    select: { bracesComplete: true },
+  })
+  if (!patient || patient.bracesComplete) return // patient has finished braces
+
+  const scheduledFor = new Date()
+  scheduledFor.setDate(scheduledFor.getDate() + intervalWeeks * 7)
+  scheduledFor.setHours(9, 0, 0, 0) // 9am
+
+  await prisma.scheduledReminder.create({
+    data: { clinicId, patientId, reminderType: 'BRACES_ALIGNMENT', scheduledFor },
+  })
+}
+
+// ─── POST — process all due PENDING reminders ─────────────────────────────────
 export async function POST(req: NextRequest) {
   // Allow internal call from cron with secret, or authenticated user
   const internalSecret = req.headers.get('x-internal-secret')
@@ -90,8 +89,9 @@ export async function POST(req: NextRequest) {
           firstName: true,
           email: true,
           phone: true,
-          messengerUserId: true,
+          messengerPsid: true,
           reminderChannel: true,
+          bracesComplete: true,
         },
       },
       clinic: { select: { name: true } },
@@ -103,16 +103,16 @@ export async function POST(req: NextRequest) {
 
   for (const reminder of due) {
     const { patient, clinic } = reminder
-    const channel = patient.reminderChannel
-    const firstName = patient.firstName
+    const channel    = patient.reminderChannel
+    const firstName  = patient.firstName
     const clinicName = clinic.name
+    const text = buildText(reminder.reminderType, firstName, clinicName)
     let success = false
 
     switch (channel) {
       case 'MESSENGER': {
-        const psid = patient.messengerUserId
+        const psid = patient.messengerPsid
         if (!psid) {
-          // No PSID yet — patient hasn't messaged the page
           await prisma.scheduledReminder.update({
             where: { id: reminder.id },
             data: { status: 'FAILED' },
@@ -120,8 +120,7 @@ export async function POST(req: NextRequest) {
           failed++
           continue
         }
-        const text = buildMessageText(reminder.reminderType, firstName, clinicName)
-        success = await sendMessengerMessage(psid, text)
+        success = await sendViaMessenger(psid, text)
         break
       }
 
@@ -136,15 +135,14 @@ export async function POST(req: NextRequest) {
           continue
         }
         const subject = buildEmailSubject(reminder.reminderType, clinicName)
-        const html = buildEmailHtml(reminder.reminderType, firstName, clinicName)
-        const result = await sendReminderEmail(to, subject, html)
+        const result = await sendReminderEmail(to, subject, firstName, text, clinicName)
         success = result.ok
         break
       }
 
       case 'SMS': {
         // TODO Phase 2: integrate Semaphore SMS API
-        console.log(`[reminders] SMS not yet implemented — skipping reminder ${reminder.id}`)
+        console.log(`SMS reminder skipped for patient ${reminder.patientId} — Phase 2`)
         await prisma.scheduledReminder.update({
           where: { id: reminder.id },
           data: { status: 'FAILED' },
@@ -155,7 +153,6 @@ export async function POST(req: NextRequest) {
 
       case 'NONE':
       default: {
-        // Patient opted out of reminders
         await prisma.scheduledReminder.update({
           where: { id: reminder.id },
           data: { status: 'FAILED' },
@@ -165,16 +162,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Mark sent or failed
     await prisma.scheduledReminder.update({
       where: { id: reminder.id },
-      data: {
-        status: success ? 'SENT' : 'FAILED',
-        sentAt: success ? new Date() : null,
-      },
+      data: { status: success ? 'SENT' : 'FAILED', sentAt: success ? new Date() : null },
     })
 
-    if (success) sent++
-    else failed++
+    if (success) {
+      sent++
+
+      // For BRACES_ALIGNMENT: schedule the next one if braces not yet complete
+      if (reminder.reminderType === 'BRACES_ALIGNMENT') {
+        let intervalWeeks = 5
+        if (reminder.visitId) {
+          const visit = await prisma.visit.findUnique({
+            where: { id: reminder.visitId },
+            select: { intervalWeeks: true },
+          })
+          intervalWeeks = visit?.intervalWeeks ?? 5
+        }
+        await scheduleNextBracesReminder(reminder.clinicId, reminder.patientId, intervalWeeks)
+      }
+    } else {
+      failed++
+    }
   }
 
   return NextResponse.json({ processed: due.length, sent, failed })

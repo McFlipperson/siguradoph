@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, issueLoyaltyCard } from '../actions'
+import { updatePatientMedical, issueLoyaltyCard, markBracesComplete } from '../actions'
 import type { FullPatient } from '../actions'
 
 function computeAge(dob: Date): number {
@@ -233,6 +233,52 @@ function LoyaltySection({ patient }: { patient: FullPatient }) {
   )
 }
 
+function BracesSection({ patient }: { patient: FullPatient }) {
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleMarkComplete() {
+    startTransition(async () => {
+      await markBracesComplete(patient.id)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Braces Treatment</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {patient.bracesComplete ? (
+          <div className="flex items-center gap-3">
+            <span className="text-emerald-500 text-xl">✓</span>
+            <div>
+              <p className="text-sm font-medium">Treatment Complete</p>
+              <p className="text-xs text-muted-foreground">No further alignment reminders scheduled.</p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>
+              <p className="text-sm text-muted-foreground">Alignment reminders active</p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={handleMarkComplete}
+              disabled={isPending}
+              className="w-full min-h-[48px] border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+            >
+              {isPending ? 'Updating…' : 'Mark Braces Complete'}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -359,6 +405,9 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
 
       {/* Loyalty card */}
       <LoyaltySection patient={patient} />
+
+      {/* Braces status */}
+      <BracesSection patient={patient} />
 
       {/* Visit history */}
       <div className="flex flex-col gap-3">

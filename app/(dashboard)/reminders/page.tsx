@@ -9,7 +9,7 @@ export default async function RemindersPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
 
-  const [clinic, reminders, channelCounts] = await Promise.all([
+  const [clinic, reminders, channelCounts, unlinkedMessages] = await Promise.all([
     prisma.clinic.findUnique({
       where: { id: user.clinicId },
       select: { name: true, facebookPageUrl: true, messengerPageId: true },
@@ -23,6 +23,10 @@ export default async function RemindersPage() {
       by: ['reminderChannel'],
       where: { clinicId: user.clinicId },
       _count: true,
+    }),
+    prisma.unlinkedMessenger.findMany({
+      where: { clinicId: user.clinicId, isLinked: false },
+      orderBy: { receivedAt: 'desc' },
     }),
   ])
 
@@ -44,6 +48,7 @@ export default async function RemindersPage() {
       clinic={{
         name: clinic?.name ?? '',
         facebookPageUrl: clinic?.facebookPageUrl ?? null,
+        messengerPageId: clinic?.messengerPageId ?? null,
         messengerConfigured,
       }}
       reminders={reminders.map((r) => ({
@@ -55,6 +60,11 @@ export default async function RemindersPage() {
         sentAt: r.sentAt?.toISOString() ?? null,
       }))}
       channelStats={channelStats}
+      unlinkedMessages={unlinkedMessages.map((u) => ({
+        id: u.id,
+        psid: u.psid,
+        createdAt: u.receivedAt.toISOString(),
+      }))}
     />
   )
 }

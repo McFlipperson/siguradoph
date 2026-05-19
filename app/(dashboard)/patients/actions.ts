@@ -135,6 +135,9 @@ export type FullPatient = {
   medications: string | null
   allergies: string | null
   enrolledAt: Date
+  bracesComplete: boolean
+  reminderChannel: string
+  messengerPsid: string | null
   consentRecords: Array<{
     id: string
     consentDate: Date
@@ -303,6 +306,22 @@ export async function issueLoyaltyCard(patientId: string): Promise<string> {
 
   revalidatePath(`/patients/${patientId}`)
   return loyaltyCard.id
+}
+
+export async function markBracesComplete(patientId: string): Promise<void> {
+  const clinicId = await getClinicId()
+  const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId }, select: { id: true } })
+  if (!patient) throw new Error('Patient not found')
+
+  await prisma.patient.update({ where: { id: patientId }, data: { bracesComplete: true } })
+
+  // Cancel all pending BRACES_ALIGNMENT reminders for this patient
+  await prisma.scheduledReminder.updateMany({
+    where: { patientId, clinicId, reminderType: 'BRACES_ALIGNMENT', status: 'PENDING' },
+    data: { status: 'FAILED' },
+  })
+
+  revalidatePath(`/patients/${patientId}`)
 }
 
 export type ServiceCatalogItem = {

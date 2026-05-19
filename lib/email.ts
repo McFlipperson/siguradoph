@@ -35,14 +35,27 @@ export type ReceiptEmailData = {
 export async function sendReminderEmail(
   to: string,
   subject: string,
-  bodyHtml: string
+  patientName: string,
+  body: string,
+  clinicName: string
 ): Promise<{ ok: boolean; error?: string }> {
+  const html = `
+    <div style="font-family: sans-serif; max-width: 480px; margin: auto; padding: 24px;">
+      <h2 style="color: #1a1a1a;">${clinicName}</h2>
+      <p style="font-size: 16px; color: #333;">${body}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+      <p style="font-size: 12px; color: #999;">
+        You're receiving this because you chose email reminders at ${clinicName}.
+        Contact the clinic to update your reminder preferences.
+      </p>
+    </div>
+  `
   try {
     const { error } = await getResend().emails.send({
       from: process.env.RESEND_FROM_EMAIL ?? 'noreply@sigurado.xyz',
       to,
       subject,
-      html: bodyHtml,
+      html,
     })
     if (error) return { ok: false, error: error.message }
     return { ok: true }

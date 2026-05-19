@@ -18,7 +18,7 @@ async function getClinicId(): Promise<string> {
 
 export type ReminderChannel = 'MESSENGER' | 'EMAIL' | 'SMS' | 'NONE'
 
-export type IntakeFormData = {
+export type IntakeStep1Data = {
   firstName: string
   lastName: string
   dateOfBirth: string
@@ -31,14 +31,14 @@ export type IntakeFormData = {
   isMinor: boolean
   guardianName?: string
   guardianRelationship?: string
-  reminderChannel: ReminderChannel
 }
 
-export type IntakeResult =
-  | { success: true; firstName: string; patientId: string }
+export type IntakeStep1Result =
+  | { success: true; patientId: string; firstName: string }
   | { success: false; error: string }
 
-export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> {
+// ── STEP 1: Save patient + consent (called on "Continue →") ──────────────────
+export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeStep1Result> {
   try {
     const clinicId = await getClinicId()
 
@@ -46,7 +46,6 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
       where: { id: clinicId },
       select: { enrollmentDate: true },
     })
-
     if (!clinic) return { success: false, error: 'invalid_clinic' }
 
     // Day One Rule
@@ -54,9 +53,7 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
     today.setHours(0, 0, 0, 0)
     const enrollmentDate = new Date(clinic.enrollmentDate)
     enrollmentDate.setHours(0, 0, 0, 0)
-    if (today < enrollmentDate) {
-      return { success: false, error: 'day_one' }
-    }
+    if (today < enrollmentDate) return { success: false, error: 'day_one' }
 
     const patient = await prisma.patient.create({
       data: {
@@ -71,12 +68,10 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
         medications: data.medications.trim(),
         allergies: data.allergies.trim(),
         enrolledAt: new Date(),
-        reminderChannel: data.reminderChannel,
-        messengerLinked: false,
+        reminderChannel: 'NONE', // updated in step 2
       },
     })
 
-    // Record consent (RA 10173)
     await prisma.consentRecord.create({
       data: {
         patientId: patient.id,
@@ -92,9 +87,40 @@ export async function submitIntake(data: IntakeFormData): Promise<IntakeResult> 
     })
 
     revalidatePath('/patients')
-    return { success: true, firstName: data.firstName, patientId: patient.id }
+    return { success: true, patientId: patient.id, firstName: data.firstName }
   } catch (err) {
-    console.error('submitIntake error:', err)
+    console.error('submitIntakeStep1 error:', err)
+    return { success: false, error: 'server_error' }
+  }
+}
+
+// ── STEP 2: Update reminder channel (called on "Complete Registration") ───────
+export type IntakeStep2Result =
+  | { success: true }
+  | { success: false; error: string }
+
+export async function submitIntakeStep2(
+  patientId: string,
+  reminderChannel: ReminderChannel
+): Promise<IntakeStep2Result> {
+  try {
+    const clinicId = await getClinicId()
+
+    const patient = await prisma.patient.findFirst({
+      where: { id: patientId, clinicId },
+      select: { id: true },
+    })
+    if (!patient) return { success: false, error: 'patient_not_found' }
+
+    await prisma.patient.update({
+      where: { id: patientId },
+      data: { reminderChannel },
+    })
+
+    revalidatePath(`/patients/${patientId}`)
+    return { success: true }
+  } catch (err) {
+    console.error('submitIntakeStep2 error:', err)
     return { success: false, error: 'server_error' }
   }
 }

@@ -13,32 +13,36 @@ export async function GET(req: NextRequest) {
   return new NextResponse('Forbidden', { status: 403 })
 }
 
-// ─── POST — incoming Messenger messages ──────────────────────────────────────
-// Meta requires a 200 response within 20 seconds.
+// ─── POST — incoming messages ─────────────────────────────────────────────────
+// Two linking paths:
 //
-// Auto-linking strategy (MVP):
-// When a PSID messages the page, we find the most recently registered patient
-// who chose Messenger reminders but doesn't have a PSID linked yet, and link them.
+// PATH A — QR scan with ref parameter:
+//   m.me/PAGE_ID?ref=patient_<patientId>
+//   Meta passes this as messaging[].referral.ref on the first message event.
+//   We extract the patientId and link directly — no staff action needed.
 //
-// TODO: improve PSID matching — consider adding a one-time token to the m.me link
-// (e.g. https://m.me/PAGE_ID?ref=PATIENT_TOKEN) so the webhook can match exactly.
+// PATH B — Manual message (patient found clinic on Messenger without scanning QR):
+//   No ref param → create UnlinkedMessenger record for staff to link manually.
+//
+// TODO: When scaling to multi-clinic, look up clinic by entry.id (the Page ID).
+//   For MVP we fall back to the first clinic if messengerPageId doesn't match.
 
-type MessagingEntry = {
-  sender: { id: string }
+type MessagingEvent = {
+  sender:    { id: string }
   recipient: { id: string }
   timestamp: number
-  message?: { text?: string }
+  message?:  { text?: string }
+  referral?: { ref?: string; source?: string; type?: string }
 }
 
 type WebhookEntry = {
   id: string // Page ID
-  time: number
-  messaging: MessagingEntry[]
+  messaging: MessagingEvent[]
 }
 
 type WebhookPayload = {
   object: string
-  entry: WebhookEntry[]
+  entry:  WebhookEntry[]
 }
 
 export async function POST(req: NextRequest) {
@@ -51,14 +55,11 @@ export async function POST(req: NextRequest) {
   for (const entry of body.entry) {
     const pageId = entry.id
 
-    // Resolve clinic by Facebook Page ID
-    // TODO: when scaling to multi-clinic, each clinic stores their own messengerPageId
+    // Resolve clinic
     let clinic = await prisma.clinic.findFirst({
       where: { messengerPageId: pageId },
       select: { id: true },
     })
-
-    // MVP fallback: use the first clinic if no page ID match
     if (!clinic) {
       clinic = await prisma.clinic.findFirst({ select: { id: true } })
     }
@@ -72,33 +73,43 @@ export async function POST(req: NextRequest) {
 
       // Skip if this PSID is already linked to a patient
       const alreadyLinked = await prisma.patient.findFirst({
-        where: { clinicId, messengerUserId: psid },
+        where: { clinicId, messengerPsid: psid },
         select: { id: true },
       })
       if (alreadyLinked) continue
 
-      // Find the most recently registered patient who chose Messenger but has no PSID yet
-      const unlinkedPatient = await prisma.patient.findFirst({
-        where: {
-          clinicId,
-          reminderChannel: 'MESSENGER',
-          messengerUserId: null,
-        },
-        orderBy: { createdAt: 'desc' },
-        select: { id: true },
-      })
+      const ref = event.referral?.ref ?? ''
 
-      if (unlinkedPatient) {
-        await prisma.patient.update({
-          where: { id: unlinkedPatient.id },
-          data: {
-            messengerUserId: psid,
-            messengerLinked: true,
-          },
+      if (ref.startsWith('patient_')) {
+        // ── PATH A: auto-link via QR ref ──────────────────────────────────────
+        const patientId = ref.replace('patient_', '')
+
+        const patient = await prisma.patient.findFirst({
+          where: { id: patientId, clinicId, messengerPsid: null },
+          select: { id: true },
+        })
+
+        if (patient) {
+          await prisma.patient.update({
+            where: { id: patient.id },
+            data: { messengerPsid: psid, messengerLinked: true },
+          })
+        }
+      } else {
+        // ── PATH B: manual link — create UnlinkedMessenger for staff ──────────
+        const existingUnlinked = await prisma.unlinkedMessenger.findFirst({
+          where: { clinicId, psid },
+          select: { id: true },
+        })
+        if (existingUnlinked) continue // already recorded, skip duplicate
+
+        await prisma.unlinkedMessenger.create({
+          data: { clinicId, psid },
         })
       }
     }
   }
 
+  // Meta requires 200 fast
   return NextResponse.json({ ok: true })
 }
