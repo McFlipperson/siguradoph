@@ -158,7 +158,7 @@ export default function DashboardClient({ data }: Props) {
       {/* ── Quick Actions ───────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2">
         <button
-          onClick={() => router.push('/patients/new')}
+          onClick={() => router.push('/patients/intake')}
           className="min-h-[56px] rounded-xl border border-border bg-background font-medium text-sm active:bg-muted transition-colors px-2"
         >
           + New Patient
