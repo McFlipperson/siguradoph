@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,9 @@ import Image from 'next/image'
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const confirmationFailed = searchParams.get('error') === 'confirmation_failed'
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -54,6 +58,12 @@ export default function LoginPage() {
         <Image src="/logo.png" alt="Sigurado" width={240} height={160} className="object-contain" />
         <p className="text-sm text-muted-foreground">Sign in to your clinic account</p>
       </div>
+
+      {confirmationFailed && (
+        <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive text-center">
+          The confirmation link has expired or is invalid. Please register again or contact support.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
