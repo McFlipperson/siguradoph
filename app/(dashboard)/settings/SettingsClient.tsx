@@ -513,9 +513,16 @@ export default function SettingsClient({
                 placeholder="e.g. 123456789012345"
                 className={`${inputClass} mt-1`}
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Found in Meta Business Suite → Settings → Page Info. Used to route patient Messenger messages to your clinic.
-              </p>
+              <div className="mt-2 rounded-xl bg-blue-50 border border-blue-200 px-4 py-3 space-y-2">
+                <p className="text-xs font-semibold text-blue-800">How to find your Page ID</p>
+                <ol className="text-xs text-blue-700 leading-relaxed space-y-1 list-decimal list-inside">
+                  <li>Go to your clinic&apos;s Facebook Page in a browser</li>
+                  <li>Click the <strong>About</strong> tab on your page</li>
+                  <li>Scroll down to the <strong>Page Transparency</strong> section</li>
+                  <li>Your Page ID is the long number listed there (e.g. 123456789012345)</li>
+                </ol>
+                <p className="text-xs text-blue-600">Copy only the numbers — no spaces or dashes. This is used to route patient Messenger messages to your clinic.</p>
+              </div>
             </div>
           </div>
 
