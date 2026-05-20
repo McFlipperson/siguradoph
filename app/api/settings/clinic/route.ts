@@ -53,13 +53,14 @@ export async function PATCH(req: NextRequest) {
 
   const body = await req.json()
 
-  // Explicitly allow-list every writable field — TIN, OR current number, enrollment date are immutable
+  // Explicitly allow-list every writable field — OR current number and enrollment date are immutable
   const {
     name, ownerName, street, city, province, zip, phone, email,
     facebookPageUrl, messengerPageId,
     orSeriesStart,
     hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
     accountantEmail,
+    tin, rdoCode, corNumber, entityType, vatRegistered, vatRegistrationDate, filingMethod,
   } = body
 
   const updated = await prisma.clinic.update({
@@ -81,6 +82,13 @@ export async function PATCH(req: NextRequest) {
       ...(philhealthEmployerNumber !== undefined && { philhealthEmployerNumber: philhealthEmployerNumber || null }),
       ...(pagibigEmployerNumber !== undefined && { pagibigEmployerNumber: pagibigEmployerNumber || null }),
       ...(accountantEmail !== undefined && { accountantEmail: accountantEmail || null }),
+      ...(tin !== undefined && { tin }),
+      ...(rdoCode !== undefined && { rdoCode }),
+      ...(corNumber !== undefined && { corNumber }),
+      ...(entityType !== undefined && { entityType }),
+      ...(vatRegistered !== undefined && { vatRegistered }),
+      ...(vatRegistrationDate !== undefined && { vatRegistrationDate: vatRegistrationDate ? new Date(vatRegistrationDate) : null }),
+      ...(filingMethod !== undefined && { filingMethod }),
     },
   })
 
