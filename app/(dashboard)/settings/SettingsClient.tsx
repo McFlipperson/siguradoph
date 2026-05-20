@@ -504,6 +504,15 @@ export default function SettingsClient({
                 placeholder="https://facebook.com/yourclinic"
                 className={`${inputClass} mt-1`}
               />
+              <div className="mt-2 rounded-xl bg-muted/60 border border-border px-4 py-3 space-y-2">
+                <p className="text-xs font-semibold text-foreground">How to find your Facebook Page link</p>
+                <ol className="text-xs text-muted-foreground leading-relaxed space-y-1 list-decimal list-inside">
+                  <li>Open Facebook and go to your clinic&apos;s page (the one your patients follow)</li>
+                  <li>Look at the address bar at the top of your browser — it will show something like <span className="font-mono bg-muted px-1 rounded">facebook.com/YourClinicName</span></li>
+                  <li>Copy that entire address and paste it here</li>
+                </ol>
+                <p className="text-xs text-muted-foreground">Not sure which page? Search for your clinic name on Facebook — it&apos;s the page with the blue checkmark or the one your patients message you on.</p>
+              </div>
             </div>
             <div>
               <label className="text-xs font-medium text-muted-foreground">Messenger Page ID</label>

@@ -359,6 +359,15 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
           className="min-h-[48px]"
           placeholder="https://facebook.com/yourclinic"
         />
+        <div className="rounded-xl bg-muted/60 border border-border px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold">How to find your Facebook Page link</p>
+          <ol className="text-xs text-muted-foreground leading-relaxed space-y-1 list-decimal list-inside">
+            <li>Open Facebook and go to your clinic&apos;s page — the one your patients follow and message you on</li>
+            <li>Look at the address bar at the top of your browser. It will say something like <span className="font-mono bg-muted px-1 rounded">facebook.com/YourClinicName</span></li>
+            <li>Copy that whole address and paste it here</li>
+          </ol>
+          <p className="text-xs text-muted-foreground">You can skip this for now and add it later in Settings.</p>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
