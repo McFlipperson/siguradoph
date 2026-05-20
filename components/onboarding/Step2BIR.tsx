@@ -90,7 +90,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="rdoCode">RDO (Revenue District Office) Code *</Label>
-        <p className="text-xs text-muted-foreground -mt-1">A 2–3 digit number that identifies the BIR (Bureau of Internal Revenue) branch your business belongs to. It&apos;s printed on your COR (Certificate of Registration) — look for "RDO" or "Revenue District Office." Example: 044, 083.</p>
+        <p className="text-xs text-muted-foreground -mt-1">A 2–3 digit number that identifies the BIR (Bureau of Internal Revenue) branch your business belongs to. It&apos;s printed on your COR (Certificate of Registration) — look for &quot;RDO&quot; or &quot;Revenue District Office.&quot; Example: 044, 083.</p>
         <Input
           id="rdoCode"
           value={form.rdoCode}
@@ -135,7 +135,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
       <div className="flex items-start justify-between min-h-[48px] gap-4">
         <div className="flex-1">
           <Label>VAT (Value Added Tax) Registered</Label>
-          <p className="text-xs text-muted-foreground mt-0.5">Turn this ON if you are registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue). Your COR (Certificate of Registration) will say "VAT" if you are. If you&apos;re not sure, check with your accountant — most clinics earning over ₱3 million a year are VAT registered.</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Turn this ON if you are registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue). Your COR (Certificate of Registration) will say &quot;VAT&quot; if you are. If you&apos;re not sure, check with your accountant — most clinics earning over ₱3 million a year are VAT registered.</p>
         </div>
         <Switch
           checked={form.vatRegistered}
