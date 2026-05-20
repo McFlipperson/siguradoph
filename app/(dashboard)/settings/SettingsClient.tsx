@@ -584,30 +584,30 @@ export default function SettingsClient({
 
           {/* ── BIR & Tax (read-only) ── */}
           <div className="space-y-2">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BIR & Tax</h2>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BIR (Bureau of Internal Revenue) & Tax</h2>
             <p className="text-xs text-muted-foreground">These were set during registration and cannot be changed here. Contact support if anything needs to be corrected.</p>
             <div className="rounded-xl border divide-y">
 
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">TIN — Tax Identification Number</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Your unique tax ID assigned by the BIR. It&apos;s on your Certificate of Registration and any BIR documents you received when you registered your business.</p>
+                  <p className="text-xs font-medium">TIN (Tax Identification Number)</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Your unique tax ID assigned by the BIR (Bureau of Internal Revenue). It&apos;s printed on your COR (Certificate of Registration) and any BIR documents you received when you registered your business.</p>
                 </div>
                 <span className="text-sm font-medium font-mono shrink-0">{clinic.tin}</span>
               </div>
 
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">RDO Code</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">Revenue District Office — the specific BIR branch where your business is registered. This is the office you file your taxes with. It&apos;s printed on your Certificate of Registration (COR).</p>
+                  <p className="text-xs font-medium">RDO (Revenue District Office) Code</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The specific BIR (Bureau of Internal Revenue) branch where your business is registered. This is the office you file your taxes with. It&apos;s printed on your COR (Certificate of Registration).</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">{clinic.rdoCode}</span>
               </div>
 
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">COR Number — Certificate of Registration</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The number printed on your BIR Certificate of Registration — the document that says you&apos;re officially allowed to operate as a business. You should have received this when you registered with the BIR.</p>
+                  <p className="text-xs font-medium">COR (Certificate of Registration) Number</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The number printed on your BIR (Bureau of Internal Revenue) Certificate of Registration — the document that says you&apos;re officially allowed to operate as a business. You should have received this when you registered with the BIR.</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">{clinic.corNumber}</span>
               </div>
@@ -623,15 +623,15 @@ export default function SettingsClient({
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium">Filing Method</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5"><strong>eBIRForms</strong> means you download and fill out BIR forms on your computer, then submit them online. <strong>eFPS</strong> (Electronic Filing and Payment System) is for larger businesses that file and pay taxes directly through the BIR&apos;s website. Most small clinics use eBIRForms.</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5"><strong>eBIRForms (Electronic BIR Forms)</strong> means you fill out tax forms on your computer and submit them online — most small clinics use this. <strong>eFPS (Electronic Filing and Payment System)</strong> is for larger businesses that file and pay taxes directly through the BIR (Bureau of Internal Revenue) website.</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">{clinic.filingMethod}</span>
               </div>
 
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">VAT Status</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5"><strong>VAT Registered</strong> means your clinic is required to charge 12% VAT on services and file VAT returns every quarter. This is mandatory once your annual revenue exceeds ₱3 million. <strong>Non-VAT</strong> means you&apos;re below that threshold and pay a different tax instead.</p>
+                  <p className="text-xs font-medium">VAT (Value Added Tax) Status</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5"><strong>VAT (Value Added Tax) Registered</strong> means your clinic must charge 12% VAT on services and file VAT returns every quarter. This is mandatory once your annual revenue exceeds ₱3 million. <strong>Non-VAT</strong> means you&apos;re below that threshold and pay a simpler percentage tax instead.</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">{clinic.vatRegistered ? 'VAT Registered' : 'Non-VAT'}</span>
               </div>
@@ -639,8 +639,8 @@ export default function SettingsClient({
               {clinic.vatRegistrationDate && (
                 <div className="flex items-start justify-between gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium">VAT Registration Date</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date you officially became VAT registered with the BIR. This is the start date for your VAT obligations.</p>
+                    <p className="text-xs font-medium">VAT (Value Added Tax) Registration Date</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date you officially became VAT (Value Added Tax) registered with the BIR (Bureau of Internal Revenue). This is the start date for your VAT obligations.</p>
                   </div>
                   <span className="text-sm font-medium shrink-0">
                     {new Date(clinic.vatRegistrationDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
@@ -650,8 +650,8 @@ export default function SettingsClient({
 
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Next Official Receipt Number</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The number that will be printed on the next receipt you issue to a patient. Sigurado automatically moves this forward every time you print a receipt — you don&apos;t need to do anything.</p>
+                  <p className="text-xs font-medium">Next OR (Official Receipt) Number</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The number that will be printed on the next OR (Official Receipt) you issue to a patient. Sigurado automatically moves this forward every time you print a receipt — you don&apos;t need to do anything.</p>
                 </div>
                 <span className="text-sm font-medium font-mono shrink-0">{formattedCurrentOr}</span>
               </div>
@@ -659,7 +659,7 @@ export default function SettingsClient({
               <div className="flex items-start justify-between gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium">Enrollment Date</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date your clinic was registered on Sigurado. No financial records or receipts can be entered before this date — this is your Day One.</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date your clinic was registered on Sigurado. No financial records or OR (Official Receipt) numbers can be entered before this date — this is your Day One.</p>
                 </div>
                 <span className="text-sm font-medium shrink-0">
                   {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}

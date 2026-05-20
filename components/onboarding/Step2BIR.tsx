@@ -64,12 +64,12 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold mb-1">BIR Registration</h2>
-        <p className="text-sm text-muted-foreground">Tax information for your clinic.</p>
+        <h2 className="text-xl font-semibold mb-1">BIR (Bureau of Internal Revenue) Registration</h2>
+        <p className="text-sm text-muted-foreground">Your official tax details. These are found on the documents you received when you registered your business with the BIR (Bureau of Internal Revenue).</p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="tin">TIN *</Label>
+        <Label htmlFor="tin">TIN (Tax Identification Number) *</Label>
         <Input
           id="tin"
           value={form.tin}
@@ -81,7 +81,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="rdoCode">RDO Code *</Label>
+        <Label htmlFor="rdoCode">RDO (Revenue District Office) Code *</Label>
         <Input
           id="rdoCode"
           value={form.rdoCode}
@@ -93,7 +93,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="corNumber">COR Number *</Label>
+        <Label htmlFor="corNumber">COR (Certificate of Registration) Number *</Label>
         <Input
           id="corNumber"
           value={form.corNumber}
@@ -123,8 +123,8 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex items-center justify-between min-h-[48px]">
         <div>
-          <Label>VAT Registered</Label>
-          <p className="text-xs text-muted-foreground">Are you registered for VAT?</p>
+          <Label>VAT (Value Added Tax) Registered</Label>
+          <p className="text-xs text-muted-foreground">Are you registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue)?</p>
         </div>
         <Switch
           checked={form.vatRegistered}
@@ -134,7 +134,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       {form.vatRegistered && (
         <div className="flex flex-col gap-2">
-          <Label htmlFor="vatRegistrationDate">VAT Registration Date</Label>
+          <Label htmlFor="vatRegistrationDate">VAT (Value Added Tax) Registration Date</Label>
           <Input
             id="vatRegistrationDate"
             type="date"
@@ -147,7 +147,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
       )}
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="orSeriesStart">OR Series Start *</Label>
+        <Label htmlFor="orSeriesStart">OR (Official Receipt) Series Start *</Label>
         <Input
           id="orSeriesStart"
           value={form.orSeriesStart}
