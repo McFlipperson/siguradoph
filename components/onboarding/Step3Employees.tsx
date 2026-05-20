@@ -137,8 +137,12 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                     className="min-h-[48px]"
                   />
                 </div>
+                <div className="rounded-lg bg-muted/50 border border-border px-3 py-2.5">
+                  <p className="text-xs font-medium mb-1">Government numbers — where to find them</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">These are on the employee&apos;s <strong>UMID card</strong> (the unified government ID), or on their individual SSS, PhilHealth, and Pag-IBIG ID cards. You can also ask the employee directly — they should know their own numbers. All fields are optional; you can add them later.</p>
+                </div>
                 <div className="flex flex-col gap-2">
-                  <Label>SSS Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label>SSS (Social Security System) Number <span className="text-muted-foreground">(optional)</span></Label>
                   <Input
                     value={emp.sssNumber}
                     onChange={e => updateEmployee(idx, 'sssNumber', e.target.value)}
@@ -147,7 +151,7 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>PhilHealth Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label>PhilHealth (Philippine Health Insurance) Number <span className="text-muted-foreground">(optional)</span></Label>
                   <Input
                     value={emp.philhealthNumber}
                     onChange={e => updateEmployee(idx, 'philhealthNumber', e.target.value)}
@@ -156,7 +160,7 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Pag-IBIG Number <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label>Pag-IBIG (Home Development Mutual Fund) Number <span className="text-muted-foreground">(optional)</span></Label>
                   <Input
                     value={emp.pagibigNumber}
                     onChange={e => updateEmployee(idx, 'pagibigNumber', e.target.value)}
@@ -165,7 +169,7 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>TIN <span className="text-muted-foreground">(optional)</span></Label>
+                  <Label>TIN (Tax Identification Number) <span className="text-muted-foreground">(optional)</span></Label>
                   <Input
                     value={emp.tin}
                     onChange={e => updateEmployee(idx, 'tin', e.target.value)}

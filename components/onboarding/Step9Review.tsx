@@ -40,8 +40,8 @@ export function Step9Review({ allData, onJumpToStep, onComplete, onBack, isSavin
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <h2 className="text-xl font-semibold mb-1">Review & Complete</h2>
-        <p className="text-sm text-muted-foreground">Double-check your setup before going live.</p>
+        <h2 className="text-xl font-semibold mb-1">Almost there! 🎉</h2>
+        <p className="text-sm text-muted-foreground">Take a quick look at your setup below. If anything looks wrong, tap Edit on that section to fix it. When everything looks good, tap Complete Setup and your clinic is ready to use.</p>
       </div>
 
       {/* Step 1: Clinic Identity */}
@@ -188,7 +188,10 @@ export function Step9Review({ allData, onJumpToStep, onComplete, onBack, isSavin
           </CardAction>
         </CardHeader>
         <CardContent className="text-sm">
-          <p>{step8.loyaltyCardEnabled ? 'Enabled — ₱500, 2-year validity' : 'Disabled'}</p>
+          {step8.loyaltyCardEnabled
+            ? <p>Enabled — ₱{step8.loyaltyCardPrice?.toLocaleString('en-PH') ?? '500'} card price, {step8.loyaltyValidityMonths ?? 24} months validity, {step8.templates?.length ?? 0} services</p>
+            : <p className="text-muted-foreground">Disabled — patients will not be offered loyalty cards</p>
+          }
         </CardContent>
       </Card>
 

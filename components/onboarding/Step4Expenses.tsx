@@ -74,10 +74,6 @@ export function Step4Expenses({ initialData, onSave, onBack, isSaving }: Step4Ex
     e.preventDefault()
     setError(null)
     const valid = expenses.filter(ex => ex.description.trim() !== '')
-    if (valid.length === 0) {
-      setError('At least one expense is required.')
-      return
-    }
     try {
       await onSave(valid)
     } catch (err) {
@@ -89,7 +85,7 @@ export function Step4Expenses({ initialData, onSave, onBack, isSaving }: Step4Ex
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Recurring Expenses</h2>
-        <p className="text-sm text-muted-foreground">These are bills your clinic pays every month — like rent, electricity, and internet. Adding them here lets Sigurado automatically track them against your income for tax purposes. You can always add more or change them later.</p>
+        <p className="text-sm text-muted-foreground">These are bills your clinic pays every month — like rent, electricity, and internet. Adding them here lets Sigurado automatically track them against your income for tax purposes. <strong>You can skip this and add them later</strong> — just tap Next.</p>
       </div>
 
       <div className="flex flex-col gap-4">

@@ -67,10 +67,6 @@ export function Step6Suppliers({ initialData, onSave, onBack, isSaving }: Step6S
     e.preventDefault()
     setError(null)
     const valid = suppliers.filter(s => s.name.trim() !== '')
-    if (valid.length === 0) {
-      setError('At least one supplier is required.')
-      return
-    }
     try {
       await onSave(valid)
     } catch (err) {
@@ -82,7 +78,7 @@ export function Step6Suppliers({ initialData, onSave, onBack, isSaving }: Step6S
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Suppliers</h2>
-        <p className="text-sm text-muted-foreground">These are the companies or people you buy things from — dental supply shops, your landlord, your internet provider, etc. Adding them here makes it faster to record expenses later and helps track VAT (Value Added Tax) you can claim back. You can add more anytime.</p>
+        <p className="text-sm text-muted-foreground">These are the companies or people you buy things from — dental supply shops, your landlord, your internet provider, etc. Adding them here makes it faster to record expenses later and helps track VAT (Value Added Tax) you can claim back. <strong>You can skip this and add them later</strong> — just tap Next.</p>
       </div>
 
       <div className="flex flex-col gap-4">

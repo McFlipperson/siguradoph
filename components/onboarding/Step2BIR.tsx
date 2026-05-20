@@ -65,7 +65,14 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">BIR (Bureau of Internal Revenue) Registration</h2>
-        <p className="text-sm text-muted-foreground">Your official tax details. These are found on the documents you received when you registered your business with the BIR (Bureau of Internal Revenue).</p>
+        <p className="text-sm text-muted-foreground">All the information on this page comes from one document — your BIR Certificate of Registration (COR).</p>
+      </div>
+
+      <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 space-y-1">
+        <p className="text-xs font-semibold text-amber-800">📄 Before you continue — get this document out</p>
+        <p className="text-xs text-amber-700 leading-relaxed">
+          Find your <strong>BIR (Bureau of Internal Revenue) Certificate of Registration (COR)</strong> — it&apos;s the official document your BIR branch gave you when you registered your clinic as a business. By law it should be displayed on your clinic wall. Every answer on this page is printed on that one piece of paper. If you can&apos;t find it, ask your accountant.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">
