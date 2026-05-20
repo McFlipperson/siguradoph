@@ -43,6 +43,7 @@ type ClinicData = {
   sssEmployerNumber: string
   philhealthEmployerNumber: string
   pagibigEmployerNumber: string
+  accountantEmail: string
 }
 
 type ServiceItem = {
@@ -235,6 +236,7 @@ export default function SettingsClient({
   const [sssEmployerNumber, setSssEmployerNumber] = useState(clinic.sssEmployerNumber)
   const [philhealthEmployerNumber, setPhilhealthEmployerNumber] = useState(clinic.philhealthEmployerNumber)
   const [pagibigEmployerNumber, setPagibigEmployerNumber] = useState(clinic.pagibigEmployerNumber)
+  const [accountantEmail, setAccountantEmail] = useState(clinic.accountantEmail)
   const [savingClinic, setSavingClinic] = useState(false)
 
   // Compute current OR number display
@@ -256,6 +258,7 @@ export default function SettingsClient({
           facebookPageUrl, messengerPageId,
           orSeriesStart,
           hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
+          accountantEmail,
         }),
       })
       if (!res.ok) throw new Error('Failed to save clinic settings')
@@ -469,8 +472,24 @@ export default function SettingsClient({
               <input value={phone} onChange={e => setPhone(e.target.value)} type="tel" className={`${inputClass} mt-1`} />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Email</label>
+              <label className="text-xs font-medium text-muted-foreground">Clinic Email</label>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" className={`${inputClass} mt-1`} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Accountant Email</label>
+              <input
+                value={accountantEmail}
+                onChange={e => setAccountantEmail(e.target.value)}
+                type="email"
+                placeholder="cpa@youraccountant.com"
+                className={`${inputClass} mt-1`}
+              />
+              <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold text-emerald-800">📊 Quarterly Auto-Report</p>
+                <p className="text-xs text-emerald-700 leading-relaxed">
+                  Once set, your accountant will automatically receive a detailed financial summary by email at the start of every quarter — <strong>January 1, April 1, July 1, and October 1</strong>. Each email includes a revenue + VAT summary and two attached CSV spreadsheets (invoices and expenses) ready for BIR filing. No manual work needed.
+                </p>
+              </div>
             </div>
           </div>
 

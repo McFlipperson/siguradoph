@@ -18,6 +18,7 @@ export type Step1Data = {
   phone: string
   email: string
   facebookPageUrl?: string
+  accountantEmail?: string
   enrollmentDate: string
 }
 
@@ -157,6 +158,7 @@ export async function saveStep1(data: Step1Data): Promise<string> {
         phone: data.phone,
         email: data.email,
         facebookPageUrl: data.facebookPageUrl || null,
+        accountantEmail: data.accountantEmail || null,
         enrollmentDate: new Date(data.enrollmentDate),
       },
     })
@@ -176,6 +178,7 @@ export async function saveStep1(data: Step1Data): Promise<string> {
         phone: data.phone,
         email: data.email,
         facebookPageUrl: data.facebookPageUrl || null,
+        accountantEmail: data.accountantEmail || null,
         enrollmentDate: new Date(data.enrollmentDate),
         // Required fields with defaults until step 2
         tin: '',

@@ -86,6 +86,7 @@ model Clinic {
   loyaltyCardEnabled       Boolean      @default(true)
   loyaltyCardPrice         Decimal      @default(500)
   loyaltyValidityMonths    Int          @default(24)
+  accountantEmail          String?
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
 

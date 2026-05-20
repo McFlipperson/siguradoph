@@ -177,6 +177,54 @@ export default function DashboardClient({ data }: Props) {
         </button>
       </div>
 
+      {/* ── Backup & Export ────────────────────────────────── */}
+      <div className="rounded-2xl border border-border bg-background p-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-bold">Backup & Export</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Download your data anytime as a spreadsheet. Save to Google Drive, iCloud, or your device — your choice.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <a
+            href="/api/patients/export"
+            download
+            className="flex flex-col items-center justify-center gap-1.5 min-h-[72px] rounded-xl border border-border bg-muted/40 text-xs font-medium text-foreground active:bg-muted transition-colors px-2 text-center"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7z" />
+              <path d="M13 2v5h5M8 13h4M10 11v4" />
+            </svg>
+            Patients
+          </a>
+          <a
+            href="/api/invoices/export"
+            download
+            className="flex flex-col items-center justify-center gap-1.5 min-h-[72px] rounded-xl border border-border bg-muted/40 text-xs font-medium text-foreground active:bg-muted transition-colors px-2 text-center"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="16" height="14" rx="2" />
+              <path d="M6 7h8M6 10h8M6 13h5" />
+            </svg>
+            Invoices
+          </a>
+          <a
+            href="/api/expenses/export"
+            download
+            className="flex flex-col items-center justify-center gap-1.5 min-h-[72px] rounded-xl border border-border bg-muted/40 text-xs font-medium text-foreground active:bg-muted transition-colors px-2 text-center"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" />
+              <path d="M10 6v4l3 3" />
+            </svg>
+            Expenses
+          </a>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          CSV format · opens in Excel, Google Sheets, or Numbers
+        </p>
+      </div>
+
       {/* ── Today's Patients ────────────────────────────────── */}
       <div className="space-y-3">
         <h2 className="text-base font-bold">Today&apos;s Patients</h2>

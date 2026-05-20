@@ -88,6 +88,7 @@ export default function OnboardingPage() {
               phone: clinic.phone,
               email: clinic.email,
               facebookPageUrl: clinic.facebookPageUrl ?? '',
+              accountantEmail: clinic.accountantEmail ?? '',
               enrollmentDate: clinic.enrollmentDate
                 ? new Date(clinic.enrollmentDate).toISOString().split('T')[0]
                 : new Date().toISOString().split('T')[0],

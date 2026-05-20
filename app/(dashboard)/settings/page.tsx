@@ -57,6 +57,7 @@ export default async function SettingsPage() {
         sssEmployerNumber: clinic.sssEmployerNumber ?? '',
         philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
         pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
+        accountantEmail: clinic.accountantEmail ?? '',
       }}
       initialServices={services.map(s => ({
         id: s.id,

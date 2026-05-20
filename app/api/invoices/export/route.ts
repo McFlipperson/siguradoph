@@ -1,0 +1,55 @@
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+import { getSessionUser } from '@/lib/auth'
+
+function escapeCsv(value: string | null | undefined): string {
+  const s = String(value ?? '')
+  return `"${s.replace(/"/g, '""')}"`
+}
+
+function fmtDate(d: Date | null): string {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
+export async function GET() {
+  const user = await getSessionUser()
+  if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const invoices = await prisma.invoice.findMany({
+    where: { clinicId: user.clinicId },
+    orderBy: { transactionDate: 'desc' },
+  })
+
+  const header = [
+    'OR Number', 'Date', 'Patient', 'Service Description',
+    'Gross', 'Net (ex. VAT)', 'VAT', 'Discount',
+    'Payment Method', 'Status',
+  ]
+
+  const rows = invoices.map((inv) => [
+    inv.orNumber,
+    fmtDate(inv.transactionDate),
+    inv.buyerName ?? '',
+    inv.serviceDescription,
+    Number(inv.grossAmount).toFixed(2),
+    Number(inv.netAmount).toFixed(2),
+    Number(inv.vatAmount).toFixed(2),
+    Number(inv.discountAmount).toFixed(2),
+    inv.paymentMethod,
+    inv.status,
+  ])
+
+  const csv = [header, ...rows]
+    .map((row) => row.map(escapeCsv).join(','))
+    .join('\n')
+
+  const today = new Date().toISOString().split('T')[0]
+
+  return new NextResponse(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="invoices-${today}.csv"`,
+    },
+  })
+}

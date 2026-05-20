@@ -43,6 +43,7 @@ export async function GET() {
     sssEmployerNumber: clinic.sssEmployerNumber ?? '',
     philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
     pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
+    accountantEmail: clinic.accountantEmail ?? '',
   })
 }
 
@@ -58,6 +59,7 @@ export async function PATCH(req: NextRequest) {
     facebookPageUrl, messengerPageId,
     orSeriesStart,
     hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
+    accountantEmail,
   } = body
 
   const updated = await prisma.clinic.update({
@@ -78,6 +80,7 @@ export async function PATCH(req: NextRequest) {
       ...(sssEmployerNumber !== undefined && { sssEmployerNumber: sssEmployerNumber || null }),
       ...(philhealthEmployerNumber !== undefined && { philhealthEmployerNumber: philhealthEmployerNumber || null }),
       ...(pagibigEmployerNumber !== undefined && { pagibigEmployerNumber: pagibigEmployerNumber || null }),
+      ...(accountantEmail !== undefined && { accountantEmail: accountantEmail || null }),
     },
   })
 
