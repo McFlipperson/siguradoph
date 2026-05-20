@@ -82,7 +82,7 @@ export function Step6Suppliers({ initialData, onSave, onBack, isSaving }: Step6S
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Suppliers</h2>
-        <p className="text-sm text-muted-foreground">Track your vendors for expense and VAT management.</p>
+        <p className="text-sm text-muted-foreground">These are the companies or people you buy things from — dental supply shops, your landlord, your internet provider, etc. Adding them here makes it faster to record expenses later and helps track VAT (Value Added Tax) you can claim back. You can add more anytime.</p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -132,16 +132,20 @@ export function Step6Suppliers({ initialData, onSave, onBack, isSaving }: Step6S
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between min-h-[40px]">
-                <Label>VAT Registered?</Label>
+              <div className="flex items-start justify-between min-h-[40px] gap-4">
+                <div className="flex-1">
+                  <Label>VAT (Value Added Tax) Registered?</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Is this supplier registered for VAT (Value Added Tax)? Check their official receipt — if it shows a TIN (Tax Identification Number) and the word &quot;VAT,&quot; turn this ON. It means you can claim back the tax they charged you.</p>
+                </div>
                 <Switch
                   checked={supplier.vatRegistered}
                   onCheckedChange={(checked: boolean) => update(idx, 'vatRegistered', checked)}
+                  className="mt-1 shrink-0"
                 />
               </div>
               {supplier.vatRegistered && (
                 <p className="text-xs text-muted-foreground">
-                  You can claim input VAT on their invoices.
+                  ✓ You can claim back VAT (Value Added Tax) on purchases from this supplier.
                 </p>
               )}
               <div className="flex flex-col gap-2">
@@ -154,7 +158,8 @@ export function Step6Suppliers({ initialData, onSave, onBack, isSaving }: Step6S
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label>TIN (optional)</Label>
+                <Label>TIN (Tax Identification Number) — optional</Label>
+                <p className="text-xs text-muted-foreground -mt-1">The supplier&apos;s tax ID number. You can find this printed on any official receipt or invoice they give you. This is optional but useful for your BIR (Bureau of Internal Revenue) records.</p>
                 <Input
                   value={supplier.tin ?? ''}
                   onChange={e => update(idx, 'tin', e.target.value)}

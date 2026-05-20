@@ -70,6 +70,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="tin">TIN (Tax Identification Number) *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">Your 12-digit tax ID number from the BIR (Bureau of Internal Revenue). Find it on your COR (Certificate of Registration) — the document you received when you registered your business. It looks like: 123-456-789-000.</p>
         <Input
           id="tin"
           value={form.tin}
@@ -82,6 +83,7 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="rdoCode">RDO (Revenue District Office) Code *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">A 2–3 digit number that identifies the BIR (Bureau of Internal Revenue) branch your business belongs to. It&apos;s printed on your COR (Certificate of Registration) — look for "RDO" or "Revenue District Office." Example: 044, 083.</p>
         <Input
           id="rdoCode"
           value={form.rdoCode}
@@ -94,18 +96,20 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="corNumber">COR (Certificate of Registration) Number *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">The reference number printed at the top of your BIR (Bureau of Internal Revenue) Certificate of Registration. This is the physical document issued by the BIR that says you are officially registered as a business.</p>
         <Input
           id="corNumber"
           value={form.corNumber}
           onChange={e => set('corNumber', e.target.value)}
           required
           className="min-h-[48px]"
-          placeholder="Certificate of Registration number"
+          placeholder="e.g. RC0000123456"
         />
       </div>
 
       <div className="flex flex-col gap-2">
         <Label>Entity Type *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">How is your business legally set up? <strong>Sole Proprietor</strong> = you own and run it yourself. <strong>Partnership</strong> = two or more people own it together. <strong>Corporation</strong> = registered as a company (has its own separate legal identity). Most individual dentists choose Sole Proprietor.</p>
         <Select
           value={form.entityType}
           onValueChange={(val) => { if (val) set('entityType', val as EntityType) }}
@@ -121,20 +125,22 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
         </Select>
       </div>
 
-      <div className="flex items-center justify-between min-h-[48px]">
-        <div>
+      <div className="flex items-start justify-between min-h-[48px] gap-4">
+        <div className="flex-1">
           <Label>VAT (Value Added Tax) Registered</Label>
-          <p className="text-xs text-muted-foreground">Are you registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue)?</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Turn this ON if you are registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue). Your COR (Certificate of Registration) will say "VAT" if you are. If you&apos;re not sure, check with your accountant — most clinics earning over ₱3 million a year are VAT registered.</p>
         </div>
         <Switch
           checked={form.vatRegistered}
           onCheckedChange={(checked: boolean) => set('vatRegistered', checked)}
+          className="mt-1 shrink-0"
         />
       </div>
 
       {form.vatRegistered && (
         <div className="flex flex-col gap-2">
           <Label htmlFor="vatRegistrationDate">VAT (Value Added Tax) Registration Date</Label>
+          <p className="text-xs text-muted-foreground -mt-1">The date you officially became VAT (Value Added Tax) registered. This is printed on your VAT certificate or COR (Certificate of Registration). If you&apos;re not sure of the exact date, check with your accountant.</p>
           <Input
             id="vatRegistrationDate"
             type="date"
@@ -148,18 +154,20 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="orSeriesStart">OR (Official Receipt) Series Start *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">Every receipt you give a patient needs a unique number. Type what you want your very first receipt number to look like — for example <strong>OR-000001</strong> or just <strong>0001</strong>. Sigurado will count up automatically from there. If your BIR (Bureau of Internal Revenue) issued you a specific series to start from, use that number.</p>
         <Input
           id="orSeriesStart"
           value={form.orSeriesStart}
           onChange={e => set('orSeriesStart', e.target.value)}
           required
           className="min-h-[48px]"
-          placeholder="e.g. 0001"
+          placeholder="e.g. OR-000001"
         />
       </div>
 
       <div className="flex flex-col gap-2">
         <Label>Filing Method *</Label>
+        <p className="text-xs text-muted-foreground -mt-1">How do you submit your tax returns to the BIR (Bureau of Internal Revenue)? <strong>eBIRForms (Electronic BIR Forms)</strong> — you fill out forms on your computer and submit online. Most small clinics use this. <strong>eFPS (Electronic Filing and Payment System)</strong> — used by larger businesses. If you&apos;re not sure, choose eBIRForms.</p>
         <Select
           value={form.filingMethod}
           onValueChange={(val) => { if (val) set('filingMethod', val as FilingMethod) }}
@@ -168,8 +176,8 @@ export function Step2BIR({ initialData, onSave, onBack, isSaving }: Step2BIRProp
             <SelectValue placeholder="Select filing method" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="EBIRFORMS">eBIRForms</SelectItem>
-            <SelectItem value="EFPS">eFPS</SelectItem>
+            <SelectItem value="EBIRFORMS">eBIRForms (Electronic BIR Forms)</SelectItem>
+            <SelectItem value="EFPS">eFPS (Electronic Filing and Payment System)</SelectItem>
           </SelectContent>
         </Select>
       </div>

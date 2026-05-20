@@ -83,7 +83,7 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Loyalty Cards</h2>
-        <p className="text-sm text-muted-foreground">Design your own patient loyalty program.</p>
+        <p className="text-sm text-muted-foreground">A loyalty card is something patients buy once that gives them discounts on future treatments. For example, a patient pays ₱500 for a card and gets 50% off their first two cleanings. It rewards returning patients and keeps them coming back. You can turn this off if you don&apos;t want it.</p>
       </div>
 
       {/* Enable toggle */}
@@ -150,7 +150,7 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
           {/* Service Discounts */}
           <div className="space-y-1 mt-2">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Service Discounts</p>
-            <p className="text-xs text-muted-foreground">Configure what discounts cardholders receive per service.</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">Set the discount each service gets for cardholders. You can set up to two tiers per service — for example, <strong>Tier 1</strong>: 50% off the first 2 cleanings, then <strong>Tier 2</strong>: 25% off the next 2. Or just one tier if you prefer a simple flat discount. &quot;Free / unlimited&quot; means the service is included with the card at no charge, unlimited times.</p>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -190,10 +190,10 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
                     <>
                       {/* Tier 1 */}
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1.5">Tier 1</p>
+                        <p className="text-xs text-muted-foreground mb-1.5">Tier 1 — first batch of discounted uses</p>
                         <div className="flex gap-2">
                           <div className="flex-1">
-                            <Label className="text-xs">Uses</Label>
+                            <Label className="text-xs">Uses (how many times)</Label>
                             <Input
                               type="number"
                               min="1"
@@ -218,7 +218,7 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
 
                       {/* Tier 2 (optional) */}
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1.5">Tier 2 <span className="italic">(optional)</span></p>
+                        <p className="text-xs text-muted-foreground mb-1.5">Tier 2 — second batch at a different discount (optional)</p>
                         <div className="flex gap-2">
                           <div className="flex-1">
                             <Label className="text-xs">Uses</Label>

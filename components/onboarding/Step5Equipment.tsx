@@ -130,7 +130,7 @@ export function Step5Equipment({ initialData, onSave, onBack, isSaving }: Step5E
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Equipment</h2>
-        <p className="text-sm text-muted-foreground">Track clinic equipment for depreciation and asset management.</p>
+        <p className="text-sm text-muted-foreground">List the major equipment in your clinic — dental chairs, x-ray machines, autoclaves, etc. Sigurado uses this to calculate depreciation, which is the portion of each equipment&apos;s cost you can deduct as a business expense each year for tax purposes. You can skip this and add equipment later.</p>
       </div>
 
       {/* Chip suggestions */}
@@ -207,6 +207,7 @@ export function Step5Equipment({ initialData, onSave, onBack, isSaving }: Step5E
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Useful Life (Years)</Label>
+                  <p className="text-xs text-muted-foreground -mt-1">How many years do you expect this equipment to last before it needs to be replaced? This is used to spread the cost across those years for tax purposes. A dental chair typically lasts 10 years; smaller tools around 3–5 years. When in doubt, ask your accountant.</p>
                   <Select
                     value={row.lifeOption ?? '5'}
                     onValueChange={(val) => { if (val) handleLifeChange(idx, val) }}
@@ -235,7 +236,7 @@ export function Step5Equipment({ initialData, onSave, onBack, isSaving }: Step5E
                 </div>
                 {annualDep > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Annual depreciation: ₱{fmt(annualDep)}
+                    ₱{fmt(annualDep)} per year in tax-deductible depreciation (cost ÷ useful life).
                   </p>
                 )}
               </CardContent>

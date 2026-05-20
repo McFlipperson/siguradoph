@@ -119,7 +119,7 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Service Catalog</h2>
-        <p className="text-sm text-muted-foreground">Set up the services your clinic offers.</p>
+        <p className="text-sm text-muted-foreground">These are the treatments your clinic offers — cleaning, fillings, braces, etc. The secretary picks from this list when recording a patient visit. We&apos;ve added the most common ones for you. Remove anything you don&apos;t offer and add anything that&apos;s missing. You can change this anytime in Settings.</p>
       </div>
 
       <Card className="bg-amber-50 dark:bg-amber-950/20">
@@ -199,11 +199,15 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center justify-between min-h-[40px]">
-                <Label>Active</Label>
+              <div className="flex items-start justify-between min-h-[40px] gap-4">
+                <div className="flex-1">
+                  <Label>Active</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">Turn OFF if your clinic doesn&apos;t currently offer this service. It won&apos;t appear when recording visits but stays saved so you can turn it back on later.</p>
+                </div>
                 <Switch
                   checked={service.isActive}
                   onCheckedChange={(checked: boolean) => update(idx, 'isActive', checked)}
+                  className="mt-1 shrink-0"
                 />
               </div>
             </CardContent>

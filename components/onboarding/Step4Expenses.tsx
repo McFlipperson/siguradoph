@@ -89,7 +89,7 @@ export function Step4Expenses({ initialData, onSave, onBack, isSaving }: Step4Ex
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Recurring Expenses</h2>
-        <p className="text-sm text-muted-foreground">Fixed monthly costs to track for your clinic.</p>
+        <p className="text-sm text-muted-foreground">These are bills your clinic pays every month — like rent, electricity, and internet. Adding them here lets Sigurado automatically track them against your income for tax purposes. You can always add more or change them later.</p>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -157,23 +157,28 @@ export function Step4Expenses({ initialData, onSave, onBack, isSaving }: Step4Ex
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Payee Name (optional)</Label>
+                  <p className="text-xs text-muted-foreground -mt-1">Who do you pay this bill to? For example, your landlord&apos;s name for rent, or &quot;Meralco&quot; for electricity. This is just for your records.</p>
                   <Input
                     value={expense.payeeName ?? ''}
                     onChange={e => update(idx, 'payeeName', e.target.value)}
                     className="min-h-[48px]"
-                    placeholder="e.g. Building Owner"
+                    placeholder="e.g. Building Owner, Meralco, PLDT"
                   />
                 </div>
-                <div className="flex items-center justify-between min-h-[40px]">
-                  <Label>VAT-registered payee?</Label>
+                <div className="flex items-start justify-between min-h-[40px] gap-4">
+                  <div className="flex-1">
+                    <Label>VAT (Value Added Tax) Registered Payee?</Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">Does the company or person you&apos;re paying charge VAT (Value Added Tax) on their invoices? If yes, turn this ON — you can claim back that tax from the BIR (Bureau of Internal Revenue). Check their official receipt or invoice for the word &quot;VAT.&quot;</p>
+                  </div>
                   <Switch
                     checked={expense.vatRegistered}
                     onCheckedChange={(checked: boolean) => update(idx, 'vatRegistered', checked)}
+                    className="mt-1 shrink-0"
                   />
                 </div>
                 {expense.vatRegistered && expense.amount > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Claimable input VAT: ₱{fmt(inputVat)}
+                    ✓ You can claim back ₱{fmt(inputVat)} in input VAT (Value Added Tax) from this expense.
                   </p>
                 )}
               </CardContent>
