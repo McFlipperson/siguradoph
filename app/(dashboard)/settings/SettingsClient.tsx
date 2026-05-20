@@ -544,8 +544,11 @@ export default function SettingsClient({
               </div>
             )}
             <div>
-              <label className="text-xs font-medium text-muted-foreground">OR Series Prefix (e.g. OR-000001)</label>
-              <input value={orSeriesStart} onChange={e => setOrSeriesStart(e.target.value)} className={`${inputClass} mt-1`} />
+              <label className="text-xs font-medium text-muted-foreground">Official Receipt Series</label>
+              <input value={orSeriesStart} onChange={e => setOrSeriesStart(e.target.value)} placeholder="e.g. OR-000001" className={`${inputClass} mt-1`} />
+              <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                Every time you issue a receipt to a patient, it gets a unique number — like OR-000001, OR-000002, and so on. This is required by the BIR (Bureau of Internal Revenue). Just type what you want the first receipt to look like, for example <span className="font-mono bg-muted px-1 rounded">OR-000001</span>, and Sigurado will automatically count up from there every time you print a receipt.
+              </p>
             </div>
           </div>
 
@@ -564,15 +567,15 @@ export default function SettingsClient({
             {hasEmployees && (
               <>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">SSS Employer Number</label>
+                  <label className="text-xs font-medium text-muted-foreground">SSS Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input value={sssEmployerNumber} onChange={e => setSssEmployerNumber(e.target.value)} placeholder="03-XXXXXXX-X" className={`${inputClass} mt-1`} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">PhilHealth Employer Number</label>
+                  <label className="text-xs font-medium text-muted-foreground">PhilHealth Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input value={philhealthEmployerNumber} onChange={e => setPhilhealthEmployerNumber(e.target.value)} placeholder="XX-000000000-X" className={`${inputClass} mt-1`} />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Pag-IBIG Employer Number</label>
+                  <label className="text-xs font-medium text-muted-foreground">Pag-IBIG Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
                   <input value={pagibigEmployerNumber} onChange={e => setPagibigEmployerNumber(e.target.value)} placeholder="XXXX-XXXX-XXXX" className={`${inputClass} mt-1`} />
                 </div>
               </>
