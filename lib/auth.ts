@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma'
 
 export async function getSessionUser() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user?.email) return null
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser?.email) return null
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { email: authUser.email },
     select: { id: true, email: true, role: true, clinicId: true },
   })
   return user

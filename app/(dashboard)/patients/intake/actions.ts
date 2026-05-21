@@ -6,10 +6,10 @@ import { revalidatePath } from 'next/cache'
 
 async function getClinicId(): Promise<string> {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user?.email) throw new Error('Not authenticated')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser?.email) throw new Error('Not authenticated')
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { email: authUser.email },
     select: { clinicId: true },
   })
   if (!user?.clinicId) throw new Error('No clinic')

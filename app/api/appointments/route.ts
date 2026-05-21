@@ -8,9 +8,9 @@ const TZ = 'Asia/Manila'
 
 async function getClinicId() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! }, select: { clinicId: true } })
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
+  const user = await prisma.user.findUnique({ where: { email: authUser.email! }, select: { clinicId: true } })
   return user?.clinicId ?? null
 }
 

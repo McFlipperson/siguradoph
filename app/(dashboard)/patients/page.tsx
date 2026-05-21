@@ -5,8 +5,8 @@ import PatientListClient from './PatientListClient'
 
 export default async function PatientsPage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
 
   const patients = await getPatients()
 

@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic'
 
 export default async function ExpensesPage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
+    where: { email: authUser.email! },
     select: { clinicId: true },
   })
   if (!user?.clinicId) redirect('/onboarding')

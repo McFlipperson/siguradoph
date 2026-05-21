@@ -5,11 +5,11 @@ import { IntakeForm } from './IntakeForm'
 
 export default async function IntakePage() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
+    where: { email: authUser.email! },
     include: { clinic: true },
   })
   if (!user?.clinic) redirect('/onboarding')

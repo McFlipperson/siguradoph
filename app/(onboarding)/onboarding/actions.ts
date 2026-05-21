@@ -102,11 +102,11 @@ export type Step8Data = {
 export async function getClinicForCurrentUser() {
   try {
     const supabase = createServerClient()
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user?.email) return null
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser?.email) return null
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { email: authUser.email },
       include: {
         clinic: {
           include: {
@@ -128,10 +128,10 @@ export async function getClinicForCurrentUser() {
 
 export async function saveStep1(data: Step1Data): Promise<string> {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.user?.email) throw new Error('Not authenticated')
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser?.email) throw new Error('Not authenticated')
 
-  const email = session.user.email
+  const email = authUser.email
 
   // Find existing user/clinic
   const user = await prisma.user.findUnique({

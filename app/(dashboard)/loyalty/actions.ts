@@ -8,10 +8,10 @@ import { revalidatePath } from 'next/cache'
 async function getClinicId() {
   const supabase = createServerClient()
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! } })
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
+  const user = await prisma.user.findUnique({ where: { email: authUser.email! } })
   if (!user?.clinicId) redirect('/onboarding')
   return user.clinicId
 }

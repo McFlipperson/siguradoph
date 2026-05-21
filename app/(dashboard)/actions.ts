@@ -8,11 +8,11 @@ import { startOfDay, endOfDay, startOfYear, endOfYear } from 'date-fns'
 async function getClinicId() {
   const supabase = createServerClient()
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+    data: { user: authUser },
+  } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
+    where: { email: authUser.email! },
     include: { clinic: true },
   })
   if (!user?.clinic) redirect('/onboarding')

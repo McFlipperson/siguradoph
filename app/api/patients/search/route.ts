@@ -4,10 +4,10 @@ import { createServerClient } from '@/lib/supabase'
 
 export async function GET(req: NextRequest) {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json([], { status: 401 })
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return NextResponse.json([], { status: 401 })
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! }, select: { clinicId: true } })
+  const user = await prisma.user.findUnique({ where: { email: authUser.email! }, select: { clinicId: true } })
   if (!user?.clinicId) return NextResponse.json([])
 
   const q = req.nextUrl.searchParams.get('q')?.trim() ?? ''

@@ -4,10 +4,10 @@ import { createServerClient } from '@/lib/supabase'
 
 async function getClinicId() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return null
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
+    where: { email: authUser.email! },
     select: { clinicId: true },
   })
   return user?.clinicId ?? null

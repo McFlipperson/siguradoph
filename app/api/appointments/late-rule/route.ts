@@ -8,10 +8,10 @@ const TZ = 'Asia/Manila'
 
 export async function POST() {
   const supabase = createServerClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const user = await prisma.user.findUnique({ where: { email: session.user.email! }, select: { clinicId: true } })
+  const user = await prisma.user.findUnique({ where: { email: authUser.email! }, select: { clinicId: true } })
   if (!user?.clinicId) return NextResponse.json({ error: 'No clinic' }, { status: 401 })
 
   const clinicId = user.clinicId
