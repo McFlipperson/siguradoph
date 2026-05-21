@@ -19,6 +19,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setError('Enter your email address above first, then tap Forgot password.')
+      return
+    }
+    setResetLoading(true)
+    setError(null)
+    const supabase = createClient()
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    })
+    setResetSent(true)
+    setResetLoading(false)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -102,6 +119,21 @@ export default function LoginPage() {
           {loading ? 'Signing in…' : 'Sign in'}
         </Button>
       </form>
+
+      {resetSent ? (
+        <p className="text-center text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          Password reset email sent! Check your inbox and click the link.
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          disabled={resetLoading}
+          className="text-center text-sm text-muted-foreground underline underline-offset-4 disabled:opacity-50"
+        >
+          {resetLoading ? 'Sending…' : 'Forgot password?'}
+        </button>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         No account yet?{' '}
