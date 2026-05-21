@@ -1,16 +1,42 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const hostname = req.headers.get('host') || ''
   const url = req.nextUrl.clone()
   const host = hostname.replace(/:\d+$/, '')
 
+  // Start with a response that we'll thread through Supabase for cookie handling
+  let res = NextResponse.next({ request: req })
+
+  // Wire up Supabase SSR cookie proxy — required for session refresh
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          res = NextResponse.next({ request: req })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // Refresh session if expired — must be called before any routing logic
+  await supabase.auth.getUser()
+
   // Vercel preview deployments — serve normally
   if (host.endsWith('.vercel.app')) {
-    return NextResponse.next()
+    return res
   }
 
   // Root domain (sigurado.xyz / www.sigurado.xyz / localhost)
@@ -19,10 +45,9 @@ export function middleware(req: NextRequest) {
     host === `www.${ROOT_DOMAIN}` ||
     host === 'localhost'
   ) {
-    // Supabase auth emails land here with ?code= when the redirectTo fallback
-    // kicks in — forward to the callback handler so the session is established
+    // Supabase auth emails land here with ?code= when redirectTo fallback kicks in
     if (url.pathname === '/' && url.searchParams.get('code')) {
-      const dest = new URL('/auth/callback', url.origin)
+      const dest = new URL('/auth/confirm', url.origin)
       dest.searchParams.set('code', url.searchParams.get('code')!)
       const type = url.searchParams.get('type')
       if (type) dest.searchParams.set('type', type)
@@ -34,22 +59,19 @@ export function middleware(req: NextRequest) {
       url.pathname = '/landing'
       return NextResponse.rewrite(url)
     }
-    return NextResponse.next()
+
+    return res
   }
 
-  // Clinic subdomains (mine.sigurado.xyz, omega.sigurado.xyz, etc.)
-  // CPA portal
+  // CPA portal subdomain
   const subdomain = host.replace(`.${ROOT_DOMAIN}`, '')
   if (subdomain === 'cpa') {
     url.pathname = `/cpa${url.pathname === '/' ? '' : url.pathname}`
     return NextResponse.rewrite(url)
   }
 
-  // All other subdomains pass through to the main Next.js app as-is
-  // mine.sigurado.xyz/          → dashboard (/)
-  // mine.sigurado.xyz/login     → login page
-  // mine.sigurado.xyz/patients  → patients page
-  return NextResponse.next()
+  // Clinic subdomains — pass through
+  return res
 }
 
 export const config = {

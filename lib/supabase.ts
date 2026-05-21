@@ -1,8 +1,5 @@
-import { createServerClient as _createServerClient, createBrowserClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient as _createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
-const cookieDomain = process.env.NODE_ENV === 'production' ? `.${ROOT_DOMAIN}` : undefined
 
 export function createServerClient() {
   const cookieStore = cookies()
@@ -10,11 +7,6 @@ export function createServerClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookieOptions: {
-        domain: cookieDomain,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-      },
       cookies: {
         getAll() {
           return cookieStore.getAll()
@@ -22,25 +14,13 @@ export function createServerClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, {
-                ...options,
-                domain: cookieDomain,
-                sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
-              })
+              cookieStore.set(name, value, options)
             )
           } catch {
-            // Server component — cookies can't be set
+            // Called from a Server Component — middleware handles session refresh
           }
         },
       },
     }
-  )
-}
-
-export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
