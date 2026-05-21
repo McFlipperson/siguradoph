@@ -238,7 +238,12 @@ export async function saveStep3(clinicId: string, data: Step3Data): Promise<void
     },
   })
 
-  // Delete existing employees and re-insert
+  // Delete payroll records first (FK constraint), then employees
+  const existingEmployees = await prisma.employee.findMany({ where: { clinicId }, select: { id: true } })
+  const employeeIds = existingEmployees.map(e => e.id)
+  if (employeeIds.length > 0) {
+    await prisma.payrollRecord.deleteMany({ where: { employeeId: { in: employeeIds } } })
+  }
   await prisma.employee.deleteMany({ where: { clinicId } })
 
   if (data.hasEmployees && data.employees.length > 0) {
