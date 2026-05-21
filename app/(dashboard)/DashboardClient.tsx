@@ -111,9 +111,9 @@ export default function DashboardClient({ data }: Props) {
         <Image
           src={data.logoUrl ?? '/logo.png'}
           alt={data.clinicName}
-          width={130}
-          height={36}
-          className="h-9 w-auto object-contain"
+          width={390}
+          height={108}
+          className="h-28 w-auto object-contain"
           unoptimized={!!data.logoUrl}
         />
         <div className="text-right">
