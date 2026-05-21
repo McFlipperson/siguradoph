@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase-browser'
+import { updatePassword } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,19 +30,10 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
-    const supabase = createClient()
-
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-      setError('Your reset link has expired. Please request a new one.')
-      setLoading(false)
-      return
-    }
-
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    const { error: updateError } = await updatePassword(password)
 
     if (updateError) {
-      setError(updateError.message)
+      setError(updateError)
       setLoading(false)
       return
     }
