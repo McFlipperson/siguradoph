@@ -9,11 +9,17 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/onboarding'
 
   if (token_hash && type) {
-    const dest = type === 'recovery' ? '/reset-password' : next
-    const response = NextResponse.redirect(new URL(dest, origin))
+    // For password recovery, pass the token through to the reset-password page
+    // so the server action can verify it and update the password in one step.
+    // This avoids relying on Set-Cookie headers surviving CDN redirects.
+    if (type === 'recovery') {
+      const dest = new URL('/reset-password', origin)
+      dest.searchParams.set('token_hash', token_hash)
+      return NextResponse.redirect(dest)
+    }
 
-    // Wire Supabase to write session cookies directly onto the redirect response,
-    // not onto Next's implicit response — otherwise the browser never receives them.
+    const response = NextResponse.redirect(new URL(next, origin))
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

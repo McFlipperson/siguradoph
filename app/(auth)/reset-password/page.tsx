@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { updatePassword } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,8 @@ import Image from 'next/image'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const tokenHash = searchParams.get('token_hash') ?? ''
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,8 +31,13 @@ export default function ResetPasswordPage() {
       return
     }
 
+    if (!tokenHash) {
+      setError('Reset link is invalid or has expired. Please request a new one.')
+      return
+    }
+
     setLoading(true)
-    const { error: updateError } = await updatePassword(password)
+    const { error: updateError } = await updatePassword(tokenHash, password)
 
     if (updateError) {
       setError(updateError)
