@@ -19,6 +19,16 @@ export function middleware(req: NextRequest) {
     host === `www.${ROOT_DOMAIN}` ||
     host === 'localhost'
   ) {
+    // Supabase auth emails land here with ?code= when the redirectTo fallback
+    // kicks in — forward to the callback handler so the session is established
+    if (url.pathname === '/' && url.searchParams.get('code')) {
+      const dest = new URL('/auth/callback', url.origin)
+      dest.searchParams.set('code', url.searchParams.get('code')!)
+      const type = url.searchParams.get('type')
+      if (type) dest.searchParams.set('type', type)
+      return NextResponse.redirect(dest)
+    }
+
     // Rewrite / to the coming soon page
     if (url.pathname === '/') {
       url.pathname = '/landing'
