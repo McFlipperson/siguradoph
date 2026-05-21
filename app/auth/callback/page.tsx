@@ -14,31 +14,36 @@ function CallbackHandler() {
       const code = searchParams.get('code')
       const tokenHash = searchParams.get('token_hash')
       const type = searchParams.get('type') ?? ''
+      const dest = type === 'recovery' ? '/reset-password' : '/onboarding'
 
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
-          router.replace(type === 'recovery' ? '/reset-password' : '/onboarding')
-          return
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code)
+          if (!error) {
+            window.location.href = dest
+            return
+          }
         }
+
+        if (tokenHash && type) {
+          const { error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: type as 'signup' | 'recovery' | 'email_change',
+          })
+          if (!error) {
+            window.location.href = dest
+            return
+          }
+        }
+      } catch {
+        // fall through to error redirect
       }
 
-      if (tokenHash && type) {
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: type as 'signup' | 'recovery' | 'email_change',
-        })
-        if (!error) {
-          router.replace(type === 'recovery' ? '/reset-password' : '/onboarding')
-          return
-        }
-      }
-
-      router.replace('/login?error=confirmation_failed')
+      window.location.href = '/login?error=confirmation_failed'
     }
 
     handle()
-  }, [router, searchParams])
+  }, [searchParams])
 
   return (
     <div className="min-h-screen flex items-center justify-center">
