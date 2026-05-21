@@ -253,15 +253,16 @@ export default function SettingsClient({
   const [logoUploading, setLogoUploading] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
-  async function handleLogoUpload(file: File) {
-    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return }
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
     if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return }
     setLogoUploading(true)
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
-      const ext = file.name.split('.').pop()
+      const ext = file.name.split('.').pop() ?? 'png'
       const path = `${user.id}/logo.${ext}`
       const { error: uploadError } = await supabase.storage.from('clinic-logos').upload(path, file, { upsert: true, contentType: file.type })
       if (uploadError) throw uploadError
@@ -270,10 +271,11 @@ export default function SettingsClient({
       if (error) throw new Error(error)
       setLogoUrl(publicUrl)
       toast.success('Logo updated')
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Upload failed')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setLogoUploading(false)
+      if (logoInputRef.current) logoInputRef.current.value = ''
     }
   }
 
@@ -495,7 +497,7 @@ export default function SettingsClient({
               ) : (
                 <div className="h-20 w-full rounded-xl bg-muted flex items-center justify-center text-sm text-muted-foreground">No logo uploaded</div>
               )}
-              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f) }} />
+              <input ref={logoInputRef} type="file" accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/heic, image/heif, image/svg+xml" className="hidden" onChange={handleLogoUpload} />
               <div className="flex gap-2 w-full">
                 <button
                   type="button"
