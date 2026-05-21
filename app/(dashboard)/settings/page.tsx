@@ -33,6 +33,7 @@ export default async function SettingsPage() {
       clinic={{
         id: clinic.id,
         slug: clinic.slug ?? null,
+        logoUrl: clinic.logoUrl ?? null,
         name: clinic.name,
         ownerName: clinic.ownerName,
         street: clinic.street,

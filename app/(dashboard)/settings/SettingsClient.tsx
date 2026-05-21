@@ -1,8 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { toast } from 'sonner'
+import Image from 'next/image'
 import { PrinterSection } from './PrinterSection'
+import { createClient } from '@/lib/supabase-browser'
+import { updateClinicLogo } from './actions'
 
 const SUPPLIER_CATEGORIES = [
   { value: 'DENTAL_SUPPLIES', label: 'Dental Supplies' },
@@ -19,6 +22,7 @@ const SUPPLIER_CATEGORIES = [
 type ClinicData = {
   id: string
   slug: string | null
+  logoUrl: string | null
   name: string
   ownerName: string
   street: string
@@ -245,6 +249,40 @@ export default function SettingsClient({
   const [vatRegistrationDate, setVatRegistrationDate] = useState(clinic.vatRegistrationDate ?? '')
   const [filingMethod, setFilingMethod] = useState(clinic.filingMethod)
   const [savingClinic, setSavingClinic] = useState(false)
+  const [logoUrl, setLogoUrl] = useState<string | null>(clinic.logoUrl)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+
+  async function handleLogoUpload(file: File) {
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5 MB'); return }
+    setLogoUploading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/logo.${ext}`
+      const { error: uploadError } = await supabase.storage.from('clinic-logos').upload(path, file, { upsert: true, contentType: file.type })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage.from('clinic-logos').getPublicUrl(path)
+      const { error } = await updateClinicLogo(publicUrl)
+      if (error) throw new Error(error)
+      setLogoUrl(publicUrl)
+      toast.success('Logo updated')
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
+  async function handleRemoveLogo() {
+    const { error } = await updateClinicLogo(null)
+    if (error) { toast.error(error); return }
+    setLogoUrl(null)
+    toast.success('Logo removed')
+  }
 
   // Compute current OR number display
   const orMatch = clinic.orSeriesStart.match(/^([A-Za-z\-_]+)(\d+)$/)
@@ -447,6 +485,39 @@ export default function SettingsClient({
       {/* ── CLINIC TAB ── */}
       {tab === 'clinic' && (
         <div className="space-y-6">
+
+          {/* ── Logo ── */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Clinic Logo</h2>
+            <div className="rounded-2xl border border-border bg-muted/30 p-4 flex flex-col items-center gap-3">
+              {logoUrl ? (
+                <Image src={logoUrl} alt="Clinic logo" width={240} height={80} className="h-20 w-auto object-contain" unoptimized />
+              ) : (
+                <div className="h-20 w-full rounded-xl bg-muted flex items-center justify-center text-sm text-muted-foreground">No logo uploaded</div>
+              )}
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoUpload(f) }} />
+              <div className="flex gap-2 w-full">
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={logoUploading}
+                  className="flex-1 min-h-[44px] rounded-xl border-2 border-blue-600 text-blue-700 text-sm font-semibold active:bg-blue-50 disabled:opacity-50"
+                >
+                  {logoUploading ? 'Uploading…' : logoUrl ? 'Change Logo' : 'Upload Logo'}
+                </button>
+                {logoUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveLogo}
+                    className="min-h-[44px] px-4 rounded-xl border border-destructive text-destructive text-sm font-semibold active:bg-destructive/10"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">PNG, JPG or SVG · max 5 MB</p>
+            </div>
+          </div>
 
           {/* ── Basic Info ── */}
           <div className="space-y-3">
