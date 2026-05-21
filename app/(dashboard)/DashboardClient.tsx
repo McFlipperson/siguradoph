@@ -96,7 +96,6 @@ function statusBadge(status: string) {
 export default function DashboardClient({ data }: Props) {
   const router = useRouter()
   const today = new Date()
-  const todayLabel = format(today, 'EEEE, MMMM d')
 
   const chartData = MONTH_NAMES.map((name, i) => ({
     name,
