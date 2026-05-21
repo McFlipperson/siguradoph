@@ -11,18 +11,28 @@ import { createServerClient } from '@/lib/supabase'
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url)
   const code = searchParams.get('code')
-  const type = searchParams.get('type') // 'signup' | 'recovery' | 'email_change'
+  const tokenHash = searchParams.get('token_hash')
+  const type = (searchParams.get('type') ?? '') as 'signup' | 'recovery' | 'email_change' | ''
   const next = searchParams.get('next')
 
+  const supabase = createServerClient()
+
   if (code) {
-    const supabase = createServerClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       if (type === 'recovery') {
-        // Password reset — send to the page where they enter a new password
         return NextResponse.redirect(new URL('/reset-password', origin))
       }
-      // Email confirmation — send to onboarding (or wherever next points)
+      return NextResponse.redirect(new URL(next ?? '/onboarding', origin))
+    }
+  }
+
+  if (tokenHash && type) {
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+    if (!error) {
+      if (type === 'recovery') {
+        return NextResponse.redirect(new URL('/reset-password', origin))
+      }
       return NextResponse.redirect(new URL(next ?? '/onboarding', origin))
     }
   }
