@@ -106,6 +106,7 @@ model Clinic {
   loyaltyCardTemplates  LoyaltyCardTemplate[]
   scheduledReminders    ScheduledReminder[]
   unlinkedMessengers    UnlinkedMessenger[]
+  quarterlyReportLogs   QuarterlyReportLog[]
 }
 
 model UnlinkedMessenger {
@@ -399,6 +400,18 @@ model ScheduledReminder {
   createdAt      DateTime  @default(now())
 }
 
+
+model QuarterlyReportLog {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  quarter      Int
+  year         Int
+  sentAt       DateTime @default(now())
+  sentTo       String
+  status       String   // SENT | FAILED
+  errorMessage String?
+}
 
 model LoyaltyCardTemplate {
   id            String   @id @default(cuid())
