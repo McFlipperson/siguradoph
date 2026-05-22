@@ -21,21 +21,56 @@ interface NextSend {
   label: string
 }
 
+interface Preview {
+  quarter: number
+  year: number
+  label: string
+  grossSales: number
+  netSales: number
+  outputVat: number
+  totalExpenses: number
+  inputVat: number
+  netVat: number
+  invoiceCount: number
+  expenseCount: number
+  hasQap: boolean
+  hasPayroll: boolean
+}
+
 interface Props {
   accountantEmail: string | null
   assignedCpaEmail: string | null
   nextSend: NextSend
   logs: Log[]
+  preview: Preview
 }
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
-export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend, logs }: Props) {
+function peso(n: number) {
+  return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 2 })
+}
+
+function DownloadButton({ type, label }: { type: string; label: string }) {
+  return (
+    <a
+      href={`/api/reports/quarterly/download?type=${type}`}
+      download
+      className="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors min-h-[48px]"
+    >
+      <span>{label}</span>
+      <span className="text-xs text-muted-foreground ml-2">↓ CSV</span>
+    </a>
+  )
+}
+
+export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend, logs, preview }: Props) {
   const [sending, setSending] = useState(false)
   const [resendingId, setResendingId] = useState<string | null>(null)
   const [flash, setFlash] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const recipientEmail = assignedCpaEmail ?? accountantEmail
 
@@ -48,7 +83,6 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
       const res = await fetch('/api/reports/quarterly')
       if (res.ok) {
         setFlash({ type: 'ok', msg: 'Report sent successfully.' })
-        // Reload to refresh logs
         setTimeout(() => window.location.reload(), 1200)
       } else {
         const body = await res.json().catch(() => ({}))
@@ -67,7 +101,6 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-bold">CPA Reports</h1>
-
         <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
           <p className="font-semibold text-base">No accountant configured</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
@@ -80,16 +113,12 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
             <Button className="w-full min-h-[48px] mt-1">Go to Settings</Button>
           </Link>
         </div>
-
         <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-2">
           <p className="font-semibold text-sm">Need a CPA?</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Sigurado offers a partner CPA add-on — your records get automatically reviewed and filed every quarter.
           </p>
-          <a
-            href={`mailto:hello@sigurado.xyz?subject=CPA Partner Inquiry`}
-            className="text-sm text-primary underline underline-offset-4"
-          >
+          <a href="mailto:hello@sigurado.xyz?subject=CPA Partner Inquiry" className="text-sm text-primary underline underline-offset-4">
             Contact us to learn more
           </a>
         </div>
@@ -97,20 +126,17 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
     )
   }
 
-  // State A / B — CPA configured (own email or assigned)
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">CPA Reports</h1>
 
-      {/* CPA info card */}
+      {/* CPA info */}
       <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
         {assignedCpaEmail ? (
           <>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5">
-                Sigurado Partner CPA
-              </span>
-            </div>
+            <span className="text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5 self-start">
+              Sigurado Partner CPA
+            </span>
             <p className="text-sm text-muted-foreground">{assignedCpaEmail}</p>
           </>
         ) : (
@@ -124,7 +150,69 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
         )}
       </div>
 
-      {/* Next send */}
+      {/* Report preview */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <button
+          onClick={() => setPreviewOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-5 py-4 text-left min-h-[56px]"
+        >
+          <div>
+            <p className="font-semibold text-sm">Report Preview</p>
+            <p className="text-xs text-muted-foreground">{preview.label} — review before sending</p>
+          </div>
+          <span className="text-muted-foreground text-lg leading-none">{previewOpen ? '−' : '+'}</span>
+        </button>
+
+        {previewOpen && (
+          <div className="px-5 pb-5 flex flex-col gap-4 border-t border-border">
+
+            {/* Summary numbers */}
+            <div className="flex flex-col gap-1 pt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Revenue ({preview.invoiceCount} invoices)</p>
+              <div className="flex justify-between text-sm py-1 border-b border-border/50">
+                <span className="text-muted-foreground">Gross Sales</span>
+                <span className="font-medium">{peso(preview.grossSales)}</span>
+              </div>
+              <div className="flex justify-between text-sm py-1 border-b border-border/50">
+                <span className="text-muted-foreground">Net Sales (ex. VAT)</span>
+                <span>{peso(preview.netSales)}</span>
+              </div>
+              <div className="flex justify-between text-sm py-1">
+                <span className="text-muted-foreground">Output VAT (12%)</span>
+                <span>{peso(preview.outputVat)}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Expenses ({preview.expenseCount} entries)</p>
+              <div className="flex justify-between text-sm py-1 border-b border-border/50">
+                <span className="text-muted-foreground">Total Expenses</span>
+                <span className="font-medium">{peso(preview.totalExpenses)}</span>
+              </div>
+              <div className="flex justify-between text-sm py-1">
+                <span className="text-muted-foreground">Input VAT (claimable)</span>
+                <span>{peso(preview.inputVat)}</span>
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-muted/50 p-3 flex justify-between items-center">
+              <span className="text-sm font-semibold">Net VAT Payable</span>
+              <span className="text-base font-bold">{peso(preview.netVat)}</span>
+            </div>
+
+            {/* Download CSVs */}
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Download &amp; Review</p>
+              <DownloadButton type="slsp-sales"     label="SLSP Sales — invoices list" />
+              <DownloadButton type="slsp-purchases" label="SLSP Purchases — expenses list" />
+              {preview.hasQap     && <DownloadButton type="qap"     label="QAP — EWT payees" />}
+              {preview.hasPayroll && <DownloadButton type="payroll" label="Payroll summary" />}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Next send + manual trigger */}
       <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3">
         <p className="text-sm font-medium text-muted-foreground">Next automatic send</p>
         <p className="text-lg font-bold">{formatDate(nextSend.date)}</p>
@@ -146,7 +234,7 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
           variant="outline"
           className="w-full min-h-[48px]"
         >
-          {sending ? 'Sending…' : `Send ${nextSend.label} report now`}
+          {sending ? 'Sending…' : `Send ${preview.label} report now`}
         </Button>
       </div>
 
@@ -161,22 +249,15 @@ export default function CpaClient({ accountantEmail, assignedCpaEmail, nextSend,
         ) : (
           <div className="flex flex-col gap-2">
             {logs.map((log) => (
-              <div
-                key={log.id}
-                className="rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between gap-3"
-              >
+              <div key={log.id} className="rounded-xl border border-border bg-card px-4 py-3 flex items-center justify-between gap-3">
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-semibold ${
-                        log.status === 'SENT' ? 'text-green-600' : 'text-destructive'
-                      }`}
-                    >
+                    <span className={`text-xs font-semibold ${log.status === 'SENT' ? 'text-green-600' : 'text-destructive'}`}>
                       {log.status === 'SENT' ? '✓' : '✗'}
                     </span>
                     <span className="font-medium text-sm">Q{log.quarter} {log.year}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground truncate">{formatDate(log.sentAt)}</span>
+                  <span className="text-xs text-muted-foreground">{formatDate(log.sentAt)}</span>
                   {log.status === 'FAILED' && log.errorMessage && (
                     <span className="text-xs text-destructive truncate">{log.errorMessage}</span>
                   )}
