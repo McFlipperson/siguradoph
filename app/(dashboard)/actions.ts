@@ -58,8 +58,8 @@ export async function getDashboardData() {
       where: {
         clinicId,
         enrolledAt: { gte: todayStart, lte: todayEnd },
+        visits: { none: { visitDate: { gte: todayStart, lte: todayEnd } } },
       },
-      include: { visits: { where: { visitDate: { gte: todayStart, lte: todayEnd } } } },
     }),
     prisma.appointment.findMany({
       where: {
@@ -85,14 +85,15 @@ export async function getDashboardData() {
     }),
   ])
 
-  const walkIns = await prisma.patient.findMany({
+  // All visits today — this is the real "who came in today" list regardless
+  // of when the patient was enrolled. Includes walk-ins and appointment patients.
+  const walkIns = await prisma.visit.findMany({
     where: {
       clinicId,
-      enrolledAt: { gte: todayStart, lte: todayEnd },
+      visitDate: { gte: todayStart, lte: todayEnd },
     },
-    include: {
-      visits: { where: { visitDate: { gte: todayStart, lte: todayEnd } }, take: 1 },
-    },
+    include: { patient: true },
+    orderBy: { createdAt: 'asc' },
   })
 
   const byMonth: number[] = Array(12).fill(0)
@@ -101,7 +102,7 @@ export async function getDashboardData() {
     byMonth[month] += Number(inv.grossAmount)
   }
 
-  const pendingCount = todayPendingPatients.filter((p) => p.visits.length === 0).length
+  const pendingCount = todayPendingPatients.length
 
   return {
     clinicName: clinic.name,
@@ -120,11 +121,11 @@ export async function getDashboardData() {
       type: a.type,
       status: a.status,
     })),
-    walkIns: walkIns.map((p) => ({
-      id: p.id,
-      name: `${p.firstName} ${p.lastName}`,
-      enrolledAt: p.enrolledAt.toISOString(),
-      hasVisit: p.visits.length > 0,
+    walkIns: walkIns.map((v) => ({
+      id: v.patient.id,
+      name: `${v.patient.firstName} ${v.patient.lastName}`,
+      enrolledAt: v.visitDate.toISOString(),
+      hasVisit: true,
     })),
     recentInvoices: recentInvoices.map((inv) => ({
       id: inv.id,

@@ -31,7 +31,7 @@ type Appointment = {
 type WalkIn = {
   id: string
   name: string
-  enrolledAt: string
+  enrolledAt: string  // actually visitDate — kept same field name for compat
   hasVisit: boolean
 }
 
@@ -240,7 +240,7 @@ export default function DashboardClient({ data }: Props) {
 
         {data.walkIns.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Walk-ins</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Seen Today</p>
             {data.walkIns.map((p) => (
               <Card
                 key={p.id}
@@ -250,10 +250,10 @@ export default function DashboardClient({ data }: Props) {
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Enrolled {fmtTime(p.enrolledAt)}</p>
+                    <p className="text-xs text-muted-foreground">Visit at {fmtTime(p.enrolledAt)}</p>
                   </div>
-                  <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${p.hasVisit ? statusBadge('COMPLETED') : statusBadge('WALK_IN')}`}>
-                    {p.hasVisit ? 'Seen' : 'Waiting'}
+                  <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${statusBadge('COMPLETED')}`}>
+                    Seen
                   </span>
                 </CardContent>
               </Card>
