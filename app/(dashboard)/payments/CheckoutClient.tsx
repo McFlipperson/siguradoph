@@ -559,7 +559,8 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
               </Label>
               <Input
                 id="emailInput"
-                type="email"
+                type="text"
+                inputMode="email"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 placeholder="patient@example.com"

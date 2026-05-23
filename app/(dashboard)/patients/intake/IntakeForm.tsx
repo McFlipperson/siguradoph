@@ -315,8 +315,8 @@ export function IntakeForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">Email (optional)</Label>
-          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="min-h-[48px]" />
+          <Label htmlFor="email">Email <span className="text-muted-foreground font-normal">(optional — leave blank if none)</span></Label>
+          <Input id="email" type="text" inputMode="email" value={email} onChange={e => setEmail(e.target.value)} className="min-h-[48px]" placeholder="patient@example.com" />
         </div>
       </section>
 
