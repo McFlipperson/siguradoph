@@ -83,7 +83,7 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
           address: true,
           pendingLoyaltyCardPurchase: true,
           loyaltyCards: {
-            where: { isActive: true },
+            where: { isActive: true, expiryDate: { gte: new Date() } },
             orderBy: { purchaseDate: 'desc' },
             take: 1,
           },
@@ -107,6 +107,12 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
   })
 
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
+
+  // Deactivate any expired loyalty cards for this patient (cleanup on checkout load)
+  await prisma.loyaltyCard.updateMany({
+    where: { patientId: visit.patient.id, isActive: true, expiryDate: { lt: new Date() } },
+    data: { isActive: false },
+  })
 
   // Look up service category
   const serviceEntry = await prisma.serviceCatalog.findFirst({
@@ -203,7 +209,7 @@ export async function confirmPayment(
           lastName: true,
           address: true,
           loyaltyCards: {
-            where: { isActive: true },
+            where: { isActive: true, expiryDate: { gte: new Date() } },
             orderBy: { purchaseDate: 'desc' },
             take: 1,
           },
