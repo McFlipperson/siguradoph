@@ -12,6 +12,8 @@ interface BluetoothRemoteGATTCharacteristic {
     indicate: boolean
   }
   writeValue(value: ArrayBuffer | ArrayBufferView): Promise<void>
+  writeValueWithResponse(value: ArrayBuffer | ArrayBufferView): Promise<void>
+  writeValueWithoutResponse(value: ArrayBuffer | ArrayBufferView): Promise<void>
 }
 
 interface BluetoothRemoteGATTService {
@@ -19,7 +21,10 @@ interface BluetoothRemoteGATTService {
 }
 
 interface BluetoothRemoteGATTServer {
+  connected: boolean
   connect(): Promise<BluetoothRemoteGATTServer>
+  disconnect(): void
+  getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>
   getPrimaryServices(): Promise<BluetoothRemoteGATTService[]>
 }
 
@@ -30,6 +35,7 @@ interface BluetoothDevice {
 
 interface Bluetooth {
   requestDevice(options: { acceptAllDevices: boolean; optionalServices?: string[] }): Promise<BluetoothDevice>
+  getDevices(): Promise<BluetoothDevice[]>
 }
 
 // ─── Web Serial ──────────────────────────────────────────────────────────────

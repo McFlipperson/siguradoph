@@ -1,5 +1,15 @@
 // Client-only — do NOT add 'use server'. Imported only in client components.
 
+// Known Bluetooth service UUIDs for common thermal/receipt printers.
+// Must be declared in requestDevice() optionalServices or Chrome blocks access.
+export const THERMAL_PRINTER_SERVICES = [
+  '000018f0-0000-1000-8000-00805f9b34fb', // Generic Chinese thermal printers (XP-58H, JP-58H, etc.)
+  'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Epson-compatible BLE
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // ISSC Transparent (BLE serial)
+  '0000ff00-0000-1000-8000-00805f9b34fb', // Generic UART over BLE
+  '0000ffe0-0000-1000-8000-00805f9b34fb', // HM-10 BLE module
+] as const
+
 export type ReceiptData = {
   clinicName: string
   clinicAddress: string
@@ -122,21 +132,36 @@ export async function printViaBluetooth(
   bytes: Uint8Array
 ): Promise<void> {
   const server = await device.gatt!.connect()
-  const services = await server.getPrimaryServices()
 
-  for (const service of services) {
+  // Try each known service UUID — different printer brands use different ones
+  for (const serviceUUID of THERMAL_PRINTER_SERVICES) {
+    let service: BluetoothRemoteGATTService
+    try {
+      service = await server.getPrimaryService(serviceUUID)
+    } catch {
+      continue // service not present on this printer, try next
+    }
+
     const chars = await service.getCharacteristics()
     for (const char of chars) {
       if (char.properties.writeWithoutResponse || char.properties.write) {
         const CHUNK = 512
         for (let i = 0; i < bytes.length; i += CHUNK) {
-          await char.writeValue(bytes.slice(i, i + CHUNK))
+          const chunk = bytes.slice(i, i + CHUNK)
+          if (char.properties.writeWithoutResponse) {
+            await char.writeValueWithoutResponse(chunk)
+          } else {
+            await char.writeValueWithResponse(chunk)
+          }
         }
+        server.disconnect()
         return
       }
     }
   }
-  throw new Error('No writable characteristic found on printer')
+
+  server.disconnect()
+  throw new Error('No writable characteristic found. Make sure the printer is on and in range.')
 }
 
 export async function printViaSerial(

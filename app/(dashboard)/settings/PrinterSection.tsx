@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { CheckCircle, Bluetooth, Usb } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { THERMAL_PRINTER_SERVICES } from '@/lib/thermal'
 
 type PrinterType = 'bluetooth' | 'serial'
 
@@ -40,7 +41,10 @@ export function PrinterSection() {
     try {
       const device = await (navigator as Navigator & {
         bluetooth: { requestDevice: (o: object) => Promise<BluetoothDevice> }
-      }).bluetooth.requestDevice({ acceptAllDevices: true })
+      }).bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [...THERMAL_PRINTER_SERVICES],
+      })
 
       const name = device.name ?? 'Bluetooth Printer'
       localStorage.setItem('printer_type', 'bluetooth')
@@ -112,8 +116,27 @@ export function PrinterSection() {
       })
 
       if (printer.type === 'bluetooth') {
-        if (!btDevice) throw new Error('Bluetooth device not connected')
-        await printViaBluetooth(btDevice, bytes)
+        const bt = (navigator as Navigator & {
+          bluetooth: {
+            requestDevice: (o: object) => Promise<BluetoothDevice>
+            getDevices: () => Promise<BluetoothDevice[]>
+          }
+        }).bluetooth
+
+        let device: BluetoothDevice | null = btDevice
+        // Reconnect if we lost the reference (page refresh)
+        if (!device && 'getDevices' in bt) {
+          const granted = await bt.getDevices()
+          device = granted.find((d) => d.name === printer.name) ?? null
+        }
+        if (!device) {
+          device = await bt.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [...THERMAL_PRINTER_SERVICES],
+          })
+          setBtDevice(device)
+        }
+        await printViaBluetooth(device, bytes)
       } else {
         if (!serialPort) throw new Error('Serial port not connected')
         await printViaSerial(serialPort, bytes)

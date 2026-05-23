@@ -1,6 +1,6 @@
 // Client-only — do NOT import in server components or actions
 
-import { buildReceiptBytes } from './thermal'
+import { buildReceiptBytes, THERMAL_PRINTER_SERVICES } from './thermal'
 
 export type PrintableInvoice = {
   orNumber: string
@@ -62,10 +62,31 @@ export async function printReceipt(data: PrintableInvoice): Promise<void> {
 
   if (printerType === 'bluetooth') {
     const { printViaBluetooth } = await import('./thermal')
-    const nav = navigator as Navigator & {
-      bluetooth: { requestDevice: (o: object) => Promise<BluetoothDevice> }
+    const bt = (navigator as Navigator & {
+      bluetooth: {
+        requestDevice: (o: object) => Promise<BluetoothDevice>
+        getDevices: () => Promise<BluetoothDevice[]>
+      }
+    }).bluetooth
+
+    // Try to reconnect to previously paired printer without prompting
+    let device: BluetoothDevice | undefined
+    const savedName = localStorage.getItem('printer_name')
+    if (savedName && 'getDevices' in bt) {
+      const granted = await bt.getDevices()
+      device = granted.find((d) => d.name === savedName)
     }
-    const device = await nav.bluetooth.requestDevice({ acceptAllDevices: true })
+
+    // Fall back to picker if no previously granted device found
+    if (!device) {
+      device = await bt.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [...THERMAL_PRINTER_SERVICES],
+      })
+      // Save name in case it changed
+      if (device.name) localStorage.setItem('printer_name', device.name)
+    }
+
     await printViaBluetooth(device, bytes)
   } else if (printerType === 'serial') {
     const { printViaSerial } = await import('./thermal')
