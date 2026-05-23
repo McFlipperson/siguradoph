@@ -127,11 +127,36 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
   return e.encode()
 }
 
+// BLE safe chunk size — standard ATT MTU is 23 bytes (20 payload).
+// Sending larger chunks results in silent data corruption on most thermal printers.
+const BLE_CHUNK = 20
+const BLE_DELAY_MS = 20 // ms between chunks — gives the printer buffer time to drain
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
+async function bleWrite(
+  char: BluetoothRemoteGATTCharacteristic,
+  chunk: Uint8Array
+): Promise<void> {
+  // Prefer writeValueWithoutResponse (faster, no ACK round-trip).
+  // Fall back to the older writeValue if the newer API isn't available.
+  if (char.properties.writeWithoutResponse && 'writeValueWithoutResponse' in char) {
+    await char.writeValueWithoutResponse(chunk)
+  } else {
+    await char.writeValue(chunk)
+  }
+}
+
 export async function printViaBluetooth(
   device: BluetoothDevice,
   bytes: Uint8Array
 ): Promise<void> {
   const server = await device.gatt!.connect()
+
+  // Small pause after connect — some printers aren't ready to receive immediately
+  await sleep(300)
 
   // Try each known service UUID — different printer brands use different ones
   for (const serviceUUID of THERMAL_PRINTER_SERVICES) {
@@ -145,14 +170,10 @@ export async function printViaBluetooth(
     const chars = await service.getCharacteristics()
     for (const char of chars) {
       if (char.properties.writeWithoutResponse || char.properties.write) {
-        const CHUNK = 512
-        for (let i = 0; i < bytes.length; i += CHUNK) {
-          const chunk = bytes.slice(i, i + CHUNK)
-          if (char.properties.writeWithoutResponse) {
-            await char.writeValueWithoutResponse(chunk)
-          } else {
-            await char.writeValueWithResponse(chunk)
-          }
+        // Send in 20-byte BLE chunks with a small delay between each
+        for (let i = 0; i < bytes.length; i += BLE_CHUNK) {
+          await bleWrite(char, bytes.slice(i, i + BLE_CHUNK))
+          if (i + BLE_CHUNK < bytes.length) await sleep(BLE_DELAY_MS)
         }
         server.disconnect()
         return
