@@ -60,7 +60,7 @@ function StatRow({ label, value, bold, color }: { label: string; value: string; 
 }
 
 export default function ReportsClient({ today, week, month, monthLabel }: Props) {
-  const [period, setPeriod] = useState<Period>('month')
+  const [period, setPeriod] = useState<Period>('month') // default to most useful period
 
   const data: Record<Period, PeriodStats> = { today, week, month }
   const d = data[period]
@@ -107,73 +107,66 @@ export default function ReportsClient({ today, week, month, monthLabel }: Props)
         </div>
       </div>
 
-      {/* No data state */}
-      {d.invoiceCount === 0 && (
-        <div className="text-center py-6 text-sm text-muted-foreground">
-          No invoices recorded for this period.
-        </div>
-      )}
-
-      {d.invoiceCount > 0 && (
-        <>
-          {/* By service */}
-          {d.byService.length > 0 && (
-            <Section title="Revenue by Service">
-              <div className="flex flex-col gap-0.5">
-                {d.byService.map((s) => (
-                  <div key={s.name} className="py-2 border-b border-border/40 last:border-0">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-foreground">{s.name}</span>
-                      <div className="text-right">
-                        <span className="text-sm font-semibold tabular-nums">{peso(s.amount)}</span>
-                        <span className="text-xs text-muted-foreground ml-2">
-                          {s.count} {s.count === 1 ? 'visit' : 'visits'}
-                        </span>
-                      </div>
-                    </div>
-                    <Bar value={s.amount} max={maxService} />
+      {/* By service */}
+      <Section title="Revenue by Service">
+        {d.byService.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-1">No services recorded.</p>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {d.byService.map((s) => (
+              <div key={s.name} className="py-2 border-b border-border/40 last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-foreground">{s.name}</span>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold tabular-nums">{peso(s.amount)}</span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {s.count} {s.count === 1 ? 'visit' : 'visits'}
+                    </span>
                   </div>
-                ))}
+                </div>
+                <Bar value={s.amount} max={maxService} />
               </div>
-            </Section>
-          )}
+            ))}
+          </div>
+        )}
+      </Section>
 
-          {/* Income vs Expenses */}
-          <Section title="Income vs Expenses">
-            <StatRow label="Collections"  value={peso(d.totalCollected)} />
-            <StatRow label="Expenses"     value={`−${peso(d.totalExpenses)}`} />
-            <div className="flex items-center justify-between pt-2 mt-1">
-              <span className="text-sm font-bold">Net</span>
-              <span className={`text-base font-bold tabular-nums ${d.netProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
-                {d.netProfit >= 0 ? peso(d.netProfit) : `−${peso(Math.abs(d.netProfit))}`}
-              </span>
-            </div>
-          </Section>
+      {/* Income vs Expenses */}
+      <Section title="Income vs Expenses">
+        <StatRow label="Collections" value={peso(d.totalCollected)} />
+        <StatRow label="Expenses"    value={`−${peso(d.totalExpenses)}`} />
+        <div className="flex items-center justify-between pt-2 mt-1">
+          <span className="text-sm font-bold">Net</span>
+          <span className={`text-base font-bold tabular-nums ${d.netProfit >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+            {d.netProfit >= 0 ? peso(d.netProfit) : `−${peso(Math.abs(d.netProfit))}`}
+          </span>
+        </div>
+      </Section>
 
-          {/* VAT summary */}
-          <Section title="VAT Summary">
-            <StatRow label="Output VAT collected"    value={peso(d.outputVat)} />
-            <StatRow label="Input VAT (claimable)"   value={`−${peso(d.inputVat)}`} />
-            <div className="flex items-center justify-between pt-2 mt-1">
-              <span className="text-sm font-bold">Net VAT Payable</span>
-              <span className="text-base font-bold tabular-nums">{peso(d.netVat)}</span>
-            </div>
-          </Section>
+      {/* VAT summary */}
+      <Section title="VAT Summary">
+        <StatRow label="Output VAT collected"  value={peso(d.outputVat)} />
+        <StatRow label="Input VAT (claimable)" value={`−${peso(d.inputVat)}`} />
+        <div className="flex items-center justify-between pt-2 mt-1">
+          <span className="text-sm font-bold">Net VAT Payable</span>
+          <span className="text-base font-bold tabular-nums">{peso(d.netVat)}</span>
+        </div>
+      </Section>
 
-          {/* Payment method */}
-          {d.byPayment.length > 0 && (
-            <Section title="Payment Method">
-              {d.byPayment.map((p) => (
-                <StatRow
-                  key={p.method}
-                  label={`${p.method} (${p.count})`}
-                  value={peso(p.amount)}
-                />
-              ))}
-            </Section>
-          )}
-        </>
-      )}
+      {/* Payment method */}
+      <Section title="Payment Method">
+        {d.byPayment.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-1">No payments recorded.</p>
+        ) : (
+          d.byPayment.map((p) => (
+            <StatRow
+              key={p.method}
+              label={`${p.method} (${p.count})`}
+              value={peso(p.amount)}
+            />
+          ))
+        )}
+      </Section>
     </div>
   )
 }
