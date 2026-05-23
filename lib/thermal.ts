@@ -93,6 +93,14 @@ async function rasterizeLogo(url: string): Promise<ImageData | null> {
   }
 }
 
+// ESC 7 n1 n2 n3 — set print energy for generic 58mm thermal printers.
+// n1: max heating dots (0-255). Higher = more dots fire per row.
+// n2: heating time in 10μs units (0-255). Higher = more heat = darker print.
+// n3: heating interval in 10μs units (0-255). Lower = faster throughput.
+// Factory defaults are typically n1=9, n2=80, n3=2.
+// We raise n2 to 120 (1200μs) for noticeably darker output without scorching.
+const PRINT_ENERGY = new Uint8Array([0x1b, 0x37, 9, 120, 2])
+
 export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> {
   const { default: ThermalPrinterEncoder } = await import('thermal-printer-encoder')
   const W = 48
@@ -177,7 +185,12 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
     .newline()
     .cut()
 
-  return e.encode()
+  // Prepend the print energy command so it applies to the whole job
+  const body = e.encode()
+  const out = new Uint8Array(PRINT_ENERGY.length + body.length)
+  out.set(PRINT_ENERGY, 0)
+  out.set(body, PRINT_ENERGY.length)
+  return out
 }
 
 // BLE safe chunk size — standard ATT MTU is 23 bytes (20 payload).

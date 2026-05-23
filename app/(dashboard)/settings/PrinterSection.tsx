@@ -17,9 +17,11 @@ type PrinterState = {
 type PrinterSectionProps = {
   clinicName?: string
   clinicLogoUrl?: string | null
+  clinicAddress?: string
+  clinicTin?: string
 }
 
-export function PrinterSection({ clinicName, clinicLogoUrl }: PrinterSectionProps = {}) {
+export function PrinterSection({ clinicName, clinicLogoUrl, clinicAddress, clinicTin }: PrinterSectionProps = {}) {
   const [printer, setPrinter] = useState<PrinterState>(null)
   const [connected, setConnected] = useState(false)
   const [btDevice, setBtDevice] = useState<BluetoothDevice | null>(null)
@@ -108,8 +110,8 @@ export function PrinterSection({ clinicName, clinicLogoUrl }: PrinterSectionProp
       const bytes = await buildReceiptBytes({
         clinicName: clinicName ?? 'Sigurado Clinic',
         clinicLogoUrl: clinicLogoUrl,
-        clinicAddress: '123 Main St, City, Province 1000',
-        clinicTin: '000-000-000-000',
+        clinicAddress: clinicAddress ?? '—',
+        clinicTin: clinicTin ?? '—',
         orNumber: 'TEST-0001',
         transactionDate: new Date(),
         patientName: 'Test Patient',

@@ -930,7 +930,12 @@ export default function SettingsClient({
       {/* ── DEVICES TAB ── */}
       {tab === 'devices' && (
         <div className="space-y-6">
-          <PrinterSection clinicName={clinicName} clinicLogoUrl={logoUrl} />
+          <PrinterSection
+            clinicName={clinicName}
+            clinicLogoUrl={logoUrl}
+            clinicAddress={`${street}, ${city}, ${province} ${zip}`}
+            clinicTin={tin}
+          />
         </div>
       )}
     </div>
