@@ -14,7 +14,12 @@ type PrinterState = {
   name: string
 } | null
 
-export function PrinterSection() {
+type PrinterSectionProps = {
+  clinicName?: string
+  clinicLogoUrl?: string | null
+}
+
+export function PrinterSection({ clinicName, clinicLogoUrl }: PrinterSectionProps = {}) {
   const [printer, setPrinter] = useState<PrinterState>(null)
   const [connected, setConnected] = useState(false)
   const [btDevice, setBtDevice] = useState<BluetoothDevice | null>(null)
@@ -101,7 +106,8 @@ export function PrinterSection() {
         '@/lib/thermal'
       )
       const bytes = await buildReceiptBytes({
-        clinicName: 'Sigurado Clinic',
+        clinicName: clinicName ?? 'Sigurado Clinic',
+        clinicLogoUrl: clinicLogoUrl,
         clinicAddress: '123 Main St, City, Province 1000',
         clinicTin: '000-000-000-000',
         orNumber: 'TEST-0001',

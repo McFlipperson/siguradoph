@@ -14,6 +14,7 @@ export type ReceiptData = {
   clinicName: string
   clinicAddress: string
   clinicTin: string
+  clinicLogoUrl?: string | null
   orNumber: string
   transactionDate: Date
   patientName: string
@@ -51,6 +52,46 @@ function fmtDate(d: Date): string {
   })
 }
 
+// Printer dot width for 58mm paper at 203 DPI (~48 chars × 8 dots)
+const PRINT_PX = 384
+
+/**
+ * Fetch a logo URL, draw it onto an off-screen canvas scaled to PRINT_PX wide,
+ * and return the ImageData. Returns null on any failure so callers can fall back
+ * to text. Requires browser environment (canvas + Image API).
+ */
+async function rasterizeLogo(url: string): Promise<ImageData | null> {
+  try {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('Logo load failed'))
+      // Use the URL directly — Supabase public bucket should allow CORS
+      img.src = url
+    })
+
+    const targetW = PRINT_PX
+    const targetH = Math.round((img.naturalHeight / img.naturalWidth) * targetW)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = targetW
+    canvas.height = targetH
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+
+    // White background so transparent logos don't become black blobs
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, targetW, targetH)
+    ctx.drawImage(img, 0, 0, targetW, targetH)
+
+    return ctx.getImageData(0, 0, targetW, targetH)
+  } catch {
+    return null
+  }
+}
+
 export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> {
   const { default: ThermalPrinterEncoder } = await import('thermal-printer-encoder')
   const W = 48
@@ -60,12 +101,19 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
   const dash = '-'.repeat(W)
   const eq = '='.repeat(W)
 
-  let e = encoder
-    .initialize()
-    .align('center')
-    .bold(true)
-    .line(data.clinicName.toUpperCase().slice(0, W))
-    .bold(false)
+  // Try to rasterize logo; fall back to bold clinic name text
+  const logoImageData = data.clinicLogoUrl ? await rasterizeLogo(data.clinicLogoUrl) : null
+
+  let e = encoder.initialize().align('center')
+
+  if (logoImageData) {
+    e = e.image(logoImageData, PRINT_PX, logoImageData.height, 'floydsteinberg')
+    e = e.newline()
+  } else {
+    e = e.bold(true).line(data.clinicName.toUpperCase().slice(0, W)).bold(false)
+  }
+
+  e = e
     .line(data.clinicAddress.slice(0, W))
     .line(`TIN: ${data.clinicTin}`)
     .line(dash)

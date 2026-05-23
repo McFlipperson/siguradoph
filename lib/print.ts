@@ -17,6 +17,7 @@ export type PrintableInvoice = {
   patientFirstName: string
   patientLastName: string
   clinicName: string
+  clinicLogoUrl?: string | null
   clinicStreet: string
   clinicCity: string
   clinicProvince: string
@@ -39,6 +40,7 @@ export async function printReceipt(data: PrintableInvoice): Promise<void> {
     clinicName: data.clinicName,
     clinicAddress,
     clinicTin: data.clinicTin,
+    clinicLogoUrl: data.clinicLogoUrl ?? null,
     orNumber: data.orNumber,
     transactionDate: new Date(data.transactionDate),
     patientName: `${data.patientFirstName} ${data.patientLastName}`,

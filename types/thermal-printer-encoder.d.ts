@@ -7,6 +7,14 @@ declare module 'thermal-printer-encoder' {
 
   type Alignment = 'left' | 'center' | 'right'
 
+  interface ImageLike {
+    width: number
+    height: number
+    data: Uint8ClampedArray
+  }
+
+  type DitherAlgorithm = 'threshold' | 'bayer' | 'floydsteinberg' | 'atkinson'
+
   class ThermalPrinterEncoder {
     constructor(options?: ThermalPrinterEncoderOptions)
     initialize(): this
@@ -14,6 +22,7 @@ declare module 'thermal-printer-encoder' {
     bold(value: boolean): this
     line(text: string): this
     newline(): this
+    image(image: ImageLike, width: number, height: number, algorithm?: DitherAlgorithm): this
     cut(): this
     encode(): Uint8Array
   }

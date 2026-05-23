@@ -91,6 +91,7 @@ export async function getInvoice(id: string) {
       : null,
     clinic: {
       name: inv.clinic.name,
+      logoUrl: inv.clinic.logoUrl ?? null,
       street: inv.clinic.street,
       city: inv.clinic.city,
       province: inv.clinic.province,

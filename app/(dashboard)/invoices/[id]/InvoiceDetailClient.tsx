@@ -40,6 +40,7 @@ type Invoice = {
   } | null
   clinic: {
     name: string
+    logoUrl: string | null
     street: string
     city: string
     province: string
@@ -110,6 +111,7 @@ export default function InvoiceDetailClient({ invoice }: Props) {
         patientFirstName: invoice.patient?.firstName ?? invoice.buyerName ?? '',
         patientLastName: invoice.patient?.lastName ?? '',
         clinicName: invoice.clinic.name,
+        clinicLogoUrl: invoice.clinic.logoUrl,
         clinicStreet: invoice.clinic.street,
         clinicCity: invoice.clinic.city,
         clinicProvince: invoice.clinic.province,
