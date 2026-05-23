@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
-import { computeWeeklyPayroll } from '@/lib/payroll'
+import { computeWeeklyPayroll, weekDateRange } from '@/lib/payroll'
+import { getHolidaysForDates } from '@/lib/ph-holidays'
 
 async function getClinicId() {
   const user = await getSessionUser()
@@ -40,8 +41,12 @@ export async function GET(req: NextRequest) {
     periodWeek: r.periodWeek,
     daysWorked: r.daysWorked,
     basicSalary: Number(r.basicSalary),
+    regularHolidayDays: r.regularHolidayDays,
+    specialHolidayDays: r.specialHolidayDays,
+    holidayPay: Number(r.holidayPay),
     sssEmployee: Number(r.sssEmployee),
     sssEmployer: Number(r.sssEmployer),
+    sssEc: Number(r.sssEc),
     philhealthEmployee: Number(r.philhealthEmployee),
     philhealthEmployer: Number(r.philhealthEmployer),
     pagibigEmployee: Number(r.pagibigEmployee),
@@ -56,7 +61,7 @@ export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { employeeId, periodMonth, periodYear, periodWeek, daysWorked } = await req.json()
+  const { employeeId, periodMonth, periodYear, periodWeek, daysWorked, specialHolidayDays } = await req.json()
 
   if (!periodWeek || periodWeek < 1 || periodWeek > 4) {
     return NextResponse.json({ error: 'periodWeek must be 1–4' }, { status: 400 })
@@ -80,7 +85,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const weekly = computeWeeklyPayroll(Number(employee.dailyRate), days)
+  // Auto-detect regular holidays in this week
+  const { dates } = weekDateRange(periodMonth, periodYear, periodWeek)
+  const weekHolidays = getHolidaysForDates(dates)
+  const regularHolidayDays = weekHolidays.filter(h => h.type === 'REGULAR').length
+  const specialWorked = Number(specialHolidayDays ?? 0)
+
+  const weekly = computeWeeklyPayroll(
+    Number(employee.dailyRate),
+    days,
+    regularHolidayDays,
+    specialWorked,
+  )
 
   const record = await prisma.payrollRecord.create({
     data: {
@@ -91,8 +107,12 @@ export async function POST(req: NextRequest) {
       periodWeek,
       daysWorked: weekly.daysWorked,
       basicSalary: weekly.basicSalary,
+      regularHolidayDays: weekly.regularHolidayDays,
+      specialHolidayDays: weekly.specialHolidayDays,
+      holidayPay: weekly.holidayPay,
       sssEmployee: weekly.sssEmployee,
       sssEmployer: weekly.sssEmployer,
+      sssEc: weekly.sssEc,
       philhealthEmployee: weekly.philhealthEmployee,
       philhealthEmployer: weekly.philhealthEmployer,
       pagibigEmployee: weekly.pagibigEmployee,
@@ -102,10 +122,5 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  return NextResponse.json({
-    id: record.id,
-    employeeName: employee.fullName,
-    periodWeek,
-    ...weekly,
-  }, { status: 201 })
+  return NextResponse.json({ id: record.id, ...weekly }, { status: 201 })
 }

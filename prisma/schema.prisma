@@ -106,7 +106,8 @@ model Clinic {
   loyaltyCardTemplates  LoyaltyCardTemplate[]
   scheduledReminders    ScheduledReminder[]
   unlinkedMessengers    UnlinkedMessenger[]
-  quarterlyReportLogs   QuarterlyReportLog[]
+  quarterlyReportLogs        QuarterlyReportLog[]
+  thirteenthMonthRecords     ThirteenthMonthRecord[]
 }
 
 model UnlinkedMessenger {
@@ -338,10 +339,11 @@ model Employee {
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
 
-  payrollRecords    PayrollRecord[]
-  salaryHistory     SalaryHistory[]
-  attendanceRecords AttendanceRecord[]
-  coverageRecords   AttendanceRecord[]   @relation("CoveredBy")
+  payrollRecords         PayrollRecord[]
+  salaryHistory          SalaryHistory[]
+  attendanceRecords      AttendanceRecord[]
+  coverageRecords        AttendanceRecord[]     @relation("CoveredBy")
+  thirteenthMonthRecords ThirteenthMonthRecord[]
 }
 
 model SalaryHistory {
@@ -370,24 +372,46 @@ model AttendanceRecord {
 }
 
 model PayrollRecord {
-  id                 String   @id @default(cuid())
-  employeeId         String
-  employee           Employee @relation(fields: [employeeId], references: [id])
-  clinicId           String
-  periodMonth        Int
-  periodYear         Int
-  periodWeek         Int      @default(1)  // 1–4 (week of the month)
-  daysWorked         Int      @default(6)  // days present + coverage days
-  basicSalary        Decimal               // daysWorked × dailyRate
-  sssEmployee        Decimal
-  sssEmployer        Decimal
-  philhealthEmployee Decimal
-  philhealthEmployer Decimal
-  pagibigEmployee    Decimal
-  pagibigEmployer    Decimal
-  withholdingTax     Decimal
-  netPay             Decimal
-  createdAt          DateTime @default(now())
+  id                   String   @id @default(cuid())
+  employeeId           String
+  employee             Employee @relation(fields: [employeeId], references: [id])
+  clinicId             String
+  periodMonth          Int
+  periodYear           Int
+  periodWeek           Int      @default(1)   // 1–4 (week of the month)
+  daysWorked           Int      @default(6)   // days present + coverage days
+  basicSalary          Decimal                // daysWorked × dailyRate
+  regularHolidayDays   Int      @default(0)   // regular holidays in this week
+  specialHolidayDays   Int      @default(0)   // special holidays employee worked
+  holidayPay           Decimal  @default(0)   // extra holiday premiums
+  sssEmployee          Decimal
+  sssEmployer          Decimal
+  sssEc                Decimal  @default(0)   // Employees' Compensation (employer-only)
+  philhealthEmployee   Decimal
+  philhealthEmployer   Decimal
+  pagibigEmployee      Decimal
+  pagibigEmployer      Decimal
+  withholdingTax       Decimal
+  netPay               Decimal
+  createdAt            DateTime @default(now())
+}
+
+// 13th Month Pay tracking (PD 851)
+model ThirteenthMonthRecord {
+  id             String   @id @default(cuid())
+  clinicId       String
+  clinic         Clinic   @relation(fields: [clinicId], references: [id])
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id])
+  year           Int
+  totalBasicPay  Decimal  // sum of PayrollRecord.basicSalary for the year
+  amount         Decimal  // totalBasicPay ÷ 12
+  midYearPaid    Boolean  @default(false)  // June release (optional)
+  fullYearPaid   Boolean  @default(false)  // December deadline
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([employeeId, year])
 }
 
 model Equipment {

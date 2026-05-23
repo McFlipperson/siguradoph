@@ -3,7 +3,6 @@
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { seedServiceCatalog } from '@/prisma/seed-catalog'
-import { dailyToMonthly } from '@/lib/contributions'
 import { computeWeeklyPayroll } from '@/lib/payroll'
 import { EntityType, FilingMethod, ExpenseCategory } from '@prisma/client'
 

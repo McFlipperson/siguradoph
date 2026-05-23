@@ -2,7 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import EmployeesClient from './EmployeesClient'
-import { weekDateRange } from '@/lib/payroll'
+import { weekDateRange, computeThirteenthMonth, isSilEligible, SIL_DAYS_PER_YEAR } from '@/lib/payroll'
+import { getHolidaysForDates, getHolidaysForYear } from '@/lib/ph-holidays'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,14 +11,14 @@ export default async function EmployeesPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
 
-  const now = new Date()
-  const currentWeek = Math.min(Math.ceil(now.getDate() / 7), 4)
+  const now          = new Date()
+  const currentWeek  = Math.min(Math.ceil(now.getDate() / 7), 4)
   const currentMonth = now.getMonth() + 1
   const currentYear  = now.getFullYear()
 
-  const { start: weekStart, end: weekEnd } = weekDateRange(currentMonth, currentYear, currentWeek)
+  const { start: weekStart, end: weekEnd, dates: weekDates } = weekDateRange(currentMonth, currentYear, currentWeek)
 
-  const [employees, payrollRecords, attendanceRecords] = await Promise.all([
+  const [employees, payrollRecords, attendanceRecords, payrollTotals, silAttendance] = await Promise.all([
     prisma.employee.findMany({
       where: { clinicId: user.clinicId },
       orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
@@ -40,7 +41,43 @@ export default async function EmployeesPage() {
         date: { gte: weekStart, lte: weekEnd },
       },
     }),
+    // 13th month: sum basicSalary per employee for current year
+    prisma.payrollRecord.groupBy({
+      by: ['employeeId'],
+      where: { clinicId: user.clinicId, periodYear: currentYear },
+      _sum: { basicSalary: true },
+    }),
+    // SIL: count sick/vacation leave days for each employee this year
+    prisma.attendanceRecord.findMany({
+      where: {
+        clinicId: user.clinicId,
+        status: { in: ['SICK_LEAVE', 'VACATION_LEAVE'] },
+        date: {
+          gte: new Date(currentYear, 0, 1),
+          lte: new Date(currentYear, 11, 31),
+        },
+      },
+      select: { employeeId: true, status: true },
+    }),
   ])
+
+  // Fetch 13th month payment records
+  const thirteenthPayments = await prisma.thirteenthMonthRecord.findMany({
+    where: { clinicId: user.clinicId, year: currentYear },
+  })
+
+  const weekHolidays = getHolidaysForDates(weekDates)
+  const yearHolidays = getHolidaysForYear(currentYear)
+
+  // Build 13th month map
+  const payTotalsMap = new Map(payrollTotals.map(r => [r.employeeId, Number(r._sum.basicSalary ?? 0)]))
+  const thirteenthPayMap = new Map(thirteenthPayments.map(r => [r.employeeId, r]))
+
+  // Build SIL map: count used leave days per employee
+  const silUsedMap = new Map<string, number>()
+  for (const a of silAttendance) {
+    silUsedMap.set(a.employeeId, (silUsedMap.get(a.employeeId) ?? 0) + 1)
+  }
 
   return (
     <EmployeesClient
@@ -61,6 +98,12 @@ export default async function EmployeesPage() {
           effectiveDate: h.effectiveDate.toISOString(),
           notes: h.notes ?? null,
         })),
+        silEligible: isSilEligible(e.dateHired),
+        silUsed: silUsedMap.get(e.id) ?? 0,
+        silEntitlement: SIL_DAYS_PER_YEAR,
+        thirteenthMonthAccrued: computeThirteenthMonth(payTotalsMap.get(e.id) ?? 0),
+        thirteenthMonthPaid: thirteenthPayMap.get(e.id)?.fullYearPaid ?? false,
+        thirteenthMidYearPaid: thirteenthPayMap.get(e.id)?.midYearPaid ?? false,
       }))}
       initialPayroll={payrollRecords.map((r) => ({
         id: r.id,
@@ -72,8 +115,12 @@ export default async function EmployeesPage() {
         periodWeek: r.periodWeek,
         daysWorked: r.daysWorked,
         basicSalary: Number(r.basicSalary),
+        regularHolidayDays: r.regularHolidayDays,
+        specialHolidayDays: r.specialHolidayDays,
+        holidayPay: Number(r.holidayPay),
         sssEmployee: Number(r.sssEmployee),
         sssEmployer: Number(r.sssEmployer),
+        sssEc: Number(r.sssEc),
         philhealthEmployee: Number(r.philhealthEmployee),
         philhealthEmployer: Number(r.philhealthEmployer),
         pagibigEmployee: Number(r.pagibigEmployee),
@@ -88,6 +135,8 @@ export default async function EmployeesPage() {
         status: a.status as 'PRESENT' | 'ABSENT' | 'SICK_LEAVE' | 'VACATION_LEAVE',
         coveredById: a.coveredById ?? null,
       }))}
+      weekHolidays={weekHolidays}
+      yearHolidays={yearHolidays}
       currentWeek={currentWeek}
       currentMonth={currentMonth}
       currentYear={currentYear}
