@@ -330,7 +330,7 @@ model Employee {
   fullName         String
   position         String
   dateHired        DateTime
-  monthlySalary    Decimal
+  dailyRate        Decimal                // daily rate (no work no pay)
   sssNumber        String
   philhealthNumber String
   pagibigNumber    String
@@ -338,7 +338,35 @@ model Employee {
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())
 
-  payrollRecords PayrollRecord[]
+  payrollRecords    PayrollRecord[]
+  salaryHistory     SalaryHistory[]
+  attendanceRecords AttendanceRecord[]
+  coverageRecords   AttendanceRecord[]   @relation("CoveredBy")
+}
+
+model SalaryHistory {
+  id            String   @id @default(cuid())
+  employeeId    String
+  employee      Employee @relation(fields: [employeeId], references: [id])
+  dailyRate     Decimal
+  effectiveDate DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+// Tracks each employee's attendance per calendar date
+model AttendanceRecord {
+  id          String    @id @default(cuid())
+  clinicId    String
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+  date        DateTime  @db.Date
+  status      String    // PRESENT | ABSENT | SICK_LEAVE | VACATION_LEAVE
+  coveredById String?
+  coveredBy   Employee? @relation("CoveredBy", fields: [coveredById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@unique([employeeId, date])
 }
 
 model PayrollRecord {
@@ -349,7 +377,8 @@ model PayrollRecord {
   periodMonth        Int
   periodYear         Int
   periodWeek         Int      @default(1)  // 1–4 (week of the month)
-  basicSalary        Decimal               // weekly gross (monthlySalary ÷ 4)
+  daysWorked         Int      @default(6)  // days present + coverage days
+  basicSalary        Decimal               // daysWorked × dailyRate
   sssEmployee        Decimal
   sssEmployer        Decimal
   philhealthEmployee Decimal

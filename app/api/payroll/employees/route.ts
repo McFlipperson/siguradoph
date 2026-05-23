@@ -14,6 +14,9 @@ export async function GET() {
   const employees = await prisma.employee.findMany({
     where: { clinicId },
     orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
+    include: {
+      salaryHistory: { orderBy: { effectiveDate: 'desc' }, take: 10 },
+    },
   })
 
   return NextResponse.json(employees.map((e) => ({
@@ -21,12 +24,18 @@ export async function GET() {
     fullName: e.fullName,
     position: e.position,
     dateHired: e.dateHired.toISOString(),
-    monthlySalary: Number(e.monthlySalary),
+    dailyRate: Number(e.dailyRate),
     sssNumber: e.sssNumber,
     philhealthNumber: e.philhealthNumber,
     pagibigNumber: e.pagibigNumber,
     tin: e.tin,
     isActive: e.isActive,
+    salaryHistory: e.salaryHistory.map((h) => ({
+      id: h.id,
+      dailyRate: Number(h.dailyRate),
+      effectiveDate: h.effectiveDate.toISOString(),
+      notes: h.notes,
+    })),
   })))
 }
 
@@ -34,9 +43,9 @@ export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { fullName, position, dateHired, monthlySalary, sssNumber, philhealthNumber, pagibigNumber, tin } = await req.json()
+  const { fullName, position, dateHired, dailyRate, sssNumber, philhealthNumber, pagibigNumber, tin } = await req.json()
 
-  if (!fullName || !position || !dateHired || !monthlySalary || !sssNumber || !philhealthNumber || !pagibigNumber) {
+  if (!fullName || !position || !dateHired || !dailyRate || !sssNumber || !philhealthNumber || !pagibigNumber) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -46,11 +55,18 @@ export async function POST(req: NextRequest) {
       fullName,
       position,
       dateHired: new Date(dateHired),
-      monthlySalary: Number(monthlySalary),
+      dailyRate: Number(dailyRate),
       sssNumber,
       philhealthNumber,
       pagibigNumber,
       tin: tin || null,
+      salaryHistory: {
+        create: {
+          dailyRate: Number(dailyRate),
+          effectiveDate: new Date(dateHired),
+          notes: 'Starting rate',
+        },
+      },
     },
   })
 

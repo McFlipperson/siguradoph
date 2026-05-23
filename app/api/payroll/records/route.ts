@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
-import { computeWeeklyDeductions } from '@/lib/payroll'
+import { computeWeeklyPayroll } from '@/lib/payroll'
 
 async function getClinicId() {
   const user = await getSessionUser()
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       ...(year  !== undefined && { periodYear:  year  }),
       ...(week  !== undefined && { periodWeek:  week  }),
     },
-    include: { employee: { select: { fullName: true, position: true } } },
+    include: { employee: { select: { fullName: true, position: true, dailyRate: true } } },
     orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }, { periodWeek: 'asc' }],
   })
 
@@ -34,9 +34,11 @@ export async function GET(req: NextRequest) {
     employeeId: r.employeeId,
     employeeName: r.employee.fullName,
     employeePosition: r.employee.position,
+    dailyRate: Number(r.employee.dailyRate),
     periodMonth: r.periodMonth,
     periodYear: r.periodYear,
     periodWeek: r.periodWeek,
+    daysWorked: r.daysWorked,
     basicSalary: Number(r.basicSalary),
     sssEmployee: Number(r.sssEmployee),
     sssEmployer: Number(r.sssEmployer),
@@ -54,10 +56,15 @@ export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { employeeId, periodMonth, periodYear, periodWeek } = await req.json()
+  const { employeeId, periodMonth, periodYear, periodWeek, daysWorked } = await req.json()
 
   if (!periodWeek || periodWeek < 1 || periodWeek > 4) {
     return NextResponse.json({ error: 'periodWeek must be 1–4' }, { status: 400 })
+  }
+
+  const days = Number(daysWorked ?? 6)
+  if (days < 0 || days > 7) {
+    return NextResponse.json({ error: 'daysWorked must be 0–7' }, { status: 400 })
   }
 
   const employee = await prisma.employee.findFirst({ where: { id: employeeId, clinicId } })
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const weekly = computeWeeklyDeductions(Number(employee.monthlySalary))
+  const weekly = computeWeeklyPayroll(Number(employee.dailyRate), days)
 
   const record = await prisma.payrollRecord.create({
     data: {
@@ -82,7 +89,16 @@ export async function POST(req: NextRequest) {
       periodMonth,
       periodYear,
       periodWeek,
-      ...weekly,
+      daysWorked: weekly.daysWorked,
+      basicSalary: weekly.basicSalary,
+      sssEmployee: weekly.sssEmployee,
+      sssEmployer: weekly.sssEmployer,
+      philhealthEmployee: weekly.philhealthEmployee,
+      philhealthEmployer: weekly.philhealthEmployer,
+      pagibigEmployee: weekly.pagibigEmployee,
+      pagibigEmployer: weekly.pagibigEmployer,
+      withholdingTax: weekly.withholdingTax,
+      netPay: weekly.netPay,
     },
   })
 

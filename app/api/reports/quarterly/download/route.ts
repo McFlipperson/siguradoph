@@ -139,13 +139,14 @@ export async function GET(req: NextRequest) {
     const qMonths = [start.getMonth() + 1, start.getMonth() + 2, start.getMonth() + 3]
     const records = await prisma.payrollRecord.findMany({
       where: { clinicId, periodYear: start.getFullYear(), periodMonth: { in: qMonths } },
-      include: { employee: { select: { fullName: true } } },
+      include: { employee: { select: { fullName: true, dailyRate: true } } },
       orderBy: [{ periodMonth: 'asc' }, { periodWeek: 'asc' }],
     })
     const rows = [
-      ['Employee', 'Month', 'Week', 'Gross Pay', 'SSS Employee', 'SSS Employer', 'PhilHealth Employee', 'PhilHealth Employer', 'Pag-IBIG Employee', 'Pag-IBIG Employer', 'Withholding Tax', 'Net Pay'],
+      ['Employee', 'Month', 'Week', 'Days Worked', 'Daily Rate', 'Gross Pay', 'SSS Employee', 'SSS Employer', 'PhilHealth Employee', 'PhilHealth Employer', 'Pag-IBIG Employee', 'Pag-IBIG Employer', 'Withholding Tax', 'Net Pay'],
       ...records.map((r) => [
         r.employee.fullName, r.periodMonth, r.periodWeek,
+        r.daysWorked, Number(r.employee.dailyRate).toFixed(2),
         Number(r.basicSalary).toFixed(2),
         Number(r.sssEmployee).toFixed(2), Number(r.sssEmployer).toFixed(2),
         Number(r.philhealthEmployee).toFixed(2), Number(r.philhealthEmployer).toFixed(2),

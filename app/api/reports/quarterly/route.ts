@@ -174,11 +174,13 @@ async function buildAndSendReport(clinicId: string): Promise<{ ok: boolean; reas
     )
     if (filtered.length > 0) {
       const payrollRows = [
-        ['Employee', 'Month', 'Week', 'Gross Pay', 'SSS Employee', 'SSS Employer', 'PhilHealth Employee', 'PhilHealth Employer', 'Pag-IBIG Employee', 'Pag-IBIG Employer', 'Withholding Tax', 'Net Pay'],
+        ['Employee', 'Month', 'Week', 'Days Worked', 'Daily Rate', 'Gross Pay', 'SSS Employee', 'SSS Employer', 'PhilHealth Employee', 'PhilHealth Employer', 'Pag-IBIG Employee', 'Pag-IBIG Employer', 'Withholding Tax', 'Net Pay'],
         ...filtered.map((r) => [
           r.employee.fullName,
           r.periodMonth,
           r.periodWeek,
+          r.daysWorked,
+          Number(r.employee.dailyRate).toFixed(2),
           Number(r.basicSalary).toFixed(2),
           Number(r.sssEmployee).toFixed(2),
           Number(r.sssEmployer).toFixed(2),

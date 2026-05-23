@@ -18,7 +18,7 @@ const emptyEmployee = (): EmployeeData => ({
   fullName: '',
   position: '',
   dateHired: new Date().toISOString().split('T')[0],
-  monthlySalary: 0,
+  dailyRate: 0,
   sssNumber: '',
   philhealthNumber: '',
   pagibigNumber: '',
@@ -115,17 +115,17 @@ export function Step3Employees({ initialData, onSave, onBack, isSaving }: Step3E
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Monthly Salary (₱)</Label>
+                  <Label>Daily Rate (₱)</Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={emp.monthlySalary || ''}
-                    onChange={e => updateEmployee(idx, 'monthlySalary', parseFloat(e.target.value) || 0)}
+                    value={emp.dailyRate || ''}
+                    onChange={e => updateEmployee(idx, 'dailyRate', parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                     className="min-h-[48px]"
                   />
-                  <p className="text-xs text-muted-foreground">Daily-paid? Daily rate × 26 days (e.g. ₱500/day = ₱13,000/month)</p>
+                  <p className="text-xs text-muted-foreground">Pay per day worked. ×26 = monthly equivalent for SSS/PhilHealth/Pag-IBIG. (e.g. ₱500/day)</p>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Date Hired</Label>

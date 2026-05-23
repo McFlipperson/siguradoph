@@ -114,7 +114,7 @@ export default function OnboardingPage() {
                 fullName: emp.fullName,
                 position: emp.position,
                 dateHired: new Date(emp.dateHired).toISOString().split('T')[0],
-                monthlySalary: Number(emp.monthlySalary),
+                dailyRate: Number(emp.dailyRate),
                 sssNumber: emp.sssNumber,
                 philhealthNumber: emp.philhealthNumber,
                 pagibigNumber: emp.pagibigNumber,

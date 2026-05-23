@@ -1,12 +1,21 @@
-import { computePayroll } from './contributions'
+import { computePayroll, dailyToMonthly } from './contributions'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WEEKLY PAYROLL — government deductions computed monthly, split across 4 weeks
-// Basic salary stored per-record = monthlySalary ÷ 4 (weekly gross)
+// WEEKLY PAYROLL — daily rate × days worked
+//
+// Government contributions are based on the monthly equivalent:
+//   monthlyEquivalent = dailyRate × 26  (6-day work week, PH standard)
+// Deductions are prorated per week: monthly ÷ 4
+//
+// basicSalary = daysWorked × dailyRate  (actual week gross — may vary)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function computeWeeklyDeductions(monthlySalary: number): {
+export function computeWeeklyPayroll(
+  dailyRate: number,
+  daysWorked: number,
+): {
   basicSalary: number
+  daysWorked: number
   sssEmployee: number
   sssEmployer: number
   philhealthEmployee: number
@@ -16,9 +25,12 @@ export function computeWeeklyDeductions(monthlySalary: number): {
   withholdingTax: number
   netPay: number
 } {
-  const monthly = computePayroll(monthlySalary)
-  const weeklyGross = Math.round((monthlySalary / 4) * 100) / 100
+  // Monthly equivalent used for government contribution brackets
+  const monthly = computePayroll(dailyToMonthly(dailyRate))
 
+  const basicSalary = Math.round(dailyRate * daysWorked * 100) / 100
+
+  // Contributions prorated weekly (÷ 4)
   const sssEmployee        = Math.round((monthly.deductions.sss / 4) * 100) / 100
   const sssEmployer        = Math.round((monthly.employerContributions.sss / 4) * 100) / 100
   const philhealthEmployee = Math.round((monthly.deductions.philhealth / 4) * 100) / 100
@@ -27,11 +39,12 @@ export function computeWeeklyDeductions(monthlySalary: number): {
   const pagibigEmployer    = Math.round((monthly.employerContributions.pagibig / 4) * 100) / 100
   const withholdingTax     = Math.round((monthly.deductions.withholdingTax / 4) * 100) / 100
 
-  const totalWeeklyDeductions = sssEmployee + philhealthEmployee + pagibigEmployee + withholdingTax
-  const netPay = Math.round((weeklyGross - totalWeeklyDeductions) * 100) / 100
+  const totalDeductions = sssEmployee + philhealthEmployee + pagibigEmployee + withholdingTax
+  const netPay = Math.round((basicSalary - totalDeductions) * 100) / 100
 
   return {
-    basicSalary: weeklyGross,
+    basicSalary,
+    daysWorked,
     sssEmployee,
     sssEmployer,
     philhealthEmployee,
@@ -41,4 +54,20 @@ export function computeWeeklyDeductions(monthlySalary: number): {
     withholdingTax,
     netPay,
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEEK DATE RANGE — given week 1–4 of month, return first and last dates
+// Week 1: days 1–7, Week 2: 8–14, Week 3: 15–21, Week 4: 22–end
+// ─────────────────────────────────────────────────────────────────────────────
+export function weekDateRange(
+  month: number,
+  year: number,
+  week: number,
+): { start: Date; end: Date } {
+  const startDay = (week - 1) * 7 + 1
+  const start = new Date(year, month - 1, startDay)
+  const endDay = week < 4 ? startDay + 6 : new Date(year, month, 0).getDate()
+  const end = new Date(year, month - 1, endDay)
+  return { start, end }
 }

@@ -3,7 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { seedServiceCatalog } from '@/prisma/seed-catalog'
-import { computeSSS, computePhilHealth, computePagIbig, computeWithholdingTax } from '@/lib/contributions'
+import { dailyToMonthly } from '@/lib/contributions'
+import { computeWeeklyPayroll } from '@/lib/payroll'
 import { EntityType, FilingMethod, ExpenseCategory } from '@prisma/client'
 
 export type Step1Data = {
@@ -37,7 +38,7 @@ export type EmployeeData = {
   fullName: string
   position: string
   dateHired: string
-  monthlySalary: number
+  dailyRate: number
   sssNumber: string
   philhealthNumber: string
   pagibigNumber: string
@@ -247,19 +248,28 @@ export async function saveStep3(clinicId: string, data: Step3Data): Promise<void
   await prisma.employee.deleteMany({ where: { clinicId } })
 
   if (data.hasEmployees && data.employees.length > 0) {
-    await prisma.employee.createMany({
-      data: data.employees.map(emp => ({
-        clinicId,
-        fullName: emp.fullName,
-        position: emp.position,
-        dateHired: new Date(emp.dateHired),
-        monthlySalary: emp.monthlySalary,
-        sssNumber: emp.sssNumber,
-        philhealthNumber: emp.philhealthNumber,
-        pagibigNumber: emp.pagibigNumber,
-        tin: emp.tin || null,
-      })),
-    })
+    for (const emp of data.employees) {
+      await prisma.employee.create({
+        data: {
+          clinicId,
+          fullName: emp.fullName,
+          position: emp.position,
+          dateHired: new Date(emp.dateHired),
+          dailyRate: emp.dailyRate,
+          sssNumber: emp.sssNumber,
+          philhealthNumber: emp.philhealthNumber,
+          pagibigNumber: emp.pagibigNumber,
+          tin: emp.tin || null,
+          salaryHistory: {
+            create: {
+              dailyRate: emp.dailyRate,
+              effectiveDate: new Date(emp.dateHired),
+              notes: 'Starting rate',
+            },
+          },
+        },
+      })
+    }
   }
 }
 
@@ -389,12 +399,7 @@ export async function completeOnboarding(clinicId: string): Promise<{ success: t
     const year = now.getFullYear()
 
     for (const emp of clinic.employees) {
-      const salary = Number(emp.monthlySalary)
-      const sss = computeSSS(salary)
-      const ph = computePhilHealth(salary)
-      const pi = computePagIbig(salary)
-      const wt = computeWithholdingTax(salary)
-      const netPay = salary - sss.employee - ph.employee - pi.employee - wt
+      const weekly = computeWeeklyPayroll(Number(emp.dailyRate), 6)
 
       const existing = await prisma.payrollRecord.findFirst({
         where: { employeeId: emp.id, periodMonth: month, periodYear: year },
@@ -406,15 +411,16 @@ export async function completeOnboarding(clinicId: string): Promise<{ success: t
             clinicId,
             periodMonth: month,
             periodYear: year,
-            basicSalary: salary,
-            sssEmployee: sss.employee,
-            sssEmployer: sss.employer,
-            philhealthEmployee: ph.employee,
-            philhealthEmployer: ph.employer,
-            pagibigEmployee: pi.employee,
-            pagibigEmployer: pi.employer,
-            withholdingTax: wt,
-            netPay,
+            daysWorked: weekly.daysWorked,
+            basicSalary: weekly.basicSalary,
+            sssEmployee: weekly.sssEmployee,
+            sssEmployer: weekly.sssEmployer,
+            philhealthEmployee: weekly.philhealthEmployee,
+            philhealthEmployer: weekly.philhealthEmployer,
+            pagibigEmployee: weekly.pagibigEmployee,
+            pagibigEmployer: weekly.pagibigEmployer,
+            withholdingTax: weekly.withholdingTax,
+            netPay: weekly.netPay,
           },
         })
       }
