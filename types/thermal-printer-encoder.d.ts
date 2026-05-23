@@ -2,6 +2,7 @@ declare module 'thermal-printer-encoder' {
   interface ThermalPrinterEncoderOptions {
     language?: 'esc-pos' | 'star-prnt' | 'star-line'
     width?: number
+    imageMode?: 'column' | 'raster'
     [key: string]: unknown
   }
 

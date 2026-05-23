@@ -52,11 +52,13 @@ function fmtDate(d: Date): string {
   })
 }
 
-// Printer dot width for 58mm paper at 203 DPI (~48 chars × 8 dots)
-const PRINT_PX = 384
+// Logo target width in dots. Keep it modest — 160px is ~40% of the 58mm
+// printable area, large enough to be recognisable but small enough to send
+// quickly over BLE without overwhelming the printer buffer.
+const LOGO_PX = 160
 
 /**
- * Fetch a logo URL, draw it onto an off-screen canvas scaled to PRINT_PX wide,
+ * Fetch a logo URL, draw it onto an off-screen canvas scaled to LOGO_PX wide,
  * and return the ImageData. Returns null on any failure so callers can fall back
  * to text. Requires browser environment (canvas + Image API).
  */
@@ -68,11 +70,10 @@ async function rasterizeLogo(url: string): Promise<ImageData | null> {
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve()
       img.onerror = () => reject(new Error('Logo load failed'))
-      // Use the URL directly — Supabase public bucket should allow CORS
       img.src = url
     })
 
-    const targetW = PRINT_PX
+    const targetW = LOGO_PX
     const targetH = Math.round((img.naturalHeight / img.naturalWidth) * targetW)
 
     const canvas = document.createElement('canvas')
@@ -96,7 +97,11 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
   const { default: ThermalPrinterEncoder } = await import('thermal-printer-encoder')
   const W = 48
 
-  const encoder = new ThermalPrinterEncoder({ language: 'esc-pos', width: W })
+  // imageMode: 'raster' uses the GS v 0 command — supported by virtually all
+  // 58mm ESC/POS printers including cheap Chinese models like the XP-58H.
+  // The default 'column' mode (ESC *) is not supported by most of these printers
+  // and produces garbled text output.
+  const encoder = new ThermalPrinterEncoder({ language: 'esc-pos', width: W, imageMode: 'raster' })
 
   const dash = '-'.repeat(W)
   const eq = '='.repeat(W)
@@ -107,7 +112,7 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
   let e = encoder.initialize().align('center')
 
   if (logoImageData) {
-    e = e.image(logoImageData, PRINT_PX, logoImageData.height, 'floydsteinberg')
+    e = e.image(logoImageData, LOGO_PX, logoImageData.height, 'threshold')
     e = e.newline()
   } else {
     e = e.bold(true).line(data.clinicName.toUpperCase().slice(0, W)).bold(false)
