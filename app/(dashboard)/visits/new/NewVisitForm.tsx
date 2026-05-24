@@ -223,7 +223,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
           {/* Added procedure cards */}
           {procedures.length > 0 && (
             <div className="flex flex-col gap-3">
-              {procedures.map((proc, idx) => (
+              {procedures.map((proc) => (
                 <div
                   key={proc.uid}
                   className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-col gap-3"

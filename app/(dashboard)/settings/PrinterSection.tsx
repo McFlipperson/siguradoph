@@ -153,7 +153,7 @@ export function PrinterSection({ clinicName, clinicLogoUrl, clinicAddress, clini
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Print failed')
     }
-  }, [printer, btDevice, serialPort])
+  }, [printer, btDevice, serialPort, clinicName, clinicLogoUrl, clinicAddress, clinicTin])
 
   return (
     <Card>
