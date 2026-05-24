@@ -29,14 +29,15 @@ const textareaClass =
 
 type ProcedureEntry = {
   uid: string
-  serviceId: string | null   // null = Other
+  serviceId: string | null
   serviceName: string
   diagnosis: string
   toothNumber: string
 }
 
-function uid() {
-  return Math.random().toString(36).slice(2)
+let _uidCounter = 0
+function makeUid() {
+  return `proc-${++_uidCounter}-${Date.now()}`
 }
 
 export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSetup; appointmentId?: string }) {
@@ -54,40 +55,27 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const [reminderWeeks, setReminderWeeks] = useState(4)
   const [notes, setNotes] = useState('')
 
-  // ── Procedure helpers ──────────────────────────────────────────────────────
-
   function addProcedure(serviceId: string, serviceName: string) {
-    setProcedures((prev) => [
-      ...prev,
-      { uid: uid(), serviceId, serviceName, diagnosis: '', toothNumber: '' },
-    ])
+    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId, serviceName, diagnosis: '', toothNumber: '' }])
   }
 
   function addOther() {
-    setProcedures((prev) => [
-      ...prev,
-      { uid: uid(), serviceId: null, serviceName: '', diagnosis: '', toothNumber: '' },
-    ])
+    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId: null, serviceName: '', diagnosis: '', toothNumber: '' }])
   }
 
-  function removeProcedure(id: string) {
-    setProcedures((prev) => prev.filter((p) => p.uid !== id))
+  function removeProcedure(uid: string) {
+    setProcedures((prev) => prev.filter((p) => p.uid !== uid))
   }
 
-  function updateProcedure(id: string, field: keyof ProcedureEntry, value: string) {
-    setProcedures((prev) =>
-      prev.map((p) => (p.uid === id ? { ...p, [field]: value } : p))
-    )
+  function updateProcedure(uid: string, field: 'serviceName' | 'diagnosis' | 'toothNumber', value: string) {
+    setProcedures((prev) => prev.map((p) => (p.uid === uid ? { ...p, [field]: value } : p)))
   }
 
-  // ── Derived state ──────────────────────────────────────────────────────────
-
-  const addedServiceIds = new Set(procedures.map((p) => p.serviceId).filter(Boolean))
+  const addedIds = procedures.map((p) => p.serviceId)
 
   const resolvedServices = procedures
     .map((p) => setup.serviceCatalog.find((s) => s.id === p.serviceId))
     .filter(Boolean)
-
   const isBracesCategory = resolvedServices.some((s) => s?.category === 'BRACES')
   const isCleaningCategory = resolvedServices.some((s) => s?.category === 'CLEANING')
 
@@ -102,24 +90,18 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     notes.trim().length >= 1 &&
     !isPending
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-
   function submit(action: 'checkout' | 'save') {
     if (!canSubmit) return
     setPendingAction(action)
 
-    // Combine multiple procedures into the single Visit fields
     const treatment = procedures.map((p) => p.serviceName).join(', ')
     const diagnosis =
       procedures.length === 1
         ? procedures[0].diagnosis
         : procedures.map((p) => `${p.serviceName}: ${p.diagnosis}`).join('; ')
-    const toothNumber = procedures
-      .map((p) => p.toothNumber.trim())
-      .filter(Boolean)
-      .join(', ') || undefined
+    const toothNumber =
+      procedures.map((p) => p.toothNumber.trim()).filter(Boolean).join(', ') || undefined
 
-    // Braces reminder only makes sense if exactly one braces procedure
     const bracesEntry = procedures.find((p) => {
       const svc = setup.serviceCatalog.find((s) => s.id === p.serviceId)
       return svc?.category === 'BRACES'
@@ -147,8 +129,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     })
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Patient header */}
@@ -161,9 +141,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
 
       {/* Visit date */}
       <Card>
-        <CardHeader>
-          <CardTitle>Visit Details</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Visit Details</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-col gap-1.5">
             <Label>Visit Date<span className="text-destructive ml-0.5">*</span></Label>
@@ -179,118 +157,107 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </CardContent>
       </Card>
 
-      {/* Procedures */}
+      {/* ── Procedure picker ── */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Procedures<span className="text-destructive ml-0.5">*</span>
-          </CardTitle>
+          <CardTitle>Procedures<span className="text-destructive ml-0.5">*</span></CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {/* Service picker grid */}
+        <CardContent>
           {setup.serviceCatalog.length === 0 ? (
             <p className="text-sm text-muted-foreground">No services configured yet.</p>
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {setup.serviceCatalog.map((svc) => {
-                const alreadyAdded = addedServiceIds.has(svc.id)
+                const count = addedIds.filter((id) => id === svc.id).length
                 return (
                   <button
                     key={svc.id}
                     type="button"
                     onClick={() => addProcedure(svc.id, svc.name)}
-                    className={`min-h-[48px] rounded-lg border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
-                      alreadyAdded
+                    className={`relative min-h-[48px] rounded-lg border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
+                      count > 0
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-background text-foreground hover:bg-muted'
                     }`}
                   >
                     {svc.name}
+                    {count > 1 && (
+                      <span className="absolute top-1 right-1.5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full px-1.5 py-0.5">
+                        ×{count}
+                      </span>
+                    )}
                   </button>
                 )
               })}
-              {/* Other */}
               <button
                 type="button"
                 onClick={addOther}
-                className="min-h-[48px] rounded-lg border-2 border-dashed border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted text-left transition-colors"
+                className="min-h-[48px] rounded-lg border-2 border-dashed border-muted-foreground/40 bg-background px-3 py-2 text-sm font-medium text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 text-left transition-colors"
               >
                 + Other
               </button>
             </div>
           )}
-
-          {/* Added procedure cards */}
-          {procedures.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {procedures.map((proc) => (
-                <div
-                  key={proc.uid}
-                  className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-col gap-3"
-                >
-                  {/* Header row */}
-                  <div className="flex items-center justify-between gap-2">
-                    {proc.serviceId ? (
-                      <span className="font-semibold text-sm text-primary">{proc.serviceName}</span>
-                    ) : (
-                      <input
-                        className="flex-1 min-h-[40px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-ring"
-                        placeholder="Procedure name…"
-                        value={proc.serviceName}
-                        onChange={(e) => updateProcedure(proc.uid, 'serviceName', e.target.value)}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeProcedure(proc.uid)}
-                      className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      aria-label="Remove procedure"
-                    >
-                      ✕
-                    </button>
-                  </div>
-
-                  {/* Diagnosis */}
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">
-                      Diagnosis<span className="text-destructive ml-0.5">*</span>
-                    </Label>
-                    <input
-                      className={inputClass}
-                      value={proc.diagnosis}
-                      onChange={(e) => updateProcedure(proc.uid, 'diagnosis', e.target.value)}
-                      placeholder="e.g. Dental caries, tooth decay"
-                    />
-                  </div>
-
-                  {/* Tooth number */}
-                  <div className="flex flex-col gap-1">
-                    <Label className="text-xs">Tooth Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
-                    <input
-                      className={inputClass}
-                      value={proc.toothNumber}
-                      onChange={(e) => updateProcedure(proc.uid, 'toothNumber', e.target.value)}
-                      placeholder="e.g. 16, 36"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {procedures.length === 0 && (
-            <p className="text-xs text-muted-foreground text-center py-1">
-              Tap a procedure above to add it
-            </p>
-          )}
         </CardContent>
       </Card>
 
-      {/* Price */}
+      {/* ── One card per added procedure ── */}
+      {procedures.map((proc, i) => (
+        <Card key={proc.uid} className="border-primary/40">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="shrink-0 h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                  {i + 1}
+                </span>
+                {proc.serviceId ? (
+                  <CardTitle className="text-base">{proc.serviceName}</CardTitle>
+                ) : (
+                  <input
+                    className="flex-1 min-h-[40px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring"
+                    placeholder="Procedure name…"
+                    value={proc.serviceName}
+                    onChange={(e) => updateProcedure(proc.uid, 'serviceName', e.target.value)}
+                    autoFocus
+                  />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => removeProcedure(proc.uid)}
+                className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-lg"
+                aria-label="Remove"
+              >
+                ×
+              </button>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 pt-0">
+            <div className="flex flex-col gap-1.5">
+              <Label>Diagnosis<span className="text-destructive ml-0.5">*</span></Label>
+              <input
+                className={inputClass}
+                value={proc.diagnosis}
+                onChange={(e) => updateProcedure(proc.uid, 'diagnosis', e.target.value)}
+                placeholder="e.g. Dental caries, tooth decay"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Tooth Number <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+              <input
+                className={inputClass}
+                value={proc.toothNumber}
+                onChange={(e) => updateProcedure(proc.uid, 'toothNumber', e.target.value)}
+                placeholder="e.g. 16, 36"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* ── Price ── */}
       <Card>
-        <CardHeader>
-          <CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-3">
           <input
             type="number"
@@ -330,30 +297,22 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 role="switch"
                 aria-checked={isBracesReminder}
                 onClick={() => setIsBracesReminder((v) => !v)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors ${
                   isBracesReminder ? 'bg-primary' : 'bg-muted'
                 }`}
               >
-                <span
-                  className={`pointer-events-none inline-block h-6 w-6 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
-                    isBracesReminder ? 'translate-x-5' : 'translate-x-0.5'
-                  }`}
-                />
+                <span className={`pointer-events-none inline-block h-6 w-6 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
+                  isBracesReminder ? 'translate-x-5' : 'translate-x-0.5'
+                }`} />
               </button>
               <span className="text-sm font-medium">This is a braces alignment visit</span>
             </div>
             {isBracesReminder && (
               <div className="flex flex-col gap-1.5">
                 <Label>Reminder interval</Label>
-                <select
-                  className={inputClass}
-                  value={reminderWeeks}
-                  onChange={(e) => setReminderWeeks(Number(e.target.value))}
-                >
+                <select className={inputClass} value={reminderWeeks} onChange={(e) => setReminderWeeks(Number(e.target.value))}>
                   {REMINDER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
+                    <option key={o.value} value={o.value}>{o.label}</option>
                   ))}
                 </select>
               </div>
@@ -362,7 +321,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </Card>
       )}
 
-      {/* Cleaning recall notice */}
+      {/* Cleaning recall */}
       {isCleaningCategory && (
         <Card>
           <CardContent className="py-4">
@@ -375,9 +334,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
 
       {/* Notes */}
       <Card>
-        <CardHeader>
-          <CardTitle>Notes<span className="text-destructive ml-0.5">*</span></CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Notes<span className="text-destructive ml-0.5">*</span></CardTitle></CardHeader>
         <CardContent>
           <textarea
             className={textareaClass}
@@ -389,21 +346,12 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </CardContent>
       </Card>
 
-      {/* Action buttons */}
+      {/* Actions */}
       <div className="flex flex-col gap-2">
-        <Button
-          onClick={() => submit('checkout')}
-          disabled={!canSubmit}
-          className="w-full min-h-[56px] text-base"
-        >
+        <Button onClick={() => submit('checkout')} disabled={!canSubmit} className="w-full min-h-[56px] text-base">
           {pendingAction === 'checkout' && isPending ? 'Saving…' : 'Save and Proceed to Checkout'}
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => submit('save')}
-          disabled={!canSubmit}
-          className="w-full min-h-[56px] text-base"
-        >
+        <Button variant="outline" onClick={() => submit('save')} disabled={!canSubmit} className="w-full min-h-[56px] text-base">
           {pendingAction === 'save' && isPending ? 'Saving…' : 'Save Only'}
         </Button>
       </div>
