@@ -87,9 +87,10 @@ export type SaveVisitData = {
 export async function saveVisit(data: SaveVisitData): Promise<string> {
   const clinicId = await getClinicId()
 
+  // Dental services are VAT-exempt (NIRC §109). Net = gross, VAT = 0.
   const gross = data.grossAmount
-  const net = parseFloat((gross / 1.12).toFixed(2))
-  const vat = parseFloat((gross - net).toFixed(2))
+  const net = gross
+  const vat = 0
 
   const visit = await prisma.visit.create({
     data: {

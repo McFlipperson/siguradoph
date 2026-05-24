@@ -22,6 +22,8 @@ export type ReceiptEmailData = {
   grossAmount: number
   discountAmount: number
   discountLabel?: string
+  scPwdType?: 'SC' | 'PWD'
+  scPwdIdNumber?: string
   loyaltyCardPurchased?: {
     cardNumber: string
     expiryDate: Date
@@ -89,6 +91,16 @@ function fmtDate(d: Date) {
 function buildReceiptHtml(data: ReceiptEmailData): string {
   const hasDiscount = data.discountAmount > 0
   const hasCard = !!data.loyaltyCardPurchased
+
+  const scPwdRow = data.scPwdType
+    ? `<tr>
+        <td style="padding:4px 0;color:#374151;font-size:12px;">
+          ${data.scPwdType === 'SC' ? 'Senior Citizen (RA 9994)' : 'PWD (RA 10754)'}
+          ${data.scPwdIdNumber ? ` — ID: ${data.scPwdIdNumber}` : ''}
+        </td>
+        <td style="padding:4px 0;text-align:right;font-size:12px;color:#374151;">VAT-Exempt</td>
+      </tr>`
+    : ''
 
   const discountRow = hasDiscount
     ? `<tr>
@@ -181,13 +193,14 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
             <td style="padding:20px 28px;border-bottom:1px solid #e5e7eb;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="padding:4px 0;color:#374151;">Net amount (ex. VAT)</td>
-                  <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(data.netAmount)}</td>
+                  <td style="padding:4px 0;color:#374151;">Service</td>
+                  <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(data.grossAmount + data.discountAmount)}</td>
                 </tr>
                 <tr>
-                  <td style="padding:4px 0;color:#374151;">VAT (12%)</td>
-                  <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(data.vatAmount)}</td>
+                  <td style="padding:4px 0;font-size:12px;color:#16a34a;">VAT-Exempt (NIRC §109)</td>
+                  <td style="padding:4px 0;text-align:right;font-size:12px;color:#16a34a;">₱0.00</td>
                 </tr>
+                ${scPwdRow}
                 ${discountRow}
                 ${cardRows}
                 <tr>

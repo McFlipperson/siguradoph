@@ -6,8 +6,11 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, issueLoyaltyCard, markBracesComplete } from '../actions'
+import { updatePatientMedical, issueLoyaltyCard, markBracesComplete, updatePatientScPwd } from '../actions'
 import type { FullPatient } from '../actions'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 function computeAge(dob: Date): number {
   return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -233,6 +236,189 @@ function LoyaltySection({ patient }: { patient: FullPatient }) {
   )
 }
 
+const PWD_DISABILITY_LABELS: Record<string, string> = {
+  VISUAL: 'Visual Impairment',
+  HEARING: 'Hearing Impairment',
+  SPEECH: 'Speech Impairment',
+  PHYSICAL: 'Physical Disability',
+  INTELLECTUAL: 'Intellectual Disability',
+  PSYCHOSOCIAL: 'Psychosocial Disability',
+  LEARNING: 'Learning Disability',
+  MENTAL: 'Mental Health Condition',
+}
+
+function ScPwdSection({ patient }: { patient: FullPatient }) {
+  const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  const [isSc, setIsSc] = useState(patient.isSeniorCitizen)
+  const [scId, setScId] = useState(patient.scIdNumber ?? '')
+  const [isPwd, setIsPwd] = useState(patient.isPwd)
+  const [pwdId, setPwdId] = useState(patient.pwdIdNumber ?? '')
+  const [pwdType, setPwdType] = useState(patient.pwdDisabilityType ?? '')
+
+  function handleSave() {
+    startTransition(async () => {
+      await updatePatientScPwd(patient.id, {
+        isSeniorCitizen: isSc,
+        scIdNumber: scId,
+        isPwd,
+        pwdIdNumber: pwdId,
+        pwdDisabilityType: pwdType,
+      })
+      setEditing(false)
+      router.refresh()
+    })
+  }
+
+  const hasAny = patient.isSeniorCitizen || patient.isPwd
+  const inputClass = 'w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
+
+  return (
+    <Card>
+      <CardHeader>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-center justify-between text-left"
+        >
+          <div className="flex items-center gap-2">
+            <CardTitle>Gov't Discount Status</CardTitle>
+            {hasAny && (
+              <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
+                {patient.isSeniorCitizen && patient.isPwd ? 'SC + PWD' : patient.isSeniorCitizen ? 'SC' : 'PWD'}
+              </Badge>
+            )}
+          </div>
+          <span className="text-muted-foreground text-sm">{open ? '▲' : '▼'}</span>
+        </button>
+      </CardHeader>
+      {open && (
+        <CardContent className="flex flex-col gap-4">
+          {editing ? (
+            <>
+              {/* Senior Citizen */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="scToggle" className="flex-1 font-medium text-sm">
+                    Senior Citizen (RA 9994)
+                  </Label>
+                  <Switch id="scToggle" checked={isSc} onCheckedChange={setIsSc} className="shrink-0" />
+                </div>
+                {isSc && (
+                  <div className="space-y-1">
+                    <Label htmlFor="scIdInput" className="text-xs text-muted-foreground">SC ID Number</Label>
+                    <Input
+                      id="scIdInput"
+                      value={scId}
+                      onChange={(e) => setScId(e.target.value)}
+                      placeholder="Senior Citizen ID number"
+                      className="min-h-[48px] text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* PWD */}
+              <div className="space-y-3 border-t pt-3">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="pwdToggle" className="flex-1 font-medium text-sm">
+                    Person with Disability (RA 10754)
+                  </Label>
+                  <Switch id="pwdToggle" checked={isPwd} onCheckedChange={setIsPwd} className="shrink-0" />
+                </div>
+                {isPwd && (
+                  <>
+                    <div className="space-y-1">
+                      <Label htmlFor="pwdIdInput" className="text-xs text-muted-foreground">PWD ID Number</Label>
+                      <Input
+                        id="pwdIdInput"
+                        value={pwdId}
+                        onChange={(e) => setPwdId(e.target.value)}
+                        placeholder="PWD ID number"
+                        className="min-h-[48px] text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="pwdTypeSelect" className="text-xs text-muted-foreground">Disability Type</Label>
+                      <select
+                        id="pwdTypeSelect"
+                        className={inputClass}
+                        value={pwdType}
+                        onChange={(e) => setPwdType(e.target.value)}
+                      >
+                        <option value="">Select type…</option>
+                        {Object.entries(PWD_DISABILITY_LABELS).map(([val, label]) => (
+                          <option key={val} value={val}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button onClick={handleSave} disabled={isPending} className="flex-1 min-h-[48px]">
+                  {isPending ? 'Saving…' : 'Save'}
+                </Button>
+                <Button variant="outline" onClick={() => setEditing(false)} disabled={isPending} className="flex-1 min-h-[48px]">
+                  Cancel
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Read view */}
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Senior Citizen</span>
+                  <div className="flex items-center gap-2">
+                    {patient.isSeniorCitizen ? (
+                      <>
+                        <span className="text-emerald-600 font-medium">Yes</span>
+                        {patient.scIdNumber && (
+                          <span className="text-xs text-muted-foreground font-mono">#{patient.scIdNumber}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">No</span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between border-t pt-2">
+                  <span className="text-muted-foreground">PWD</span>
+                  <div className="flex items-center gap-2">
+                    {patient.isPwd ? (
+                      <>
+                        <span className="text-emerald-600 font-medium">Yes</span>
+                        {patient.pwdDisabilityType && (
+                          <span className="text-xs text-muted-foreground">
+                            {PWD_DISABILITY_LABELS[patient.pwdDisabilityType] ?? patient.pwdDisabilityType}
+                          </span>
+                        )}
+                        {patient.pwdIdNumber && (
+                          <span className="text-xs text-muted-foreground font-mono">#{patient.pwdIdNumber}</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">No</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => setEditing(true)} className="min-h-[48px]">
+                Edit
+              </Button>
+            </>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  )
+}
+
 function BracesSection({ patient }: { patient: FullPatient }) {
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -312,17 +498,13 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
             </div>
           )}
           <div className="flex flex-col gap-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Net amount</span>
-              <span>₱{formatMoney(visit.netAmount)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">VAT (12%)</span>
-              <span>₱{formatMoney(visit.vatAmount)}</span>
-            </div>
-            <div className="flex justify-between font-semibold border-t border-border pt-1 mt-0.5">
+            <div className="flex justify-between font-semibold">
               <span>Total</span>
               <span>₱{formatMoney(visit.grossAmount)}</span>
+            </div>
+            <div className="flex justify-between text-xs text-emerald-600">
+              <span>VAT-Exempt (NIRC §109)</span>
+              <span>₱0.00</span>
             </div>
           </div>
           {visit.invoice?.orNumber && (
@@ -344,9 +526,17 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
       <Card>
         <CardContent className="flex flex-col gap-3 py-2">
           <div>
-            <h1 className="text-xl font-bold font-heading">
-              {patient.firstName} {patient.lastName}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold font-heading">
+                {patient.firstName} {patient.lastName}
+              </h1>
+              {patient.isSeniorCitizen && (
+                <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs shrink-0">SC</Badge>
+              )}
+              {patient.isPwd && (
+                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs shrink-0">PWD</Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">
               Age {age} &middot; DOB {formatDate(patient.dateOfBirth)}
             </p>
@@ -402,6 +592,9 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
 
       {/* Medical background */}
       <MedicalSection patient={patient} />
+
+      {/* SC/PWD status */}
+      <ScPwdSection patient={patient} />
 
       {/* Loyalty card */}
       <LoyaltySection patient={patient} />

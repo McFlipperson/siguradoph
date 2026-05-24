@@ -138,6 +138,12 @@ export type FullPatient = {
   bracesComplete: boolean
   reminderChannel: string
   messengerPsid: string | null
+  // SC/PWD
+  isSeniorCitizen: boolean
+  scIdNumber: string | null
+  isPwd: boolean
+  pwdIdNumber: string | null
+  pwdDisabilityType: string | null
   consentRecords: Array<{
     id: string
     consentDate: Date
@@ -233,6 +239,37 @@ export async function updatePatientMedical(
       medicalHistory: data.medicalHistory,
       medications: data.medications,
       allergies: data.allergies,
+    },
+  })
+
+  revalidatePath(`/patients/${patientId}`)
+}
+
+export async function updatePatientScPwd(
+  patientId: string,
+  data: {
+    isSeniorCitizen: boolean
+    scIdNumber: string
+    isPwd: boolean
+    pwdIdNumber: string
+    pwdDisabilityType: string
+  }
+) {
+  const clinicId = await getClinicId()
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    select: { clinicId: true },
+  })
+  if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      isSeniorCitizen: data.isSeniorCitizen,
+      scIdNumber: data.isSeniorCitizen && data.scIdNumber.trim() ? data.scIdNumber.trim() : null,
+      isPwd: data.isPwd,
+      pwdIdNumber: data.isPwd && data.pwdIdNumber.trim() ? data.pwdIdNumber.trim() : null,
+      pwdDisabilityType: data.isPwd && data.pwdDisabilityType ? data.pwdDisabilityType : null,
     },
   })
 

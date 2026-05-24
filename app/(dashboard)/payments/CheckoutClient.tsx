@@ -21,6 +21,17 @@ type Props = {
   loyaltyCard: CheckoutLoyaltyCard | null
 }
 
+const PWD_DISABILITY_TYPES: { value: string; label: string }[] = [
+  { value: 'VISUAL', label: 'Visual Impairment' },
+  { value: 'HEARING', label: 'Hearing Impairment' },
+  { value: 'SPEECH', label: 'Speech Impairment' },
+  { value: 'PHYSICAL', label: 'Physical Disability' },
+  { value: 'INTELLECTUAL', label: 'Intellectual Disability' },
+  { value: 'PSYCHOSOCIAL', label: 'Psychosocial Disability' },
+  { value: 'LEARNING', label: 'Learning Disability' },
+  { value: 'MENTAL', label: 'Mental Health Condition' },
+]
+
 type PrinterInfo = {
   type: 'bluetooth' | 'serial'
   name: string
@@ -96,6 +107,24 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   // Pending loyalty card renewal: auto-enable purchase if no current card
   const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
+  // SC/PWD state
+  const canUseSc = visitData.isSeniorCitizen
+  const canUsePwd = visitData.isPwd
+  const hasScPwd = canUseSc || canUsePwd
+  // If patient has both SC and PWD, we default to SC; secretary can switch
+  const defaultScPwdType: 'SC' | 'PWD' | null = canUseSc ? 'SC' : canUsePwd ? 'PWD' : null
+  const [applyScPwd, setApplyScPwd] = useState(false)
+  const [scPwdType, setScPwdType] = useState<'SC' | 'PWD'>(defaultScPwdType ?? 'SC')
+  const [scPwdIdInput, setScPwdIdInput] = useState<string>(
+    defaultScPwdType === 'SC' ? (visitData.scIdNumber ?? '') : (visitData.pwdIdNumber ?? '')
+  )
+
+  // When type switches, pre-fill known ID
+  function handleScPwdTypeChange(t: 'SC' | 'PWD') {
+    setScPwdType(t)
+    setScPwdIdInput(t === 'SC' ? (visitData.scIdNumber ?? '') : (visitData.pwdIdNumber ?? ''))
+  }
+
   // Form state
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [notes, setNotes] = useState('')
@@ -126,27 +155,36 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     if (type && name) setPrinter({ type, name })
   }, [])
 
-  // Price calculations
+  // Price calculations — dental is VAT-exempt
   const gross = visitData.grossAmount
   const isCheckup = selectedBenefit?.isCheckup ?? false
   const availablePct = selectedBenefit?.pct ?? 0
-  const discountedGross = selectedBenefit
+
+  // Loyalty discount (off original gross)
+  const loyaltyDiscountAmount = selectedBenefit
     ? isCheckup
-      ? 0
-      : Math.round(gross * (1 - availablePct / 100) * 100) / 100
-    : gross
+      ? gross
+      : Math.round(gross * (availablePct / 100) * 100) / 100
+    : 0
+  const grossAfterLoyalty = Math.max(0, Math.round((gross - loyaltyDiscountAmount) * 100) / 100)
+
+  // SC/PWD discount (20% off original gross, if applied with valid ID)
+  const scPwdIdValid = applyScPwd && scPwdIdInput.trim().length >= 3
+  const scPwdDiscountAmount = scPwdIdValid
+    ? Math.round(gross * 0.20 * 100) / 100
+    : 0
+
+  // Treatment total after all discounts
+  const discountedGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
+
   const loyaltyCardTotal = purchaseCard ? LOYALTY_CARD_PRICE : 0
   const combinedGross = discountedGross + loyaltyCardTotal
 
-  const treatmentNet = Math.round((discountedGross / 1.12) * 100) / 100
-  const treatmentVat = Math.round((discountedGross - treatmentNet) * 100) / 100
-  const cardNet = purchaseCard ? Math.round((LOYALTY_CARD_PRICE / 1.12) * 100) / 100 : 0
-  const cardVat = purchaseCard ? Math.round((LOYALTY_CARD_PRICE - cardNet) * 100) / 100 : 0
-  const totalNet = Math.round((treatmentNet + cardNet) * 100) / 100
-  const totalVat = Math.round((treatmentVat + cardVat) * 100) / 100
-  const discountAmount = selectedBenefit
-    ? Math.round((gross - discountedGross) * 100) / 100
-    : 0
+  // VAT-exempt: net = gross, vat = 0
+  const totalNet = combinedGross
+  const totalVat = 0
+  // Legacy compat for email/receipt (non-VAT)
+  const discountAmount = loyaltyDiscountAmount
 
   // Printer reconnect
   const handleReconnectBluetooth = useCallback(async () => {
@@ -200,6 +238,9 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         discountCategory: selectedBenefit?.category,
         loyaltyCardId: loyaltyCard?.id ?? null,
         purchaseNewLoyaltyCard: purchaseCard,
+        applyScPwdDiscount: scPwdIdValid,
+        scPwdType: scPwdIdValid ? scPwdType : null,
+        scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : null,
         notes: notes.trim() || undefined,
         emailRecipient: sendEmail ? emailInput.trim() : undefined,
       })
@@ -211,9 +252,9 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
       const emailAddress = sendEmail ? emailInput.trim() : ''
       if (emailAddress) {
         const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
-        const discountLabel = selectedBenefit
-          ? `Loyalty Card — ${selectedBenefit.label}`
-          : undefined
+        const discountLabels: string[] = []
+        if (selectedBenefit) discountLabels.push(`Loyalty — ${selectedBenefit.label}`)
+        if (scPwdIdValid) discountLabels.push(scPwdType === 'SC' ? 'Senior Citizen 20% (RA 9994)' : 'PWD 20% (RA 10754)')
 
         fetch('/api/send-receipt', {
           method: 'POST',
@@ -228,11 +269,13 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             patientName: visitData.patientName,
             serviceDescription: visitData.treatment,
             toothNumber: visitData.toothNumber,
-            netAmount: totalNet,
-            vatAmount: totalVat,
+            netAmount: res.totalAmount, // VAT-exempt: net = gross
+            vatAmount: 0,
             grossAmount: res.totalAmount,
-            discountAmount,
-            discountLabel,
+            discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
+            discountLabel: discountLabels.length > 0 ? discountLabels.join(' + ') : undefined,
+            scPwdType: scPwdIdValid ? scPwdType : undefined,
+            scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
             paymentMethod,
             notes: notes.trim() || undefined,
           }),
@@ -246,6 +289,9 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         try {
           const { buildReceiptBytes } = await import('@/lib/thermal')
           const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
+          const receiptDiscountLabels: string[] = []
+          if (selectedBenefit) receiptDiscountLabels.push(selectedBenefit.label)
+          if (scPwdIdValid) receiptDiscountLabels.push(scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754')
           const bytes = await buildReceiptBytes({
             clinicName: visitData.clinic.name,
             clinicAddress,
@@ -255,11 +301,13 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             patientName: visitData.patientName,
             serviceDescription: visitData.treatment,
             toothNumber: visitData.toothNumber,
-            netAmount: totalNet,
-            vatAmount: totalVat,
+            netAmount: res.totalAmount, // VAT-exempt
+            vatAmount: 0,
             grossAmount: res.totalAmount,
-            discountAmount,
-            discountLabel: selectedBenefit ? selectedBenefit.label : undefined,
+            discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
+            discountLabel: receiptDiscountLabels.length > 0 ? receiptDiscountLabels.join(' + ') : undefined,
+            scPwdType: scPwdIdValid ? scPwdType : undefined,
+            scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
             paymentMethod,
             notes: notes.trim() || undefined,
           })
@@ -291,10 +339,16 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         patientName: visitData.patientName,
         serviceDescription: visitData.treatment,
         toothNumber: visitData.toothNumber,
-        netAmount: totalNet,
-        vatAmount: totalVat,
+        netAmount: result.totalAmount, // VAT-exempt
+        vatAmount: 0,
         grossAmount: result.totalAmount,
-        discountAmount,
+        discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
+        discountLabel: [
+          ...(selectedBenefit ? [selectedBenefit.label] : []),
+          ...(scPwdIdValid ? [scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754'] : []),
+        ].join(' + ') || undefined,
+        scPwdType: scPwdIdValid ? scPwdType : undefined,
+        scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
         paymentMethod: paymentMethod ?? 'CASH',
         notes: notes.trim() || undefined,
       })
@@ -491,6 +545,89 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         </CardContent>
       </Card>
 
+      {/* ── SC/PWD Discount ──────────────────────────────────── */}
+      {hasScPwd && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Gov't Discount</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="applyScPwd" className="flex-1 cursor-pointer text-sm">
+                Apply 20% SC/PWD discount
+              </Label>
+              <Switch
+                id="applyScPwd"
+                checked={applyScPwd}
+                onCheckedChange={setApplyScPwd}
+                className="shrink-0"
+              />
+            </div>
+
+            {applyScPwd && (
+              <div className="space-y-3 pt-1">
+                {/* Type selector (only show if patient has both) */}
+                {canUseSc && canUsePwd && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['SC', 'PWD'] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => handleScPwdTypeChange(t)}
+                        className={[
+                          'rounded-xl border-2 py-2 text-sm font-semibold transition-colors min-h-[44px]',
+                          scPwdType === t
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-foreground',
+                        ].join(' ')}
+                      >
+                        {t === 'SC' ? 'Senior Citizen' : 'PWD'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* SC label */}
+                {scPwdType === 'SC' && (
+                  <p className="text-xs text-muted-foreground">
+                    RA 9994 — Senior Citizen 20% discount (VAT-exempt)
+                  </p>
+                )}
+                {scPwdType === 'PWD' && (
+                  <p className="text-xs text-muted-foreground">
+                    RA 10754 — PWD 20% discount (VAT-exempt)
+                  </p>
+                )}
+
+                {/* ID number */}
+                <div className="space-y-1">
+                  <Label htmlFor="scPwdId" className="text-xs text-muted-foreground">
+                    {scPwdType === 'SC' ? 'Senior Citizen ID No.' : 'PWD ID No.'}{' '}
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="scPwdId"
+                    value={scPwdIdInput}
+                    onChange={(e) => setScPwdIdInput(e.target.value)}
+                    placeholder="Enter ID number to apply discount"
+                    className="min-h-[48px] text-sm"
+                  />
+                  {applyScPwd && scPwdIdInput.trim().length > 0 && scPwdIdInput.trim().length < 3 && (
+                    <p className="text-xs text-destructive">ID number too short</p>
+                  )}
+                </div>
+
+                {scPwdIdValid && (
+                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-800">
+                    20% discount applied — ₱{fmt(scPwdDiscountAmount)} off
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Price Breakdown ──────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
@@ -498,17 +635,19 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
           <div className="flex justify-between text-muted-foreground">
-            <span>Net amount (ex. VAT)</span>
-            <span>₱{fmt(treatmentNet)}</span>
+            <span>Service</span>
+            <span>₱{fmt(gross)}</span>
           </div>
-          <div className="flex justify-between text-muted-foreground">
-            <span>VAT (12%)</span>
-            <span>₱{fmt(treatmentVat)}</span>
-          </div>
-          {selectedBenefit && discountAmount > 0 && (
+          {selectedBenefit && loyaltyDiscountAmount > 0 && (
             <div className="flex justify-between text-red-600">
               <span>{selectedBenefit.label}</span>
-              <span>-₱{fmt(discountAmount)}</span>
+              <span>-₱{fmt(loyaltyDiscountAmount)}</span>
+            </div>
+          )}
+          {scPwdIdValid && (
+            <div className="flex justify-between text-red-600">
+              <span>{scPwdType === 'SC' ? 'SC 20% (RA 9994)' : 'PWD 20% (RA 10754)'}</span>
+              <span>-₱{fmt(scPwdDiscountAmount)}</span>
             </div>
           )}
           {purchaseCard && (
@@ -521,13 +660,9 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             <span>Total</span>
             <span>₱{fmt(combinedGross)}</span>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Net</span>
-            <span>₱{fmt(totalNet)}</span>
-          </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>VAT</span>
-            <span>₱{fmt(totalVat)}</span>
+          <div className="flex justify-between text-xs text-emerald-600 mt-1">
+            <span>VAT-Exempt (NIRC §109)</span>
+            <span>₱0.00</span>
           </div>
         </CardContent>
       </Card>

@@ -25,6 +25,8 @@ export type ReceiptData = {
   grossAmount: number
   discountAmount: number
   discountLabel?: string
+  scPwdType?: 'SC' | 'PWD'
+  scPwdIdNumber?: string
   loyaltyCardPurchased?: {
     cardNumber: string
     expiryDate: Date
@@ -146,12 +148,16 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
 
   e = e
     .line(dash)
-    .line(padLine('Net amount (ex. VAT)', `P${fmtMoney(data.netAmount)}`, W))
-    .line(padLine('VAT (12%)', `P${fmtMoney(data.vatAmount)}`, W))
+    .line(padLine('VAT-EXEMPT SALE', 'NIRC §109', W))
+
+  if (data.scPwdType) {
+    const raLabel = data.scPwdType === 'SC' ? 'RA 9994 SC 20%' : 'RA 10754 PWD 20%'
+    e = e.line(padLine(raLabel, data.scPwdIdNumber ? `ID:${data.scPwdIdNumber}`.slice(0, 16) : '', W))
+  }
 
   if (data.discountAmount > 0) {
     const label = data.discountLabel
-      ? `Discount (${data.discountLabel})`.slice(0, 28)
+      ? `Disc.(${data.discountLabel})`.slice(0, 28)
       : 'Discount'
     e = e.line(padLine(label, `-P${fmtMoney(data.discountAmount)}`, W))
   }

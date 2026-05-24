@@ -268,19 +268,15 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
             placeholder="0"
             min={0}
           />
-          {vat && (
+          {gross > 0 && (
             <div className="flex flex-col gap-1 text-sm rounded-lg bg-muted/50 px-4 py-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Net amount</span>
-                <span>₱{formatMoney(vat.net)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">VAT (12%)</span>
-                <span>₱{formatMoney(vat.vat)}</span>
-              </div>
-              <div className="flex justify-between font-semibold border-t border-border mt-1 pt-1">
+              <div className="flex justify-between font-semibold">
                 <span>Total</span>
-                <span>₱{formatMoney(vat.gross)}</span>
+                <span>₱{formatMoney(gross)}</span>
+              </div>
+              <div className="flex justify-between text-xs text-emerald-600">
+                <span>VAT-Exempt (NIRC §109)</span>
+                <span>₱0.00</span>
               </div>
             </div>
           )}

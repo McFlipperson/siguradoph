@@ -32,6 +32,12 @@ export type CheckoutVisitData = {
   patientEmail?: string
   patientAddress: string
   pendingLoyaltyCardPurchase: boolean
+  // SC/PWD fields
+  isSeniorCitizen: boolean
+  scIdNumber: string | null
+  isPwd: boolean
+  pwdIdNumber: string | null
+  pwdDisabilityType: string | null
   clinic: {
     id: string
     name: string
@@ -82,6 +88,11 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
           email: true,
           address: true,
           pendingLoyaltyCardPurchase: true,
+          isSeniorCitizen: true,
+          scIdNumber: true,
+          isPwd: true,
+          pwdIdNumber: true,
+          pwdDisabilityType: true,
           loyaltyCards: {
             where: { isActive: true, expiryDate: { gte: new Date() } },
             orderBy: { purchaseDate: 'desc' },
@@ -151,13 +162,18 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
       toothNumber: visit.toothNumber ?? undefined,
       visitDate: visit.visitDate,
       grossAmount: Number(visit.grossAmount),
-      netAmount: Number(visit.netAmount),
-      vatAmount: Number(visit.vatAmount),
+      netAmount: Number(visit.grossAmount), // dental is VAT-exempt: net = gross
+      vatAmount: 0,
       patientId: visit.patient.id,
       patientName,
       patientEmail: visit.patient.email ?? undefined,
       patientAddress: visit.patient.address,
       pendingLoyaltyCardPurchase: visit.patient.pendingLoyaltyCardPurchase,
+      isSeniorCitizen: visit.patient.isSeniorCitizen,
+      scIdNumber: visit.patient.scIdNumber,
+      isPwd: visit.patient.isPwd,
+      pwdIdNumber: visit.patient.pwdIdNumber,
+      pwdDisabilityType: visit.patient.pwdDisabilityType,
       clinic: {
         id: visit.clinic.id,
         name: visit.clinic.name,
@@ -184,6 +200,10 @@ export type ConfirmPaymentData = {
   discountCategory?: string   // which card benefit to decrement (replaces server-side lookup)
   loyaltyCardId: string | null
   purchaseNewLoyaltyCard: boolean
+  // SC/PWD
+  applyScPwdDiscount: boolean
+  scPwdType: 'SC' | 'PWD' | null
+  scPwdIdNumber: string | null
   notes?: string
   emailRecipient?: string
 }
@@ -248,35 +268,41 @@ export async function confirmPayment(
   // where visit.treatment is a comma-joined list that won't match catalog lookup)
   const category = data.discountCategory ?? 'OTHER'
 
-  let treatmentGross: number
+  const originalGross = Number(visit.grossAmount)
+
+  // SC/PWD discount: 20% off original gross (RA 9994 / RA 10754)
+  const scPwdDiscountAmount = data.applyScPwdDiscount
+    ? Math.round(originalGross * 0.20 * 100) / 100
+    : 0
+
+  // Loyalty discount applied to original gross (independent of SC/PWD)
+  let loyaltyDiscountAmount = 0
+  let grossAfterLoyalty = originalGross
   if (data.applyLoyaltyDiscount && category === 'CHECKUP') {
-    treatmentGross = 0
+    loyaltyDiscountAmount = originalGross
+    grossAfterLoyalty = 0
   } else if (data.applyLoyaltyDiscount && data.discountPct > 0) {
-    treatmentGross =
-      Math.round(Number(visit.grossAmount) * (1 - data.discountPct / 100) * 100) / 100
-  } else {
-    treatmentGross = Number(visit.grossAmount)
+    loyaltyDiscountAmount = Math.round(originalGross * (data.discountPct / 100) * 100) / 100
+    grossAfterLoyalty = Math.round((originalGross - loyaltyDiscountAmount) * 100) / 100
   }
 
-  const treatmentNet = Math.round((treatmentGross / 1.12) * 100) / 100
-  const treatmentVat = Math.round((treatmentGross - treatmentNet) * 100) / 100
+  // Treatment gross after both discounts, floored at 0
+  const treatmentGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
+
+  // Dental is VAT-exempt: net = gross, VAT = 0
+  const treatmentNet = treatmentGross
+  const treatmentVat = 0
 
   const cardPrice = Number(clinic.loyaltyCardPrice)
-  const cardNet = data.purchaseNewLoyaltyCard
-    ? Math.round((cardPrice / 1.12) * 100) / 100
-    : 0
-  const cardVat = data.purchaseNewLoyaltyCard
-    ? Math.round((cardPrice - cardNet) * 100) / 100
-    : 0
+  const cardNet = data.purchaseNewLoyaltyCard ? cardPrice : 0
+  const cardVat = 0 // loyalty card sale — also VAT-exempt
 
   const totalNet = Math.round((treatmentNet + cardNet) * 100) / 100
-  const totalVat = Math.round((treatmentVat + cardVat) * 100) / 100
+  const totalVat = 0
   const totalGross = Math.round((treatmentGross + (data.purchaseNewLoyaltyCard ? cardPrice : 0)) * 100) / 100
 
-  const discountAmount =
-    data.applyLoyaltyDiscount && data.discountPct > 0
-      ? Math.round((Number(visit.grossAmount) - treatmentGross) * 100) / 100
-      : 0
+  // Combined loyalty discount amount (stored on invoice.discountAmount)
+  const discountAmount = loyaltyDiscountAmount
 
   const patientName = `${visit.patient.firstName} ${visit.patient.lastName}`
   const clinicAddress = `${clinic.street}, ${clinic.city}, ${clinic.province} ${clinic.zip}`
@@ -307,11 +333,29 @@ export async function confirmPayment(
         vatAmount: totalVat,
         discountAmount,
         loyaltyCardId: data.loyaltyCardId,
+        scPwdDiscountType: data.applyScPwdDiscount ? (data.scPwdType ?? null) : null,
+        scPwdIdNumber: data.applyScPwdDiscount ? (data.scPwdIdNumber ?? null) : null,
+        scPwdDiscountAmount: scPwdDiscountAmount,
         paymentMethod: data.paymentMethod,
         notes: data.notes,
         status: 'ISSUED',
       },
     })
+
+    // SC/PWD audit log (immutable compliance record)
+    if (data.applyScPwdDiscount && data.scPwdType && data.scPwdIdNumber) {
+      await tx.scPwdAuditLog.create({
+        data: {
+          clinicId,
+          patientId: visit.patient.id,
+          invoiceId: invoice.id,
+          discountType: data.scPwdType,
+          idNumber: data.scPwdIdNumber,
+          discountPct: 20,
+          discountAmount: scPwdDiscountAmount,
+        },
+      })
+    }
 
     // LoyaltyCardUsage + decrement if discount applied
     if (data.applyLoyaltyDiscount && data.loyaltyCardId && category !== 'CHECKUP') {

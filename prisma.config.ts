@@ -4,13 +4,11 @@ import { defineConfig } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
+  // This datasource config is ONLY used for Prisma CLI commands (db push, migrate, introspect).
+  // The runtime PrismaClient uses the DATABASE_URL (pooler) configured in lib/prisma.ts.
+  // We use DIRECT_URL here to bypass pgbouncer, which doesn't support prepared statements
+  // needed for schema DDL operations.
   datasource: {
-    url: process.env["DATABASE_URL"]!,
-    // directUrl is used by Supabase to bypass the connection pooler for migrations
-    // @ts-expect-error — directUrl supported at runtime even if not in types yet
-    directUrl: process.env["DIRECT_URL"],
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"]!,
   },
 });

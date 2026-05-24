@@ -156,6 +156,13 @@ model Patient {
   reminderChannel              String   @default("NONE")  // MESSENGER | EMAIL | SMS | NONE
   bracesComplete               Boolean  @default(false)
   pendingLoyaltyCardPurchase   Boolean  @default(false)
+  // RA 9994 Senior Citizen
+  isSeniorCitizen   Boolean  @default(false)
+  scIdNumber        String?
+  // RA 10754 PWD
+  isPwd             Boolean  @default(false)
+  pwdIdNumber       String?
+  pwdDisabilityType String?  // VISUAL | HEARING | SPEECH | PHYSICAL | INTELLECTUAL | PSYCHOSOCIAL | LEARNING | MENTAL
   enrolledAt                   DateTime
   createdAt                    DateTime @default(now())
 
@@ -217,9 +224,12 @@ model Invoice {
   grossAmount        Decimal
   netAmount          Decimal
   vatAmount          Decimal
-  discountAmount     Decimal       @default(0)
-  loyaltyCardId      String?
-  paymentMethod      PaymentMethod
+  discountAmount        Decimal       @default(0)
+  loyaltyCardId         String?
+  scPwdDiscountType     String?       // 'SC' | 'PWD'
+  scPwdIdNumber         String?
+  scPwdDiscountAmount   Decimal       @default(0)
+  paymentMethod         PaymentMethod
   status             InvoiceStatus @default(ISSUED)
   transactionDate    DateTime      @default(now())
   eisTransmitted     Boolean       @default(false)
@@ -478,4 +488,17 @@ model LoyaltyCardTemplate {
   tier2Discount Decimal?
   isActive      Boolean  @default(true)
   sortOrder     Int      @default(0)
+}
+
+// Immutable audit trail for every SC/PWD discount applied (RA 9994 / RA 10754 compliance)
+model ScPwdAuditLog {
+  id             String   @id @default(cuid())
+  clinicId       String
+  patientId      String
+  invoiceId      String
+  discountType   String   // 'SC' | 'PWD'
+  idNumber       String   // ID number presented at time of transaction
+  discountPct    Decimal  @default(20)
+  discountAmount Decimal
+  createdAt      DateTime @default(now())
 }
