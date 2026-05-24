@@ -97,22 +97,20 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   // Pending loyalty card renewal: auto-enable purchase if no current card
   const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
-  // SC/PWD state
-  const canUseSc = visitData.isSeniorCitizen
-  const canUsePwd = visitData.isPwd
-  const hasScPwd = canUseSc || canUsePwd
-  // If patient has both SC and PWD, we default to SC; secretary can switch
-  const defaultScPwdType: 'SC' | 'PWD' | null = canUseSc ? 'SC' : canUsePwd ? 'PWD' : null
+  // SC/PWD state — always available at checkout; profile flags pre-fill but are not required
+  const profileScId = visitData.scIdNumber ?? ''
+  const profilePwdId = visitData.pwdIdNumber ?? ''
+  const defaultScPwdType: 'SC' | 'PWD' = visitData.isSeniorCitizen ? 'SC' : visitData.isPwd ? 'PWD' : 'SC'
   const [applyScPwd, setApplyScPwd] = useState(false)
-  const [scPwdType, setScPwdType] = useState<'SC' | 'PWD'>(defaultScPwdType ?? 'SC')
+  const [scPwdType, setScPwdType] = useState<'SC' | 'PWD'>(defaultScPwdType)
   const [scPwdIdInput, setScPwdIdInput] = useState<string>(
-    defaultScPwdType === 'SC' ? (visitData.scIdNumber ?? '') : (visitData.pwdIdNumber ?? '')
+    defaultScPwdType === 'SC' ? profileScId : profilePwdId
   )
 
-  // When type switches, pre-fill known ID
+  // When type switches, pre-fill from profile if available
   function handleScPwdTypeChange(t: 'SC' | 'PWD') {
     setScPwdType(t)
-    setScPwdIdInput(t === 'SC' ? (visitData.scIdNumber ?? '') : (visitData.pwdIdNumber ?? ''))
+    setScPwdIdInput(t === 'SC' ? profileScId : profilePwdId)
   }
 
   // Form state
@@ -493,87 +491,77 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
       </Card>
 
       {/* ── SC/PWD Discount ──────────────────────────────────── */}
-      {hasScPwd && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Gov&apos;t Discount</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="applyScPwd" className="flex-1 cursor-pointer text-sm">
-                Apply 20% SC/PWD discount
-              </Label>
-              <Switch
-                id="applyScPwd"
-                checked={applyScPwd}
-                onCheckedChange={setApplyScPwd}
-                className="shrink-0"
-              />
-            </div>
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Gov&apos;t Discount</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="applyScPwd" className="flex-1 cursor-pointer text-sm">
+              Apply 20% SC/PWD discount
+            </Label>
+            <Switch
+              id="applyScPwd"
+              checked={applyScPwd}
+              onCheckedChange={setApplyScPwd}
+              className="shrink-0"
+            />
+          </div>
 
-            {applyScPwd && (
-              <div className="space-y-3 pt-1">
-                {/* Type selector (only show if patient has both) */}
-                {canUseSc && canUsePwd && (
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['SC', 'PWD'] as const).map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => handleScPwdTypeChange(t)}
-                        className={[
-                          'rounded-xl border-2 py-2 text-sm font-semibold transition-colors min-h-[44px]',
-                          scPwdType === t
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground',
-                        ].join(' ')}
-                      >
-                        {t === 'SC' ? 'Senior Citizen' : 'PWD'}
-                      </button>
-                    ))}
-                  </div>
-                )}
+          {applyScPwd && (
+            <div className="space-y-3 pt-1">
+              {/* Type selector — always show both options */}
+              <div className="grid grid-cols-2 gap-2">
+                {(['SC', 'PWD'] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleScPwdTypeChange(t)}
+                    className={[
+                      'rounded-xl border-2 py-2 text-sm font-semibold transition-colors min-h-[44px]',
+                      scPwdType === t
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-background text-foreground',
+                    ].join(' ')}
+                  >
+                    {t === 'SC' ? 'Senior Citizen' : 'PWD'}
+                  </button>
+                ))}
+              </div>
 
-                {/* SC label */}
-                {scPwdType === 'SC' && (
-                  <p className="text-xs text-muted-foreground">
-                    RA 9994 — Senior Citizen 20% discount (VAT-exempt)
-                  </p>
-                )}
-                {scPwdType === 'PWD' && (
-                  <p className="text-xs text-muted-foreground">
-                    RA 10754 — PWD 20% discount (VAT-exempt)
-                  </p>
-                )}
+              <p className="text-xs text-muted-foreground">
+                {scPwdType === 'SC'
+                  ? 'RA 9994 — Senior Citizen 20% discount (VAT-exempt)'
+                  : 'RA 10754 — PWD 20% discount (VAT-exempt)'}
+              </p>
 
-                {/* ID number */}
-                <div className="space-y-1">
-                  <Label htmlFor="scPwdId" className="text-xs text-muted-foreground">
-                    {scPwdType === 'SC' ? 'Senior Citizen ID No.' : 'PWD ID No.'}{' '}
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="scPwdId"
-                    value={scPwdIdInput}
-                    onChange={(e) => setScPwdIdInput(e.target.value)}
-                    placeholder="Enter ID number to apply discount"
-                    className="min-h-[48px] text-sm"
-                  />
-                  {applyScPwd && scPwdIdInput.trim().length > 0 && scPwdIdInput.trim().length < 3 && (
-                    <p className="text-xs text-destructive">ID number too short</p>
-                  )}
-                </div>
-
-                {scPwdIdValid && (
-                  <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-800">
-                    20% discount applied — ₱{fmt(scPwdDiscountAmount)} off
-                  </div>
+              {/* ID number */}
+              <div className="space-y-1">
+                <Label htmlFor="scPwdId" className="text-xs text-muted-foreground">
+                  {scPwdType === 'SC' ? 'Senior Citizen ID No.' : 'PWD ID No.'}{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="scPwdId"
+                  value={scPwdIdInput}
+                  onChange={(e) => setScPwdIdInput(e.target.value)}
+                  placeholder="Enter ID number to apply discount"
+                  className="min-h-[48px] text-sm"
+                />
+                {applyScPwd && scPwdIdInput.trim().length > 0 && scPwdIdInput.trim().length < 3 && (
+                  <p className="text-xs text-destructive">ID number too short</p>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+
+              {scPwdIdValid && (
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-800">
+                  20% discount applied — ₱{fmt(scPwdDiscountAmount)} off
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ── Price Breakdown ──────────────────────────────────── */}
       <Card>
