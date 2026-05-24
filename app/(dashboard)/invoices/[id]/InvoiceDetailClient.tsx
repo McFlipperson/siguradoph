@@ -138,6 +138,7 @@ export default function InvoiceDetailClient({ invoice }: Props) {
         body: JSON.stringify({
           to: invoice.patient.email,
           clinicName: invoice.clinic.name,
+          clinicLogoUrl: invoice.clinic.logoUrl,
           clinicAddress,
           clinicTin: invoice.clinic.tin,
           orNumber: invoice.orNumber,

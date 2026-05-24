@@ -10,6 +10,7 @@ function getResend(): Resend {
 export type ReceiptEmailData = {
   to: string
   clinicName: string
+  clinicLogoUrl?: string | null
   clinicAddress: string
   clinicTin: string
   orNumber: string
@@ -156,6 +157,7 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
           <!-- Header -->
           <tr>
             <td style="background:#0f172a;padding:24px 28px;">
+              ${data.clinicLogoUrl ? `<img src="${data.clinicLogoUrl}" alt="${data.clinicName}" style="max-height:56px;max-width:160px;width:auto;object-fit:contain;display:block;margin-bottom:12px;" />` : ''}
               <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff;">${data.clinicName}</p>
               <p style="margin:4px 0 0;font-size:13px;color:#94a3b8;">${data.clinicAddress}</p>
               <p style="margin:2px 0 0;font-size:13px;color:#94a3b8;">TIN: ${data.clinicTin}</p>
