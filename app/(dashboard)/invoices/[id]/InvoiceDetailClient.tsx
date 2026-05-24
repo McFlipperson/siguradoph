@@ -83,6 +83,7 @@ export default function InvoiceDetailClient({ invoice }: Props) {
   const [voiding, setVoiding] = useState(false)
   const [showVoidConfirm, setShowVoidConfirm] = useState(false)
   const [reprinting, setReprinting] = useState(false)
+  const [emailing, setEmailing] = useState(false)
 
   const patientName = invoice.patient
     ? `${invoice.patient.firstName} ${invoice.patient.lastName}`
@@ -128,9 +129,10 @@ export default function InvoiceDetailClient({ invoice }: Props) {
 
   async function handleEmailReprint() {
     if (!invoice.patient?.email) return
+    setEmailing(true)
     try {
       const clinicAddress = `${invoice.clinic.street}, ${invoice.clinic.city}, ${invoice.clinic.province} ${invoice.clinic.zip}`
-      await fetch('/api/send-receipt', {
+      const res = await fetch('/api/send-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,17 +145,23 @@ export default function InvoiceDetailClient({ invoice }: Props) {
           patientName,
           serviceDescription: invoice.serviceDescription,
           toothNumber: invoice.toothNumber,
-          netAmount: invoice.netAmount,
-          vatAmount: invoice.vatAmount,
+          netAmount: invoice.grossAmount,   // VAT-exempt: net = gross
+          vatAmount: 0,
           grossAmount: invoice.grossAmount,
           discountAmount: invoice.discountAmount,
           paymentMethod: invoice.paymentMethod,
           notes: invoice.notes,
         }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? `Server error ${res.status}`)
+      }
       toast.success(`Receipt emailed to ${invoice.patient.email}`)
-    } catch {
-      toast.error('Failed to send email')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send email')
+    } finally {
+      setEmailing(false)
     }
   }
 
@@ -346,9 +354,10 @@ export default function InvoiceDetailClient({ invoice }: Props) {
               variant="ghost"
               className="w-full min-h-[48px] gap-2 text-muted-foreground"
               onClick={handleEmailReprint}
+              disabled={emailing}
             >
               <Mail className="w-4 h-4" />
-              Email to {invoice.patient.email}
+              {emailing ? 'Sending…' : `Email to ${invoice.patient.email}`}
             </Button>
           )}
 

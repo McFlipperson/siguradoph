@@ -118,8 +118,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   // Form state
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [notes, setNotes] = useState('')
-  const [sendEmail, setSendEmail] = useState(!!visitData.patientEmail)
-  const [emailInput, setEmailInput] = useState(visitData.patientEmail ?? '')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -228,47 +226,10 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         scPwdType: scPwdIdValid ? scPwdType : null,
         scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : null,
         notes: notes.trim() || undefined,
-        emailRecipient: sendEmail ? emailInput.trim() : undefined,
       })
 
       setResult(res)
       setConfirmed(true)
-
-      // Fire-and-forget email
-      const emailAddress = sendEmail ? emailInput.trim() : ''
-      if (emailAddress) {
-        const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
-        const discountLabels: string[] = []
-        if (selectedBenefit) discountLabels.push(`Loyalty — ${selectedBenefit.label}`)
-        if (scPwdIdValid) discountLabels.push(scPwdType === 'SC' ? 'Senior Citizen 20% (RA 9994)' : 'PWD 20% (RA 10754)')
-
-        fetch('/api/send-receipt', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: emailAddress,
-            clinicName: visitData.clinic.name,
-            clinicAddress,
-            clinicTin: visitData.clinic.tin,
-            orNumber: res.orNumber,
-            transactionDate: new Date().toISOString(),
-            patientName: visitData.patientName,
-            serviceDescription: visitData.treatment,
-            toothNumber: visitData.toothNumber,
-            netAmount: res.totalAmount, // VAT-exempt: net = gross
-            vatAmount: 0,
-            grossAmount: res.totalAmount,
-            discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
-            discountLabel: discountLabels.length > 0 ? discountLabels.join(' + ') : undefined,
-            scPwdType: scPwdIdValid ? scPwdType : undefined,
-            scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
-            paymentMethod,
-            notes: notes.trim() || undefined,
-          }),
-        }).catch(() => {
-          // email failure is silent
-        })
-      }
 
       // Print receipt
       if (printer) {
@@ -669,43 +630,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── Section 4: Email ──────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Email Receipt</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="sendEmail" className="flex-1 cursor-pointer">
-              Send receipt by email
-            </Label>
-            <Switch
-              id="sendEmail"
-              checked={sendEmail}
-              onCheckedChange={setSendEmail}
-              className="shrink-0"
-            />
-          </div>
-          {sendEmail && (
-            <div className="space-y-1">
-              <Label htmlFor="emailInput" className="text-xs text-muted-foreground">
-                Email address
-              </Label>
-              <Input
-                id="emailInput"
-                type="text"
-                inputMode="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="patient@example.com"
-                className="min-h-[48px]"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Section 5: Payment Method ────────────────────────── */}
+      {/* ── Section 4: Payment Method ────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Payment Method</CardTitle>
