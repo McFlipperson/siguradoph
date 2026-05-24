@@ -37,7 +37,7 @@ export async function getDashboardData() {
     monthlyRevenue,
   ] = await Promise.all([
     prisma.visit.count({
-      where: { clinicId, visitDate: { gte: todayStart, lte: todayEnd } },
+      where: { clinicId, createdAt: { gte: todayStart, lte: todayEnd } },
     }),
     prisma.invoice.aggregate({
       where: {
@@ -85,12 +85,13 @@ export async function getDashboardData() {
     }),
   ])
 
-  // All visits today — this is the real "who came in today" list regardless
-  // of when the patient was enrolled. Includes walk-ins and appointment patients.
+  // All visits created today. Using createdAt (wall-clock server time) instead
+  // of visitDate (a date string stored as UTC midnight) avoids timezone
+  // mismatch between how the date is saved and how todayStart/todayEnd are computed.
   const walkIns = await prisma.visit.findMany({
     where: {
       clinicId,
-      visitDate: { gte: todayStart, lte: todayEnd },
+      createdAt: { gte: todayStart, lte: todayEnd },
     },
     include: { patient: true },
     orderBy: { createdAt: 'asc' },
