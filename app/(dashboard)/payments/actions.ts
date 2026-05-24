@@ -291,11 +291,9 @@ export async function confirmPayment(
 
   // Dental is VAT-exempt: net = gross, VAT = 0
   const treatmentNet = treatmentGross
-  const treatmentVat = 0
 
   const cardPrice = Number(clinic.loyaltyCardPrice)
   const cardNet = data.purchaseNewLoyaltyCard ? cardPrice : 0
-  const cardVat = 0 // loyalty card sale — also VAT-exempt
 
   const totalNet = Math.round((treatmentNet + cardNet) * 100) / 100
   const totalVat = 0

@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveVisit } from '../actions'
-import { computeVat } from '@/lib/vat'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -80,7 +79,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const isCleaningCategory = resolvedServices.some((s) => s?.category === 'CLEANING')
 
   const gross = parseFloat(price) || 0
-  const vat = gross > 0 ? computeVat(gross) : null
 
   const canSubmit =
     visitDate &&

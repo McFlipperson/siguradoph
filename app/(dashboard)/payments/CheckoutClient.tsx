@@ -180,11 +180,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const loyaltyCardTotal = purchaseCard ? LOYALTY_CARD_PRICE : 0
   const combinedGross = discountedGross + loyaltyCardTotal
 
-  // VAT-exempt: net = gross, vat = 0
-  const totalNet = combinedGross
-  const totalVat = 0
-  // Legacy compat for email/receipt (non-VAT)
-  const discountAmount = loyaltyDiscountAmount
+  // VAT-exempt: all amounts are gross amounts
 
   // Printer reconnect
   const handleReconnectBluetooth = useCallback(async () => {
@@ -549,7 +545,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
       {hasScPwd && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Gov't Discount</CardTitle>
+            <CardTitle className="text-base">Gov&apos;t Discount</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between gap-3">
