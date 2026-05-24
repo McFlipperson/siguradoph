@@ -3,7 +3,7 @@
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
-import { startOfDay, endOfDay, startOfYear, endOfYear } from 'date-fns'
+import { startOfYear, endOfYear } from 'date-fns'
 
 async function getClinicId() {
   const supabase = createServerClient()
@@ -22,8 +22,13 @@ async function getClinicId() {
 export async function getDashboardData() {
   const { clinicId, clinic } = await getClinicId()
   const now = new Date()
-  const todayStart = startOfDay(now)
-  const todayEnd = endOfDay(now)
+  // Use PHT (UTC+8) to define "today" — Vercel servers run UTC, so
+  // startOfDay(now) would be UTC midnight, not Philippine midnight.
+  const PHT_OFFSET = 8 * 60 * 60 * 1000
+  const nowPHT = new Date(Date.now() + PHT_OFFSET)
+  const dateStrPHT = nowPHT.toISOString().split('T')[0]
+  const todayStart = new Date(`${dateStrPHT}T00:00:00+08:00`)
+  const todayEnd = new Date(`${dateStrPHT}T23:59:59.999+08:00`)
   const yearStart = startOfYear(now)
   const yearEnd = endOfYear(now)
 

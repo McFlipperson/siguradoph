@@ -181,6 +181,7 @@ export type ConfirmPaymentData = {
   paymentMethod: 'CASH' | 'GCASH'
   applyLoyaltyDiscount: boolean
   discountPct: number
+  discountCategory?: string   // which card benefit to decrement (replaces server-side lookup)
   loyaltyCardId: string | null
   purchaseNewLoyaltyCard: boolean
   notes?: string
@@ -243,12 +244,9 @@ export async function confirmPayment(
   const pad = clinic.orSeriesStart.length
   const orNumber = String(clinic.orSeriesCurrentNumber).padStart(pad, '0')
 
-  // Determine gross amount (CHECKUP = 0 if applying discount)
-  const serviceEntry = await prisma.serviceCatalog.findFirst({
-    where: { clinicId, name: visit.treatment },
-    select: { category: true },
-  })
-  const category = serviceEntry?.category ?? 'OTHER'
+  // Use the explicitly passed discount category (handles multi-procedure visits
+  // where visit.treatment is a comma-joined list that won't match catalog lookup)
+  const category = data.discountCategory ?? 'OTHER'
 
   let treatmentGross: number
   if (data.applyLoyaltyDiscount && category === 'CHECKUP') {

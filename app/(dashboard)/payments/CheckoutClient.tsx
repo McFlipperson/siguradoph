@@ -19,7 +19,6 @@ import { confirmPayment, type CheckoutVisitData, type CheckoutLoyaltyCard } from
 type Props = {
   visitData: CheckoutVisitData
   loyaltyCard: CheckoutLoyaltyCard | null
-  serviceCategory: string
 }
 
 type PrinterInfo = {
@@ -43,56 +42,61 @@ function fmtDate(d: Date | string): string {
   })
 }
 
-/** Returns the available discount % for a given service category + loyalty card. */
-function getAvailableDiscount(
-  category: string,
-  card: CheckoutLoyaltyCard | null
-): { pct: number; isCheckup: boolean } {
-  if (!card) return { pct: 0, isCheckup: false }
+type BenefitOption = {
+  key: string
+  category: string
+  pct: number
+  label: string
+  remaining: string
+  isCheckup: boolean
+}
 
-  switch (category) {
-    case 'CHECKUP':
-      return { pct: 100, isCheckup: true }
-    case 'CLEANING':
-      if (card.cleaningUses50 > 0) return { pct: 50, isCheckup: false }
-      if (card.cleaningUses25 > 0) return { pct: 25, isCheckup: false }
-      return { pct: 0, isCheckup: false }
-    case 'FILLING':
-      if (card.fillingUses50 > 0) return { pct: 50, isCheckup: false }
-      if (card.fillingUses25 > 0) return { pct: 25, isCheckup: false }
-      return { pct: 0, isCheckup: false }
-    case 'RCT':
-      return { pct: card.rctUses > 0 ? 10 : 0, isCheckup: false }
-    case 'DENTURES':
-      return { pct: card.dentureUses > 0 ? 15 : 0, isCheckup: false }
-    case 'BRACES':
-      return { pct: card.bracesUses > 0 ? 10 : 0, isCheckup: false }
-    case 'EXTRACTION':
-      return { pct: card.extractionUses > 0 ? 20 : 0, isCheckup: false }
-    case 'WISDOM_TOOTH':
-      return { pct: card.wisdomToothUses > 0 ? 10 : 0, isCheckup: false }
-    default:
-      return { pct: 0, isCheckup: false }
-  }
+/** Returns all redeemable loyalty benefits for a given card. */
+function getAvailableBenefits(card: CheckoutLoyaltyCard | null): BenefitOption[] {
+  if (!card) return []
+  const b: BenefitOption[] = []
+
+  b.push({ key: 'CHECKUP', category: 'CHECKUP', pct: 100, label: 'Free Check-up', remaining: '', isCheckup: true })
+
+  if (card.cleaningUses50 > 0)
+    b.push({ key: 'CLEANING_50', category: 'CLEANING', pct: 50, label: '50% off Cleaning', remaining: `${card.cleaningUses50} left`, isCheckup: false })
+  if (card.cleaningUses25 > 0)
+    b.push({ key: 'CLEANING_25', category: 'CLEANING', pct: 25, label: '25% off Cleaning', remaining: `${card.cleaningUses25} left`, isCheckup: false })
+  if (card.fillingUses50 > 0)
+    b.push({ key: 'FILLING_50', category: 'FILLING', pct: 50, label: '50% off Filling', remaining: `${card.fillingUses50} left`, isCheckup: false })
+  if (card.fillingUses25 > 0)
+    b.push({ key: 'FILLING_25', category: 'FILLING', pct: 25, label: '25% off Filling', remaining: `${card.fillingUses25} left`, isCheckup: false })
+  if (card.rctUses > 0)
+    b.push({ key: 'RCT', category: 'RCT', pct: 10, label: '10% off RCT', remaining: `${card.rctUses} left`, isCheckup: false })
+  if (card.dentureUses > 0)
+    b.push({ key: 'DENTURES', category: 'DENTURES', pct: 15, label: '15% off Dentures', remaining: `${card.dentureUses} left`, isCheckup: false })
+  if (card.bracesUses > 0)
+    b.push({ key: 'BRACES', category: 'BRACES', pct: 10, label: '10% off Braces', remaining: `${card.bracesUses} left`, isCheckup: false })
+  if (card.extractionUses > 0)
+    b.push({ key: 'EXTRACTION', category: 'EXTRACTION', pct: 20, label: '20% off Extraction', remaining: `${card.extractionUses} left`, isCheckup: false })
+  if (card.wisdomToothUses > 0)
+    b.push({ key: 'WISDOM_TOOTH', category: 'WISDOM_TOOTH', pct: 10, label: '10% off Wisdom Tooth', remaining: `${card.wisdomToothUses} left`, isCheckup: false })
+
+  return b
 }
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory }: Props) {
+export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const router = useRouter()
   const LOYALTY_CARD_PRICE = 500
 
-  // Discount logic
-  const { pct: availablePct, isCheckup } = getAvailableDiscount(serviceCategory, loyaltyCard)
-  const canApplyDiscount = availablePct > 0 && !!loyaltyCard
+  // Benefit picker
+  const availableBenefits = getAvailableBenefits(loyaltyCard)
+  const [selectedBenefitKey, setSelectedBenefitKey] = useState<string | null>(null)
+  const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
 
   // Pending loyalty card renewal: auto-enable purchase if no current card
   const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
   // Form state
-  const [applyDiscount, setApplyDiscount] = useState(canApplyDiscount)
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [notes, setNotes] = useState('')
   const [sendEmail, setSendEmail] = useState(!!visitData.patientEmail)
@@ -124,11 +128,13 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
 
   // Price calculations
   const gross = visitData.grossAmount
-  const discountedGross = (() => {
-    if (!applyDiscount) return gross
-    if (isCheckup) return 0
-    return Math.round(gross * (1 - availablePct / 100) * 100) / 100
-  })()
+  const isCheckup = selectedBenefit?.isCheckup ?? false
+  const availablePct = selectedBenefit?.pct ?? 0
+  const discountedGross = selectedBenefit
+    ? isCheckup
+      ? 0
+      : Math.round(gross * (1 - availablePct / 100) * 100) / 100
+    : gross
   const loyaltyCardTotal = purchaseCard ? LOYALTY_CARD_PRICE : 0
   const combinedGross = discountedGross + loyaltyCardTotal
 
@@ -138,10 +144,9 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
   const cardVat = purchaseCard ? Math.round((LOYALTY_CARD_PRICE - cardNet) * 100) / 100 : 0
   const totalNet = Math.round((treatmentNet + cardNet) * 100) / 100
   const totalVat = Math.round((treatmentVat + cardVat) * 100) / 100
-  const discountAmount =
-    applyDiscount && availablePct > 0
-      ? Math.round((gross - discountedGross) * 100) / 100
-      : 0
+  const discountAmount = selectedBenefit
+    ? Math.round((gross - discountedGross) * 100) / 100
+    : 0
 
   // Printer reconnect
   const handleReconnectBluetooth = useCallback(async () => {
@@ -190,8 +195,9 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
       const res = await confirmPayment({
         visitId: visitData.id,
         paymentMethod,
-        applyLoyaltyDiscount: applyDiscount,
-        discountPct: isCheckup ? 100 : availablePct,
+        applyLoyaltyDiscount: !!selectedBenefit,
+        discountPct: availablePct,
+        discountCategory: selectedBenefit?.category,
         loyaltyCardId: loyaltyCard?.id ?? null,
         purchaseNewLoyaltyCard: purchaseCard,
         notes: notes.trim() || undefined,
@@ -205,12 +211,9 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
       const emailAddress = sendEmail ? emailInput.trim() : ''
       if (emailAddress) {
         const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
-        const discountLabel =
-          applyDiscount && availablePct > 0
-            ? isCheckup
-              ? 'Loyalty Card — Free Check-up'
-              : `Loyalty Card ${availablePct}% off`
-            : undefined
+        const discountLabel = selectedBenefit
+          ? `Loyalty Card — ${selectedBenefit.label}`
+          : undefined
 
         fetch('/api/send-receipt', {
           method: 'POST',
@@ -256,7 +259,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
             vatAmount: totalVat,
             grossAmount: res.totalAmount,
             discountAmount,
-            discountLabel: applyDiscount && availablePct > 0 ? (isCheckup ? 'Free Check-up' : `${availablePct}% off`) : undefined,
+            discountLabel: selectedBenefit ? selectedBenefit.label : undefined,
             paymentMethod,
             notes: notes.trim() || undefined,
           })
@@ -437,25 +440,35 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
                 Card #{loyaltyCard.cardNumber} · expires {fmtDate(loyaltyCard.expiryDate)}
               </div>
 
-              {canApplyDiscount ? (
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="applyDiscount" className="flex-1 cursor-pointer">
-                    {isCheckup
-                      ? 'Apply free check-up (Loyalty Card)'
-                      : `Apply ${availablePct}% discount`}
-                  </Label>
-                  <Switch
-                    id="applyDiscount"
-                    checked={applyDiscount}
-                    onCheckedChange={setApplyDiscount}
-                    className="shrink-0"
-                  />
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Apply a benefit (tap to select, tap again to deselect)</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableBenefits.map((benefit) => {
+                    const selected = selectedBenefitKey === benefit.key
+                    return (
+                      <button
+                        key={benefit.key}
+                        type="button"
+                        onClick={() => setSelectedBenefitKey(selected ? null : benefit.key)}
+                        className={[
+                          'rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-colors',
+                          selected
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-foreground',
+                        ].join(' ')}
+                      >
+                        <p className="font-semibold leading-tight">{benefit.label}</p>
+                        {benefit.remaining && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{benefit.remaining}</p>
+                        )}
+                      </button>
+                    )
+                  })}
+                  {availableBenefits.length === 0 && (
+                    <p className="col-span-2 text-sm text-muted-foreground">No benefits available on this card.</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No discount available for this service category.
-                </p>
-              )}
+              </div>
             </>
           ) : (
             <div className="space-y-3">
@@ -492,9 +505,9 @@ export default function CheckoutClient({ visitData, loyaltyCard, serviceCategory
             <span>VAT (12%)</span>
             <span>₱{fmt(treatmentVat)}</span>
           </div>
-          {applyDiscount && discountAmount > 0 && (
+          {selectedBenefit && discountAmount > 0 && (
             <div className="flex justify-between text-red-600">
-              <span>Discount ({isCheckup ? 'Free Check-up' : `${availablePct}%`})</span>
+              <span>{selectedBenefit.label}</span>
               <span>-₱{fmt(discountAmount)}</span>
             </div>
           )}
