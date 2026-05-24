@@ -490,6 +490,21 @@ model LoyaltyCardTemplate {
   sortOrder     Int      @default(0)
 }
 
+// RA 10173 — user access audit log: who accessed or changed patient SPI and when
+model AuditLog {
+  id           String   @id @default(cuid())
+  clinicId     String
+  userEmail    String
+  action       String   // CREATE_PATIENT | VIEW_PATIENT | EDIT_PATIENT_MEDICAL | EDIT_PATIENT_SCPWD | CREATE_VISIT | CONFIRM_PAYMENT | VOID_INVOICE
+  resourceType String   // PATIENT | VISIT | INVOICE
+  resourceId   String
+  detail       String?  // human-readable summary for the audit report
+  createdAt    DateTime @default(now())
+
+  @@index([clinicId, createdAt])
+  @@index([resourceId])
+}
+
 // Immutable audit trail for every SC/PWD discount applied (RA 9994 / RA 10754 compliance)
 model ScPwdAuditLog {
   id             String   @id @default(cuid())

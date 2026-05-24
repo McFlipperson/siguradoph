@@ -4,6 +4,8 @@ import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getActor } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 async function getClinicId() {
   const supabase = createServerClient()
@@ -107,11 +109,21 @@ export async function getInvoice(id: string) {
 }
 
 export async function voidInvoice(id: string) {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
   const inv = await prisma.invoice.findFirst({ where: { id, clinicId } })
   if (!inv) throw new Error('Invoice not found')
   if (inv.status === 'VOID') throw new Error('Already voided')
   await prisma.invoice.update({ where: { id }, data: { status: 'VOID' } })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'VOID_INVOICE',
+    resourceType: 'INVOICE',
+    resourceId: id,
+    detail: `Voided OR #${inv.orNumber}`,
+  })
+
   revalidatePath(`/invoices/${id}`)
   revalidatePath('/invoices')
 }

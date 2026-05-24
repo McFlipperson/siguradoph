@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { getActor } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 async function getClinicId(): Promise<string> {
   const supabase = createServerClient()
@@ -85,7 +87,7 @@ export type SaveVisitData = {
 }
 
 export async function saveVisit(data: SaveVisitData): Promise<string> {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
 
   // Dental services are VAT-exempt (NIRC §109). Net = gross, VAT = 0.
   const gross = data.grossAmount
@@ -142,6 +144,15 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
       data: { status: 'COMPLETED' },
     })
   }
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'CREATE_VISIT',
+    resourceType: 'VISIT',
+    resourceId: visit.id,
+    detail: `Recorded visit for patient ${data.patientId}: ${data.treatment}`,
+  })
 
   revalidatePath(`/patients/${data.patientId}`)
   return visit.id

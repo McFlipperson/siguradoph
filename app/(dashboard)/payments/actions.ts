@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { getActor } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 async function getClinicId(): Promise<string> {
   const supabase = createServerClient()
@@ -218,7 +220,7 @@ export type ConfirmPaymentResult = {
 export async function confirmPayment(
   data: ConfirmPaymentData
 ): Promise<ConfirmPaymentResult> {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
 
   const visit = await prisma.visit.findUnique({
     where: { id: data.visitId },
@@ -431,8 +433,19 @@ export async function confirmPayment(
     }
   })
 
+  const invoiceId = (await prisma.invoice.findUnique({ where: { visitId: data.visitId } }))!.id
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'CONFIRM_PAYMENT',
+    resourceType: 'INVOICE',
+    resourceId: invoiceId,
+    detail: `Issued OR #${orNumber} — ₱${totalGross} via ${data.paymentMethod} for patient ${visit.patient.id}`,
+  })
+
   revalidatePath(`/patients/${visit.patient.id}`)
   revalidatePath('/invoices')
 
-  return { invoiceId: (await prisma.invoice.findUnique({ where: { visitId: data.visitId } }))!.id, orNumber, totalAmount: totalGross, newLoyaltyCardId }
+  return { invoiceId, orNumber, totalAmount: totalGross, newLoyaltyCardId }
 }

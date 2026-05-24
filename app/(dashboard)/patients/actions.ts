@@ -3,6 +3,8 @@
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
+import { getActor } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 async function getClinicId(): Promise<string> {
   const supabase = createServerClient()
@@ -75,7 +77,7 @@ export type CreatePatientData = {
 }
 
 export async function createPatient(data: CreatePatientData): Promise<string> {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
   const clinic = await prisma.clinic.findUnique({
     where: { id: clinicId },
     select: { enrollmentDate: true },
@@ -118,6 +120,15 @@ export async function createPatient(data: CreatePatientData): Promise<string> {
         },
       },
     },
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'CREATE_PATIENT',
+    resourceType: 'PATIENT',
+    resourceId: patient.id,
+    detail: `Created patient record: ${data.firstName} ${data.lastName}`,
   })
 
   return patient.id
@@ -185,7 +196,7 @@ export type FullPatient = {
 }
 
 export async function getPatient(patientId: string): Promise<FullPatient> {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
     include: {
@@ -211,6 +222,15 @@ export async function getPatient(patientId: string): Promise<FullPatient> {
     throw new Error('Patient not found')
   }
 
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'VIEW_PATIENT',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Viewed patient record: ${patient.firstName} ${patient.lastName}`,
+  })
+
   return {
     ...patient,
     visits: patient.visits.map((v) => ({
@@ -226,10 +246,10 @@ export async function updatePatientMedical(
   patientId: string,
   data: { medicalHistory: string; medications: string; allergies: string }
 ) {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { clinicId: true },
+    select: { clinicId: true, firstName: true, lastName: true },
   })
   if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
 
@@ -240,6 +260,15 @@ export async function updatePatientMedical(
       medications: data.medications,
       allergies: data.allergies,
     },
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'EDIT_PATIENT_MEDICAL',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Updated medical history for: ${patient.firstName} ${patient.lastName}`,
   })
 
   revalidatePath(`/patients/${patientId}`)
@@ -255,10 +284,10 @@ export async function updatePatientScPwd(
     pwdDisabilityType: string
   }
 ) {
-  const clinicId = await getClinicId()
+  const { clinicId, userEmail } = await getActor()
   const patient = await prisma.patient.findUnique({
     where: { id: patientId },
-    select: { clinicId: true },
+    select: { clinicId: true, firstName: true, lastName: true },
   })
   if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
 
@@ -271,6 +300,15 @@ export async function updatePatientScPwd(
       pwdIdNumber: data.isPwd && data.pwdIdNumber.trim() ? data.pwdIdNumber.trim() : null,
       pwdDisabilityType: data.isPwd && data.pwdDisabilityType ? data.pwdDisabilityType : null,
     },
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'EDIT_PATIENT_SCPWD',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Updated SC/PWD status for: ${patient.firstName} ${patient.lastName}`,
   })
 
   revalidatePath(`/patients/${patientId}`)
