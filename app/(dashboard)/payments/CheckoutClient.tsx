@@ -21,16 +21,6 @@ type Props = {
   loyaltyCard: CheckoutLoyaltyCard | null
 }
 
-const PWD_DISABILITY_TYPES: { value: string; label: string }[] = [
-  { value: 'VISUAL', label: 'Visual Impairment' },
-  { value: 'HEARING', label: 'Hearing Impairment' },
-  { value: 'SPEECH', label: 'Speech Impairment' },
-  { value: 'PHYSICAL', label: 'Physical Disability' },
-  { value: 'INTELLECTUAL', label: 'Intellectual Disability' },
-  { value: 'PSYCHOSOCIAL', label: 'Psychosocial Disability' },
-  { value: 'LEARNING', label: 'Learning Disability' },
-  { value: 'MENTAL', label: 'Mental Health Condition' },
-]
 
 type PrinterInfo = {
   type: 'bluetooth' | 'serial'

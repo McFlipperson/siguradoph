@@ -285,7 +285,7 @@ function ScPwdSection({ patient }: { patient: FullPatient }) {
           className="flex w-full items-center justify-between text-left"
         >
           <div className="flex items-center gap-2">
-            <CardTitle>Gov't Discount Status</CardTitle>
+            <CardTitle>Gov&apos;t Discount Status</CardTitle>
             {hasAny && (
               <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-xs">
                 {patient.isSeniorCitizen && patient.isPwd ? 'SC + PWD' : patient.isSeniorCitizen ? 'SC' : 'PWD'}
