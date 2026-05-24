@@ -27,6 +27,18 @@ const inputClass =
 const textareaClass =
   'w-full rounded-lg border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring resize-none'
 
+type ProcedureEntry = {
+  uid: string
+  serviceId: string | null   // null = Other
+  serviceName: string
+  diagnosis: string
+  toothNumber: string
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2)
+}
+
 export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSetup; appointmentId?: string }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -36,42 +48,93 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const minDate = new Date(setup.clinic.enrollmentDate).toISOString().split('T')[0]
 
   const [visitDate, setVisitDate] = useState(today)
-  const [diagnosis, setDiagnosis] = useState('')
-  const [toothNumber, setToothNumber] = useState('')
-  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
+  const [procedures, setProcedures] = useState<ProcedureEntry[]>([])
   const [price, setPrice] = useState('')
   const [isBracesReminder, setIsBracesReminder] = useState(false)
   const [reminderWeeks, setReminderWeeks] = useState(4)
   const [notes, setNotes] = useState('')
 
-  const selectedService = setup.serviceCatalog.find((s) => s.id === selectedServiceId) ?? null
-  const isBracesCategory = selectedService?.category === 'BRACES'
-  const isCleaningCategory = selectedService?.category === 'CLEANING'
+  // ── Procedure helpers ──────────────────────────────────────────────────────
+
+  function addProcedure(serviceId: string, serviceName: string) {
+    setProcedures((prev) => [
+      ...prev,
+      { uid: uid(), serviceId, serviceName, diagnosis: '', toothNumber: '' },
+    ])
+  }
+
+  function addOther() {
+    setProcedures((prev) => [
+      ...prev,
+      { uid: uid(), serviceId: null, serviceName: '', diagnosis: '', toothNumber: '' },
+    ])
+  }
+
+  function removeProcedure(id: string) {
+    setProcedures((prev) => prev.filter((p) => p.uid !== id))
+  }
+
+  function updateProcedure(id: string, field: keyof ProcedureEntry, value: string) {
+    setProcedures((prev) =>
+      prev.map((p) => (p.uid === id ? { ...p, [field]: value } : p))
+    )
+  }
+
+  // ── Derived state ──────────────────────────────────────────────────────────
+
+  const addedServiceIds = new Set(procedures.map((p) => p.serviceId).filter(Boolean))
+
+  const resolvedServices = procedures
+    .map((p) => setup.serviceCatalog.find((s) => s.id === p.serviceId))
+    .filter(Boolean)
+
+  const isBracesCategory = resolvedServices.some((s) => s?.category === 'BRACES')
+  const isCleaningCategory = resolvedServices.some((s) => s?.category === 'CLEANING')
 
   const gross = parseFloat(price) || 0
   const vat = gross > 0 ? computeVat(gross) : null
 
   const canSubmit =
     visitDate &&
-    diagnosis.trim() &&
-    selectedServiceId &&
+    procedures.length > 0 &&
+    procedures.every((p) => p.serviceName.trim() && p.diagnosis.trim()) &&
     gross > 0 &&
     notes.trim().length >= 1 &&
     !isPending
 
+  // ── Submit ─────────────────────────────────────────────────────────────────
+
   function submit(action: 'checkout' | 'save') {
-    if (!canSubmit || !selectedService) return
+    if (!canSubmit) return
     setPendingAction(action)
+
+    // Combine multiple procedures into the single Visit fields
+    const treatment = procedures.map((p) => p.serviceName).join(', ')
+    const diagnosis =
+      procedures.length === 1
+        ? procedures[0].diagnosis
+        : procedures.map((p) => `${p.serviceName}: ${p.diagnosis}`).join('; ')
+    const toothNumber = procedures
+      .map((p) => p.toothNumber.trim())
+      .filter(Boolean)
+      .join(', ') || undefined
+
+    // Braces reminder only makes sense if exactly one braces procedure
+    const bracesEntry = procedures.find((p) => {
+      const svc = setup.serviceCatalog.find((s) => s.id === p.serviceId)
+      return svc?.category === 'BRACES'
+    })
+
     startTransition(async () => {
       const visitId = await saveVisit({
         patientId: setup.patient.id,
         visitDate,
         diagnosis,
-        toothNumber: toothNumber.trim() || undefined,
-        treatment: selectedService.name,
+        toothNumber,
+        treatment,
         notes,
         grossAmount: gross,
-        isBracesReminder: isBracesCategory && isBracesReminder,
+        isBracesReminder: isBracesCategory && isBracesReminder && !!bracesEntry,
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
         isCleaningService: isCleaningCategory,
         appointmentId,
@@ -84,6 +147,8 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     })
   }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Patient header */}
@@ -94,12 +159,12 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </span>
       </div>
 
+      {/* Visit date */}
       <Card>
         <CardHeader>
           <CardTitle>Visit Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {/* Visit date */}
+        <CardContent>
           <div className="flex flex-col gap-1.5">
             <Label>Visit Date<span className="text-destructive ml-0.5">*</span></Label>
             <input
@@ -111,54 +176,31 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               min={minDate}
             />
           </div>
-
-          {/* Diagnosis */}
-          <div className="flex flex-col gap-1.5">
-            <Label>Diagnosis<span className="text-destructive ml-0.5">*</span></Label>
-            <input
-              className={inputClass}
-              value={diagnosis}
-              onChange={(e) => setDiagnosis(e.target.value)}
-              placeholder="e.g. Dental caries, tooth decay"
-            />
-          </div>
-
-          {/* Tooth number */}
-          <div className="flex flex-col gap-1.5">
-            <Label>Tooth Number</Label>
-            <input
-              className={inputClass}
-              value={toothNumber}
-              onChange={(e) => setToothNumber(e.target.value)}
-              placeholder="e.g. 16, 36, 11-21"
-            />
-            <p className="text-xs text-muted-foreground">Use standard tooth numbering</p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Procedure grid */}
+      {/* Procedures */}
       <Card>
         <CardHeader>
-          <CardTitle>Procedure<span className="text-destructive ml-0.5">*</span></CardTitle>
+          <CardTitle>
+            Procedures<span className="text-destructive ml-0.5">*</span>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          {/* Service picker grid */}
           {setup.serviceCatalog.length === 0 ? (
             <p className="text-sm text-muted-foreground">No services configured yet.</p>
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {setup.serviceCatalog.map((svc) => {
-                const selected = selectedServiceId === svc.id
+                const alreadyAdded = addedServiceIds.has(svc.id)
                 return (
                   <button
                     key={svc.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedServiceId(svc.id)
-                      if (svc.category !== 'BRACES') setIsBracesReminder(false)
-                    }}
+                    onClick={() => addProcedure(svc.id, svc.name)}
                     className={`min-h-[48px] rounded-lg border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
-                      selected
+                      alreadyAdded
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border bg-background text-foreground hover:bg-muted'
                     }`}
@@ -167,12 +209,84 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                   </button>
                 )
               })}
+              {/* Other */}
+              <button
+                type="button"
+                onClick={addOther}
+                className="min-h-[48px] rounded-lg border-2 border-dashed border-border bg-background px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-muted text-left transition-colors"
+              >
+                + Other
+              </button>
             </div>
+          )}
+
+          {/* Added procedure cards */}
+          {procedures.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {procedures.map((proc, idx) => (
+                <div
+                  key={proc.uid}
+                  className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex flex-col gap-3"
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between gap-2">
+                    {proc.serviceId ? (
+                      <span className="font-semibold text-sm text-primary">{proc.serviceName}</span>
+                    ) : (
+                      <input
+                        className="flex-1 min-h-[40px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-medium outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Procedure name…"
+                        value={proc.serviceName}
+                        onChange={(e) => updateProcedure(proc.uid, 'serviceName', e.target.value)}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeProcedure(proc.uid)}
+                      className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      aria-label="Remove procedure"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Diagnosis */}
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">
+                      Diagnosis<span className="text-destructive ml-0.5">*</span>
+                    </Label>
+                    <input
+                      className={inputClass}
+                      value={proc.diagnosis}
+                      onChange={(e) => updateProcedure(proc.uid, 'diagnosis', e.target.value)}
+                      placeholder="e.g. Dental caries, tooth decay"
+                    />
+                  </div>
+
+                  {/* Tooth number */}
+                  <div className="flex flex-col gap-1">
+                    <Label className="text-xs">Tooth Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <input
+                      className={inputClass}
+                      value={proc.toothNumber}
+                      onChange={(e) => updateProcedure(proc.uid, 'toothNumber', e.target.value)}
+                      placeholder="e.g. 16, 36"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {procedures.length === 0 && (
+            <p className="text-xs text-muted-foreground text-center py-1">
+              Tap a procedure above to add it
+            </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Price + VAT */}
+      {/* Price */}
       <Card>
         <CardHeader>
           <CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle>
@@ -228,7 +342,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               </button>
               <span className="text-sm font-medium">This is a braces alignment visit</span>
             </div>
-
             {isBracesReminder && (
               <div className="flex flex-col gap-1.5">
                 <Label>Reminder interval</Label>
@@ -283,9 +396,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
           disabled={!canSubmit}
           className="w-full min-h-[56px] text-base"
         >
-          {pendingAction === 'checkout' && isPending
-            ? 'Saving…'
-            : 'Save and Proceed to Checkout'}
+          {pendingAction === 'checkout' && isPending ? 'Saving…' : 'Save and Proceed to Checkout'}
         </Button>
         <Button
           variant="outline"
