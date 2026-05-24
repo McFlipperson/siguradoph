@@ -69,7 +69,7 @@ export async function sendReminderEmail(
 // ─── Receipt emails ───────────────────────────────────────────────────────────
 export async function sendReceiptEmail(data: ReceiptEmailData): Promise<void> {
   await getResend().emails.send({
-    from: 'receipts@siguradoph.app',
+    from: process.env.RESEND_FROM_EMAIL ?? 'noreply@sigurado.xyz',
     to: data.to,
     subject: `Official Receipt #${data.orNumber} — ${data.clinicName}`,
     html: buildReceiptHtml(data),
