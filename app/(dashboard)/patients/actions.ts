@@ -242,6 +242,48 @@ export async function getPatient(patientId: string): Promise<FullPatient> {
   }
 }
 
+export async function updatePatientInfo(
+  patientId: string,
+  data: {
+    firstName: string
+    lastName: string
+    dateOfBirth: string
+    phone: string
+    email: string
+    address: string
+  }
+) {
+  const { clinicId, userEmail } = await getActor()
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    select: { clinicId: true, firstName: true, lastName: true },
+  })
+  if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
+
+  await prisma.patient.update({
+    where: { id: patientId },
+    data: {
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      dateOfBirth: new Date(data.dateOfBirth),
+      phone: data.phone.trim(),
+      email: data.email.trim() || null,
+      address: data.address.trim(),
+    },
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'EDIT_PATIENT_MEDICAL',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Updated profile info for: ${data.firstName} ${data.lastName}`,
+  })
+
+  revalidatePath(`/patients/${patientId}`)
+}
+
 export async function updatePatientMedical(
   patientId: string,
   data: { medicalHistory: string; medications: string; allergies: string }

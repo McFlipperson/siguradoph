@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, issueLoyaltyCard, markBracesComplete, updatePatientScPwd } from '../actions'
+import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, markBracesComplete, updatePatientScPwd } from '../actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -516,48 +516,124 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
-export default function PatientProfile({ patient }: { patient: FullPatient }) {
+function ProfileHeader({ patient }: { patient: FullPatient }) {
+  const [editing, setEditing] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  const [firstName, setFirstName] = useState(patient.firstName)
+  const [lastName, setLastName] = useState(patient.lastName)
+  const [dob, setDob] = useState(
+    new Date(patient.dateOfBirth).toISOString().split('T')[0]
+  )
+  const [phone, setPhone] = useState(patient.phone)
+  const [email, setEmail] = useState(patient.email ?? '')
+  const [address, setAddress] = useState(patient.address ?? '')
+
   const age = computeAge(patient.dateOfBirth)
+  const inputClass = 'w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
+
+  function handleSave() {
+    if (!firstName.trim() || !lastName.trim() || !phone.trim() || !dob) return
+    startTransition(async () => {
+      await updatePatientInfo(patient.id, { firstName, lastName, dateOfBirth: dob, phone, email, address })
+      setEditing(false)
+      router.refresh()
+    })
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3 py-3">
+        {editing ? (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">First Name <span className="text-destructive">*</span></label>
+                <input className={inputClass} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">Last Name <span className="text-destructive">*</span></label>
+                <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Date of Birth <span className="text-destructive">*</span></label>
+              <input type="date" className={inputClass} value={dob} onChange={(e) => setDob(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Phone <span className="text-destructive">*</span></label>
+              <input className={inputClass} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="e.g. 09171234567" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Email <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <input className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="patient@email.com" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Address</label>
+              <input className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, Province" />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button onClick={handleSave} disabled={isPending || !firstName.trim() || !lastName.trim() || !phone.trim()} className="flex-1 min-h-[48px]">
+                {isPending ? 'Saving…' : 'Save'}
+              </Button>
+              <Button variant="outline" onClick={() => setEditing(false)} disabled={isPending} className="flex-1 min-h-[48px]">
+                Cancel
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl font-bold font-heading">
+                  {patient.firstName} {patient.lastName}
+                </h1>
+                {patient.isSeniorCitizen && (
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs shrink-0">SC</Badge>
+                )}
+                {patient.isPwd && (
+                  <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs shrink-0">PWD</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Age {age} &middot; DOB {formatDate(patient.dateOfBirth)}
+              </p>
+              {patient.address && (
+                <p className="text-xs text-muted-foreground mt-0.5">{patient.address}</p>
+              )}
+            </div>
+            <a href={`tel:${patient.phone}`} className="text-sm text-primary underline min-h-[44px] flex items-center">
+              {patient.phone}
+            </a>
+            {patient.email && (
+              <p className="text-sm text-muted-foreground">{patient.email}</p>
+            )}
+            <div className="flex gap-2">
+              <Link
+                href={`/visits/new?patientId=${patient.id}`}
+                className="flex-1 min-h-[56px] flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-medium text-sm"
+              >
+                + New Visit
+              </Link>
+              <Button variant="outline" onClick={() => setEditing(true)} className="min-h-[56px] px-4">
+                Edit
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function PatientProfile({ patient }: { patient: FullPatient }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Header */}
-      <Card>
-        <CardContent className="flex flex-col gap-3 py-2">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-bold font-heading">
-                {patient.firstName} {patient.lastName}
-              </h1>
-              {patient.isSeniorCitizen && (
-                <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs shrink-0">SC</Badge>
-              )}
-              {patient.isPwd && (
-                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs shrink-0">PWD</Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Age {age} &middot; DOB {formatDate(patient.dateOfBirth)}
-            </p>
-          </div>
-          <a
-            href={`tel:${patient.phone}`}
-            className="text-sm text-primary underline min-h-[48px] flex items-center"
-          >
-            {patient.phone}
-          </a>
-          {patient.email && (
-            <p className="text-sm text-muted-foreground">{patient.email}</p>
-          )}
-          <Link
-            href={`/visits/new?patientId=${patient.id}`}
-            className="w-full min-h-[56px] flex items-center justify-center rounded-lg bg-primary text-primary-foreground font-medium text-sm"
-          >
-            + New Visit
-          </Link>
-        </CardContent>
-      </Card>
+      <ProfileHeader patient={patient} />
 
       {/* Consent */}
       <Card>
