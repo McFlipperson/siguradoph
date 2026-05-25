@@ -203,6 +203,7 @@ model Visit {
   netAmount     Decimal
   vatAmount     Decimal
   intervalWeeks Int?     // braces only — weeks until next alignment
+  status        String   @default("ACTIVE") // ACTIVE | VOID
   createdAt     DateTime @default(now())
 
   invoice Invoice?

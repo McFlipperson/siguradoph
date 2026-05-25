@@ -160,3 +160,34 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
   revalidatePath(`/patients/${data.patientId}`)
   return visit.id
 }
+
+export async function voidVisit(visitId: string): Promise<void> {
+  const { clinicId, userEmail } = await getActor()
+
+  const visit = await prisma.visit.findUnique({
+    where: { id: visitId },
+    include: { invoice: { select: { id: true, orNumber: true, status: true } } },
+  })
+  if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
+  if (visit.status === 'VOID') throw new Error('Already voided')
+
+  await prisma.$transaction(async (tx) => {
+    await tx.visit.update({ where: { id: visitId }, data: { status: 'VOID' } })
+    // Also void the linked invoice if it hasn't been voided already
+    if (visit.invoice && visit.invoice.status !== 'VOID') {
+      await tx.invoice.update({ where: { id: visit.invoice.id }, data: { status: 'VOID' } })
+    }
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'VOID_INVOICE',
+    resourceType: 'VISIT',
+    resourceId: visitId,
+    detail: `Voided visit${visit.invoice ? ` and OR #${visit.invoice.orNumber}` : ''}: ${visit.treatment}`,
+  })
+
+  revalidatePath(`/patients/${visit.patientId}`)
+  revalidatePath('/invoices')
+}

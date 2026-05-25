@@ -173,7 +173,9 @@ export type FullPatient = {
     grossAmount: number
     netAmount: number
     vatAmount: number
+    status: string
     invoice: {
+      id: string
       orNumber: string
     } | null
   }>
@@ -207,7 +209,7 @@ export async function getPatient(patientId: string): Promise<FullPatient> {
         orderBy: { visitDate: 'desc' },
         include: {
           invoice: {
-            select: { orNumber: true },
+            select: { id: true, orNumber: true },
           },
         },
       },

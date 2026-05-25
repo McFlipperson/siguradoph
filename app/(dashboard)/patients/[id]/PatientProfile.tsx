@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, markBracesComplete, updatePatientScPwd } from '../actions'
+import { voidVisit } from '../../visits/actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -504,21 +505,42 @@ function BracesSection({ patient }: { patient: FullPatient }) {
 
 function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   const [expanded, setExpanded] = useState(false)
+  const [showVoidConfirm, setShowVoidConfirm] = useState(false)
+  const [voiding, setVoiding] = useState(false)
+  const router = useRouter()
+  const isVoid = visit.status === 'VOID'
+
+  async function handleVoid() {
+    setVoiding(true)
+    try {
+      await voidVisit(visit.id)
+      router.refresh()
+    } finally {
+      setVoiding(false)
+      setShowVoidConfirm(false)
+    }
+  }
 
   return (
-    <div
-      onClick={() => setExpanded((v) => !v)}
-      className="cursor-pointer rounded-xl bg-card ring-1 ring-foreground/10 overflow-hidden"
-    >
-      <div className="px-4 py-3 flex flex-col gap-1">
+    <div className={`rounded-xl bg-card ring-1 overflow-hidden ${isVoid ? 'ring-red-200 opacity-60' : 'ring-foreground/10'}`}>
+      {/* Header row — tap to expand */}
+      <div
+        onClick={() => !showVoidConfirm && setExpanded((v) => !v)}
+        className="cursor-pointer px-4 py-3 flex flex-col gap-1"
+      >
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-sm">{visit.treatment}</p>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-sm">{visit.treatment}</p>
+              {isVoid && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">VOID</span>
+              )}
+            </div>
             {visit.toothNumber && (
               <p className="text-xs text-muted-foreground">Tooth {visit.toothNumber}</p>
             )}
           </div>
-          <p className="text-sm font-medium whitespace-nowrap">
+          <p className={`text-sm font-medium whitespace-nowrap ${isVoid ? 'line-through text-muted-foreground' : ''}`}>
             ₱{formatMoney(visit.grossAmount)}
           </p>
         </div>
@@ -546,6 +568,42 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
           </div>
           {visit.invoice?.orNumber && (
             <p className="text-xs text-muted-foreground">OR #{visit.invoice.orNumber}</p>
+          )}
+
+          {/* Void action — only for active visits */}
+          {!isVoid && (
+            showVoidConfirm ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 space-y-3">
+                <p className="text-sm text-red-900 font-medium">
+                  Are you sure you want to void this visit{visit.invoice ? ` and OR #${visit.invoice.orNumber}` : ''}? This cannot be undone.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="min-h-[44px]"
+                    onClick={() => setShowVoidConfirm(false)}
+                    disabled={voiding}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="min-h-[44px] bg-red-600 hover:bg-red-700 text-white"
+                    onClick={handleVoid}
+                    disabled={voiding}
+                  >
+                    {voiding ? 'Voiding…' : 'Confirm Void'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full min-h-[44px] border-red-200 text-red-600 hover:bg-red-50 text-sm"
+                onClick={(e) => { e.stopPropagation(); setShowVoidConfirm(true) }}
+              >
+                Void Visit
+              </Button>
+            )
           )}
         </div>
       )}
