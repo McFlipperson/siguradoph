@@ -155,6 +155,7 @@ function MedicalSection({ patient }: { patient: FullPatient }) {
 
 function LoyaltySection({ patient }: { patient: FullPatient }) {
   const [isPending, startTransition] = useTransition()
+  const [showConfirm, setShowConfirm] = useState(false)
   const router = useRouter()
   const card = patient.loyaltyCards[0] ?? null
 
@@ -164,9 +165,13 @@ function LoyaltySection({ patient }: { patient: FullPatient }) {
     !isExpired &&
     LOYALTY_SERVICES.every((s) => card[s.key as CardKey] === 0)
 
+  const needsNew = !card || isExpired || allExhausted
+  const action = !card ? 'Issue' : 'Renew'
+
   function handleIssue() {
     startTransition(async () => {
       await issueLoyaltyCard(patient.id)
+      setShowConfirm(false)
       router.refresh()
     })
   }
@@ -178,11 +183,27 @@ function LoyaltySection({ patient }: { patient: FullPatient }) {
       </CardHeader>
       <CardContent>
         {!card ? (
-          <div className="flex flex-col items-center gap-3 py-2">
+          <div className="flex flex-col gap-3 py-2">
             <p className="text-sm text-muted-foreground">No loyalty card issued.</p>
-            <Button onClick={handleIssue} disabled={isPending} className="w-full min-h-[48px]">
-              {isPending ? 'Issuing…' : 'Issue Card (₱500)'}
-            </Button>
+            {showConfirm ? (
+              <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <p className="text-sm font-medium">
+                  Issue a loyalty card for {patient.firstName}? This will charge ₱500 and generate a receipt.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={isPending} className="min-h-[48px]">
+                    Cancel
+                  </Button>
+                  <Button onClick={handleIssue} disabled={isPending} className="min-h-[48px]">
+                    {isPending ? 'Issuing…' : 'Confirm ₱500'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={() => setShowConfirm(true)} className="w-full min-h-[48px]">
+                Issue Card (₱500)
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -224,10 +245,26 @@ function LoyaltySection({ patient }: { patient: FullPatient }) {
               </div>
             </div>
 
-            {(isExpired || allExhausted) && (
-              <Button onClick={handleIssue} disabled={isPending} className="w-full min-h-[48px]">
-                {isPending ? 'Renewing…' : 'Renew Card (₱500)'}
-              </Button>
+            {needsNew && (
+              showConfirm ? (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <p className="text-sm font-medium">
+                    {action} a loyalty card for {patient.firstName}? This will charge ₱500 and generate a receipt.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={isPending} className="min-h-[48px]">
+                      Cancel
+                    </Button>
+                    <Button onClick={handleIssue} disabled={isPending} className="min-h-[48px]">
+                      {isPending ? `${action}ing…` : 'Confirm ₱500'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="outline" onClick={() => setShowConfirm(true)} className="w-full min-h-[48px]">
+                  {action} Card (₱500)
+                </Button>
+              )
             )}
           </div>
         )}
