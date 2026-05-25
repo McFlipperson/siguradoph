@@ -94,11 +94,14 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
   const net = gross
   const vat = 0
 
+  // Interpret visitDate as PHT (UTC+8) — append offset so it's stored correctly in UTC
+  const visitDate = new Date(data.visitDate + ':00+08:00')
+
   const visit = await prisma.visit.create({
     data: {
       clinicId,
       patientId: data.patientId,
-      visitDate: new Date(data.visitDate),
+      visitDate,
       diagnosis: data.diagnosis,
       toothNumber: data.toothNumber || null,
       treatment: data.treatment,

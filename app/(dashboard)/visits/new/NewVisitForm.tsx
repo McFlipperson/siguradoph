@@ -44,10 +44,16 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const [isPending, startTransition] = useTransition()
   const [pendingAction, setPendingAction] = useState<'checkout' | 'save' | null>(null)
 
-  const today = new Date().toISOString().split('T')[0]
+  // Format current time as PHT (UTC+8) for the datetime-local input
+  function nowPHT(): string {
+    const now = new Date()
+    const pht = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+    return pht.toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
+  }
+  const todayPHT = nowPHT()
   const minDate = new Date(setup.clinic.enrollmentDate).toISOString().split('T')[0]
 
-  const [visitDate, setVisitDate] = useState(today)
+  const [visitDate, setVisitDate] = useState(todayPHT)
   const [procedures, setProcedures] = useState<ProcedureEntry[]>([])
   const [price, setPrice] = useState('')
   const [isBracesReminder, setIsBracesReminder] = useState(false)
@@ -142,13 +148,13 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         <CardHeader><CardTitle>Visit Details</CardTitle></CardHeader>
         <CardContent>
           <div className="flex flex-col gap-1.5">
-            <Label>Visit Date<span className="text-destructive ml-0.5">*</span></Label>
+            <Label>Visit Date &amp; Time<span className="text-destructive ml-0.5">*</span></Label>
             <input
-              type="date"
+              type="datetime-local"
               className={inputClass}
               value={visitDate}
               onChange={(e) => setVisitDate(e.target.value)}
-              max={today}
+              max={todayPHT}
               min={minDate}
             />
           </div>
