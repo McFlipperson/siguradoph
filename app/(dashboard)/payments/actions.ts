@@ -357,8 +357,37 @@ export async function confirmPayment(
       })
     }
 
+    // Create new loyalty card first (if purchased) so its ID is available for same-transaction benefit use
+    if (data.purchaseNewLoyaltyCard) {
+      const prefix = clinic.name
+        .slice(0, 3)
+        .toUpperCase()
+        .replace(/[^A-Z]/g, 'X')
+      const count = await tx.loyaltyCard.count({ where: { clinicId } })
+      const cardNumber = `${prefix}-${String(count + 1).padStart(4, '0')}`
+
+      const expiryDate = new Date()
+      expiryDate.setMonth(
+        expiryDate.getMonth() + clinic.loyaltyValidityMonths
+      )
+
+      const newCard = await tx.loyaltyCard.create({
+        data: {
+          clinicId,
+          patientId: visit.patient.id,
+          cardNumber,
+          expiryDate,
+        },
+      })
+      newLoyaltyCardId = newCard.id
+    }
+
+    // Resolve which card to record usage against:
+    // existing card passed in, OR the card just purchased in this same transaction
+    const effectiveLoyaltyCardId = data.loyaltyCardId ?? newLoyaltyCardId ?? null
+
     // LoyaltyCardUsage + decrement if discount applied
-    if (data.applyLoyaltyDiscount && data.loyaltyCardId && category !== 'CHECKUP') {
+    if (data.applyLoyaltyDiscount && effectiveLoyaltyCardId && category !== 'CHECKUP') {
       const fieldMap: Record<string, string> = {
         CLEANING_50: 'cleaningUses50',
         CLEANING_25: 'cleaningUses25',
@@ -391,45 +420,20 @@ export async function confirmPayment(
       if (fieldKey && fieldMap[fieldKey]) {
         const dbField = fieldMap[fieldKey]
         await tx.loyaltyCard.update({
-          where: { id: data.loyaltyCardId },
+          where: { id: effectiveLoyaltyCardId },
           data: { [dbField]: { decrement: 1 } },
         })
       }
 
       await tx.loyaltyCardUsage.create({
         data: {
-          loyaltyCardId: data.loyaltyCardId,
+          loyaltyCardId: effectiveLoyaltyCardId,
           serviceType: category,
           discountPct: data.discountPct,
           discountAmount,
           invoiceId: invoice.id,
         },
       })
-    }
-
-    // Create new loyalty card if purchased
-    if (data.purchaseNewLoyaltyCard) {
-      const prefix = clinic.name
-        .slice(0, 3)
-        .toUpperCase()
-        .replace(/[^A-Z]/g, 'X')
-      const count = await tx.loyaltyCard.count({ where: { clinicId } })
-      const cardNumber = `${prefix}-${String(count + 1).padStart(4, '0')}`
-
-      const expiryDate = new Date()
-      expiryDate.setMonth(
-        expiryDate.getMonth() + clinic.loyaltyValidityMonths
-      )
-
-      const newCard = await tx.loyaltyCard.create({
-        data: {
-          clinicId,
-          patientId: visit.patient.id,
-          cardNumber,
-          expiryDate,
-        },
-      })
-      newLoyaltyCardId = newCard.id
     }
   })
 

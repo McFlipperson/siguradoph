@@ -89,8 +89,26 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const router = useRouter()
   const LOYALTY_CARD_PRICE = 500
 
-  // Benefit picker
-  const availableBenefits = getAvailableBenefits(loyaltyCard)
+  // When purchasing a new card, show a synthetic card with full default benefits
+  // so the patient can use one immediately in the same transaction.
+  const syntheticNewCard: CheckoutLoyaltyCard | null = !loyaltyCard ? {
+    id: 'new',
+    cardNumber: 'New Card',
+    expiryDate: new Date(),
+    isActive: true,
+    cleaningUses50: 2,
+    cleaningUses25: 2,
+    fillingUses50: 2,
+    fillingUses25: 2,
+    rctUses: 2,
+    dentureUses: 2,
+    bracesUses: 2,
+    wisdomToothUses: 2,
+    extractionUses: 8,
+  } : null
+
+  const effectiveCard = loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
+  const availableBenefits = getAvailableBenefits(effectiveCard)
   const [selectedBenefitKey, setSelectedBenefitKey] = useState<string | null>(null)
   const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
 
@@ -115,6 +133,12 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
 
   // Form state
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
+
+  function handlePurchaseCardToggle(val: boolean) {
+    setPurchaseCard(val)
+    // Clear any benefit selected from the synthetic new card if toggling off
+    if (!val && !loyaltyCard) setSelectedBenefitKey(null)
+  }
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | null>(null)
   const [loading, setLoading] = useState(false)
@@ -433,10 +457,12 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
               Loyalty card renewal pending for this patient.
             </div>
           )}
-          {loyaltyCard ? (
+          {effectiveCard ? (
             <>
               <div className="text-sm text-muted-foreground">
-                Card #{loyaltyCard.cardNumber} · expires {fmtDate(loyaltyCard.expiryDate)}
+                {effectiveCard.id === 'new'
+                  ? 'New card — select a benefit to use immediately'
+                  : `Card #${effectiveCard.cardNumber} · expires ${fmtDate(effectiveCard.expiryDate)}`}
               </div>
 
               <div>
@@ -481,7 +507,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                 <Switch
                   id="purchaseCard"
                   checked={purchaseCard}
-                  onCheckedChange={setPurchaseCard}
+                  onCheckedChange={handlePurchaseCardToggle}
                   className="shrink-0"
                 />
               </div>
