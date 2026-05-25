@@ -89,29 +89,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const router = useRouter()
   const LOYALTY_CARD_PRICE = 500
 
-  // When purchasing a new card, show a synthetic card with full default benefits
-  // so the patient can use one immediately in the same transaction.
-  const syntheticNewCard: CheckoutLoyaltyCard | null = !loyaltyCard ? {
-    id: 'new',
-    cardNumber: 'New Card',
-    expiryDate: new Date(),
-    isActive: true,
-    cleaningUses50: 2,
-    cleaningUses25: 2,
-    fillingUses50: 2,
-    fillingUses25: 2,
-    rctUses: 2,
-    dentureUses: 2,
-    bracesUses: 2,
-    wisdomToothUses: 2,
-    extractionUses: 8,
-  } : null
-
-  const effectiveCard = loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
-  const availableBenefits = getAvailableBenefits(effectiveCard)
-  const [selectedBenefitKey, setSelectedBenefitKey] = useState<string | null>(null)
-  const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
-
   // Pending loyalty card renewal: auto-enable purchase if no current card
   const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
@@ -131,14 +108,37 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     setScPwdIdInput(t === 'SC' ? profileScId : profilePwdId)
   }
 
-  // Form state
+  // Form state — purchaseCard must be declared before effectiveCard below
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
+  const [selectedBenefitKey, setSelectedBenefitKey] = useState<string | null>(null)
 
   function handlePurchaseCardToggle(val: boolean) {
     setPurchaseCard(val)
     // Clear any benefit selected from the synthetic new card if toggling off
     if (!val && !loyaltyCard) setSelectedBenefitKey(null)
   }
+
+  // When purchasing a new card and no existing card, synthesise full default benefits
+  // so the patient can use one immediately in the same transaction.
+  const syntheticNewCard: CheckoutLoyaltyCard | null = !loyaltyCard ? {
+    id: 'new',
+    cardNumber: 'New Card',
+    expiryDate: new Date(),
+    isActive: true,
+    cleaningUses50: 2,
+    cleaningUses25: 2,
+    fillingUses50: 2,
+    fillingUses25: 2,
+    rctUses: 2,
+    dentureUses: 2,
+    bracesUses: 2,
+    wisdomToothUses: 2,
+    extractionUses: 8,
+  } : null
+
+  const effectiveCard = loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
+  const availableBenefits = getAvailableBenefits(effectiveCard)
+  const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | null>(null)
   const [loading, setLoading] = useState(false)
