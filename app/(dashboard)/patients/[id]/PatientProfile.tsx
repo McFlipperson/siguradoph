@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, markBracesComplete, updatePatientScPwd } from '../actions'
+import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, markBracesComplete, updatePatientScPwd, deletePatient } from '../actions'
 import { voidVisit } from '../../visits/actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
@@ -611,6 +611,82 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
+function DeletePatientSection({ patient }: { patient: FullPatient }) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleDelete() {
+    if (confirmText !== 'DELETE') return
+    setDeleting(true)
+    setError(null)
+    try {
+      await deletePatient(patient.id)
+      router.push('/patients')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete patient')
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col gap-3">
+      <div>
+        <p className="text-sm font-semibold text-red-800">Danger Zone</p>
+        <p className="text-xs text-red-700 mt-0.5">
+          Permanently deletes this patient and all their records, visits, invoices, and loyalty card data. This cannot be undone.
+        </p>
+      </div>
+
+      {!open ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="self-start text-sm font-semibold text-red-700 underline underline-offset-2"
+        >
+          Delete this patient…
+        </button>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium text-red-800">
+            Type <strong>DELETE</strong> to confirm permanent deletion of{' '}
+            <strong>{patient.firstName} {patient.lastName}</strong>
+          </p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Type DELETE to confirm"
+            className="min-h-[48px] rounded-lg border border-red-300 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400 w-full"
+            autoCapitalize="characters"
+          />
+          {error && <p className="text-xs text-red-700">{error}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => { setOpen(false); setConfirmText(''); setError(null) }}
+              disabled={deleting}
+              className="min-h-[48px] rounded-xl border border-red-200 bg-white text-sm font-semibold text-red-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={confirmText !== 'DELETE' || deleting}
+              className="min-h-[48px] rounded-xl bg-red-600 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {deleting ? 'Deleting…' : 'Delete Forever'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ProfileHeader({ patient }: { patient: FullPatient }) {
   const [editing, setEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -789,6 +865,9 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
           patient.visits.map((v) => <VisitCard key={v.id} visit={v} />)
         )}
       </div>
+
+      {/* Danger Zone */}
+      <DeletePatientSection patient={patient} />
     </div>
   )
 }

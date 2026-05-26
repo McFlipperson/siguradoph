@@ -517,3 +517,78 @@ export async function createVisit(data: CreateVisitData): Promise<string> {
   revalidatePath(`/patients/${data.patientId}`)
   return visit.id
 }
+
+// ---------------------------------------------------------------------------
+// Delete patient — permanently removes all associated records
+// ---------------------------------------------------------------------------
+
+export async function deletePatient(patientId: string): Promise<void> {
+  const { clinicId, userEmail } = await getActor()
+
+  const patient = await prisma.patient.findUnique({
+    where: { id: patientId },
+    select: { clinicId: true, firstName: true, middleName: true, lastName: true },
+  })
+  if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
+
+  const fullName = [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(' ')
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete LoyaltyCardUsage (references LoyaltyCard + Invoice)
+    const cards = await tx.loyaltyCard.findMany({
+      where: { patientId },
+      select: { id: true },
+    })
+    const cardIds = cards.map((c) => c.id)
+    if (cardIds.length > 0) {
+      await tx.loyaltyCardUsage.deleteMany({ where: { loyaltyCardId: { in: cardIds } } })
+    }
+
+    // 2. Delete ScPwdAuditLog (references Patient + Invoice)
+    await tx.scPwdAuditLog.deleteMany({ where: { patientId } })
+
+    // 3. Delete Invoices linked to this patient's visits
+    const visits = await tx.visit.findMany({
+      where: { patientId },
+      select: { id: true },
+    })
+    const visitIds = visits.map((v) => v.id)
+    if (visitIds.length > 0) {
+      await tx.invoice.deleteMany({ where: { visitId: { in: visitIds } } })
+    }
+
+    // 4. Delete standalone invoices linked to loyalty cards (e.g. card purchase receipt)
+    if (cardIds.length > 0) {
+      await tx.invoice.deleteMany({ where: { loyaltyCardId: { in: cardIds } } })
+    }
+
+    // 5. Delete LoyaltyCards
+    await tx.loyaltyCard.deleteMany({ where: { patientId } })
+
+    // 6. Delete Visits
+    await tx.visit.deleteMany({ where: { patientId } })
+
+    // 7. Delete ConsentRecords
+    await tx.consentRecord.deleteMany({ where: { patientId } })
+
+    // 8. Delete Appointments
+    await tx.appointment.deleteMany({ where: { patientId } })
+
+    // 9. Delete ScheduledReminders
+    await tx.scheduledReminder.deleteMany({ where: { patientId } })
+
+    // 10. Delete the Patient
+    await tx.patient.delete({ where: { id: patientId } })
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'DELETE_PATIENT',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Permanently deleted patient record: ${fullName}`,
+  })
+
+  revalidatePath('/patients')
+}

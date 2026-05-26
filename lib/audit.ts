@@ -8,6 +8,7 @@ export type AuditAction =
   | 'CREATE_VISIT'
   | 'CONFIRM_PAYMENT'
   | 'VOID_INVOICE'
+  | 'DELETE_PATIENT'
 
 export type AuditResourceType = 'PATIENT' | 'VISIT' | 'INVOICE'
 
