@@ -5,6 +5,9 @@ import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
 import { getActor } from '@/lib/auth'
 import { writeAudit } from '@/lib/audit'
+import { type CardTemplateService, SERVICE_CARD_FIELDS, SERVICE_LABELS, DEFAULT_TEMPLATE_ROWS } from '@/lib/loyaltyConfig'
+
+export type { CardTemplateService }
 
 async function getClinicId(): Promise<string> {
   const supabase = createServerClient()
@@ -76,6 +79,7 @@ export type CheckoutData = {
   visitData: CheckoutVisitData
   loyaltyCard: CheckoutLoyaltyCard | null
   serviceCategory: string
+  cardTemplate: CardTemplateService[]
 }
 
 export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
@@ -165,6 +169,32 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
       }
     : null
 
+  // Load (or seed) the clinic's card template so checkout uses configured benefits
+  let templateRows = await prisma.loyaltyCardTemplate.findMany({
+    where: { clinicId, isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+  if (templateRows.length === 0) {
+    await prisma.loyaltyCardTemplate.createMany({
+      data: DEFAULT_TEMPLATE_ROWS.map((r) => ({ ...r, clinicId })),
+    })
+    templateRows = await prisma.loyaltyCardTemplate.findMany({
+      where: { clinicId, isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    })
+  }
+  const cardTemplate: CardTemplateService[] = templateRows.map((r) => ({
+    id: r.id,
+    serviceKey: r.serviceName,
+    label: SERVICE_LABELS[r.serviceName] ?? r.serviceName,
+    isFree: r.isFree,
+    tier1Uses: r.tier1Uses,
+    tier1Discount: Number(r.tier1Discount),
+    hasTier2: r.tier2Uses !== null,
+    tier2Uses: r.tier2Uses ?? 0,
+    tier2Discount: Number(r.tier2Discount ?? 0),
+  }))
+
   return {
     visitData: {
       id: visit.id,
@@ -201,6 +231,7 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
     },
     loyaltyCard,
     serviceCategory: category,
+    cardTemplate,
   }
 }
 
@@ -451,12 +482,29 @@ export async function confirmPayment(
         expiryDate.getMonth() + clinic.loyaltyValidityMonths
       )
 
+      // Build initial uses from the clinic's card template (fall back to schema defaults)
+      const tplRows = await tx.loyaltyCardTemplate.findMany({
+        where: { clinicId, isActive: true },
+        orderBy: { sortOrder: 'asc' },
+      })
+      const cardUses: Record<string, number> = {}
+      for (const tpl of tplRows) {
+        if (tpl.isFree) continue
+        const fields = SERVICE_CARD_FIELDS[tpl.serviceName]
+        if (!fields) continue
+        cardUses[fields.t1Field] = tpl.tier1Uses
+        if (fields.t2Field && tpl.tier2Uses !== null) {
+          cardUses[fields.t2Field] = tpl.tier2Uses
+        }
+      }
+
       const newCard = await tx.loyaltyCard.create({
         data: {
           clinicId,
           patientId: visit.patient.id,
           cardNumber,
           expiryDate,
+          ...cardUses,
         },
       })
       newLoyaltyCardId = newCard.id

@@ -31,6 +31,7 @@ export default async function PaymentsPage({
       <CheckoutClient
         visitData={data.visitData}
         loyaltyCard={data.loyaltyCard}
+        cardTemplate={data.cardTemplate}
       />
     </div>
   )

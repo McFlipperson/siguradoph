@@ -4,6 +4,9 @@ import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { type CardTemplateService, SERVICE_LABELS, DEFAULT_TEMPLATE_ROWS } from '@/lib/loyaltyConfig'
+
+export type { CardTemplateService }
 
 async function getClinicId() {
   const supabase = createServerClient()
@@ -181,5 +184,66 @@ export async function updateLoyaltyCard(
       expiryDate: new Date(data.expiryDate),
     },
   })
+  revalidatePath('/loyalty')
+}
+
+// ---------------------------------------------------------------------------
+// Loyalty card template (benefit configuration per clinic)
+// ---------------------------------------------------------------------------
+
+async function seedTemplateIfEmpty(clinicId: string) {
+  const count = await prisma.loyaltyCardTemplate.count({ where: { clinicId } })
+  if (count > 0) return
+  await prisma.loyaltyCardTemplate.createMany({
+    data: DEFAULT_TEMPLATE_ROWS.map((r) => ({ ...r, clinicId })),
+  })
+}
+
+export async function getLoyaltyCardTemplate(): Promise<CardTemplateService[]> {
+  const clinicId = await getClinicId()
+  await seedTemplateIfEmpty(clinicId)
+
+  const rows = await prisma.loyaltyCardTemplate.findMany({
+    where: { clinicId, isActive: true },
+    orderBy: { sortOrder: 'asc' },
+  })
+
+  return rows.map((r) => ({
+    id: r.id,
+    serviceKey: r.serviceName,
+    label: SERVICE_LABELS[r.serviceName] ?? r.serviceName,
+    isFree: r.isFree,
+    tier1Uses: r.tier1Uses,
+    tier1Discount: Number(r.tier1Discount),
+    hasTier2: r.tier2Uses !== null,
+    tier2Uses: r.tier2Uses ?? 0,
+    tier2Discount: Number(r.tier2Discount ?? 0),
+  }))
+}
+
+export async function updateLoyaltyCardTemplate(
+  rows: Array<{
+    id: string
+    tier1Uses: number
+    tier1Discount: number
+    tier2Uses: number | null
+    tier2Discount: number | null
+  }>
+): Promise<void> {
+  const clinicId = await getClinicId()
+
+  await Promise.all(
+    rows.map((r) =>
+      prisma.loyaltyCardTemplate.updateMany({
+        where: { id: r.id, clinicId },
+        data: {
+          tier1Uses: Math.max(0, r.tier1Uses),
+          tier1Discount: Math.min(100, Math.max(0, r.tier1Discount)),
+          tier2Uses: r.tier2Uses !== null ? Math.max(0, r.tier2Uses) : null,
+          tier2Discount: r.tier2Discount !== null ? Math.min(100, Math.max(0, r.tier2Discount)) : null,
+        },
+      })
+    )
+  )
   revalidatePath('/loyalty')
 }

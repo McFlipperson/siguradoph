@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { setPendingLoyaltyCard, updateClinicLoyaltySettings, updateLoyaltyCard } from './actions'
+import { setPendingLoyaltyCard, updateClinicLoyaltySettings, updateLoyaltyCard, updateLoyaltyCardTemplate, type CardTemplateService } from './actions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -58,6 +58,7 @@ type ClinicSettings = {
 type Props = {
   cards: LoyaltyCard[]
   settings: ClinicSettings
+  template: CardTemplateService[]
 }
 
 type FilterChip = 'ALL' | 'ACTIVE' | 'EXPIRED' | 'EXHAUSTED'
@@ -96,12 +97,42 @@ const USE_FIELDS: { key: keyof CardUses; label: string }[] = [
 // Settings section
 // ---------------------------------------------------------------------------
 
-function SettingsSection({ settings }: { settings: ClinicSettings }) {
+function SettingsSection({ settings, template }: { settings: ClinicSettings; template: CardTemplateService[] }) {
   const [editing, setEditing] = useState(false)
+
+  // General settings state
   const [enabled, setEnabled] = useState(settings.loyaltyCardEnabled)
   const [price, setPrice] = useState(String(settings.loyaltyCardPrice))
   const [months, setMonths] = useState(String(settings.loyaltyValidityMonths))
+
+  // Per-service editable state — clone from template
+  type EditRow = {
+    id: string
+    label: string
+    isFree: boolean
+    hasTier2: boolean
+    tier1Uses: string
+    tier1Discount: string
+    tier2Uses: string
+    tier2Discount: string
+  }
+  const [rows, setRows] = useState<EditRow[]>(
+    template.map((s) => ({
+      id: s.id,
+      label: s.label,
+      isFree: s.isFree,
+      hasTier2: s.hasTier2,
+      tier1Uses: String(s.tier1Uses),
+      tier1Discount: String(s.tier1Discount),
+      tier2Uses: String(s.tier2Uses),
+      tier2Discount: String(s.tier2Discount),
+    }))
+  )
   const [saving, setSaving] = useState(false)
+
+  function patchRow(id: string, patch: Partial<EditRow>) {
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+  }
 
   async function handleSave() {
     const priceNum = parseFloat(price)
@@ -109,11 +140,18 @@ function SettingsSection({ settings }: { settings: ClinicSettings }) {
     if (!priceNum || priceNum <= 0 || !monthsNum || monthsNum <= 0) return
     setSaving(true)
     try {
-      await updateClinicLoyaltySettings({
-        loyaltyCardEnabled: enabled,
-        loyaltyCardPrice: priceNum,
-        loyaltyValidityMonths: monthsNum,
-      })
+      await Promise.all([
+        updateClinicLoyaltySettings({ loyaltyCardEnabled: enabled, loyaltyCardPrice: priceNum, loyaltyValidityMonths: monthsNum }),
+        updateLoyaltyCardTemplate(
+          rows.filter((r) => !r.isFree).map((r) => ({
+            id: r.id,
+            tier1Uses: parseInt(r.tier1Uses) || 0,
+            tier1Discount: parseFloat(r.tier1Discount) || 0,
+            tier2Uses: r.hasTier2 ? (parseInt(r.tier2Uses) || 0) : null,
+            tier2Discount: r.hasTier2 ? (parseFloat(r.tier2Discount) || 0) : null,
+          }))
+        ),
+      ])
       toast.success('Settings saved')
       setEditing(false)
     } catch {
@@ -127,8 +165,15 @@ function SettingsSection({ settings }: { settings: ClinicSettings }) {
     setEnabled(settings.loyaltyCardEnabled)
     setPrice(String(settings.loyaltyCardPrice))
     setMonths(String(settings.loyaltyValidityMonths))
+    setRows(template.map((s) => ({
+      id: s.id, label: s.label, isFree: s.isFree, hasTier2: s.hasTier2,
+      tier1Uses: String(s.tier1Uses), tier1Discount: String(s.tier1Discount),
+      tier2Uses: String(s.tier2Uses), tier2Discount: String(s.tier2Discount),
+    })))
     setEditing(false)
   }
+
+  const inputClass = 'min-h-[44px] rounded-lg border border-input bg-background px-3 py-2 text-sm w-full'
 
   return (
     <Card>
@@ -136,71 +181,136 @@ function SettingsSection({ settings }: { settings: ClinicSettings }) {
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Card Settings</p>
           {!editing && (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="text-xs text-primary underline underline-offset-2"
-            >
+            <button type="button" onClick={() => setEditing(true)} className="text-xs text-primary underline underline-offset-2">
               Edit
             </button>
           )}
         </div>
 
         {editing ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="loyaltyEnabled" className="text-sm flex-1">Loyalty cards enabled</Label>
-              <Switch id="loyaltyEnabled" checked={enabled} onCheckedChange={setEnabled} />
+          <div className="space-y-5">
+            {/* General */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">General</p>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="loyaltyEnabled" className="text-sm flex-1">Loyalty cards enabled</Label>
+                <Switch id="loyaltyEnabled" checked={enabled} onCheckedChange={setEnabled} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Card price (₱)</Label>
+                  <input type="number" inputMode="decimal" min={1} value={price} onChange={(e) => setPrice(e.target.value)} className={inputClass} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Valid for (months)</Label>
+                  <input type="number" inputMode="numeric" min={1} value={months} onChange={(e) => setMonths(e.target.value)} className={inputClass} />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Card price (₱)</Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                min={1}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className="min-h-[48px]"
-              />
-            </div>
+            {/* Per-service benefits */}
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Benefits on each new card</p>
 
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Card validity (months)</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={months}
-                onChange={(e) => setMonths(e.target.value)}
-                className="min-h-[48px]"
-              />
+              {rows.map((row) => (
+                <div key={row.id} className="rounded-xl border border-border p-3 space-y-2">
+                  <p className="text-sm font-semibold">{row.label}</p>
+
+                  {row.isFree ? (
+                    <p className="text-xs text-muted-foreground">Unlimited — always free for cardholders</p>
+                  ) : (
+                    <>
+                      {/* Tier 1 */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">{row.hasTier2 ? 'Tier 1 — uses' : 'Uses'}</Label>
+                          <input
+                            type="number" inputMode="numeric" min={0}
+                            value={row.tier1Uses}
+                            onChange={(e) => patchRow(row.id, { tier1Uses: e.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">{row.hasTier2 ? 'Tier 1 — discount %' : 'Discount %'}</Label>
+                          <input
+                            type="number" inputMode="decimal" min={0} max={100}
+                            value={row.tier1Discount}
+                            onChange={(e) => patchRow(row.id, { tier1Discount: e.target.value })}
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tier 2 */}
+                      {row.hasTier2 && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Tier 2 — uses</Label>
+                            <input
+                              type="number" inputMode="numeric" min={0}
+                              value={row.tier2Uses}
+                              onChange={(e) => patchRow(row.id, { tier2Uses: e.target.value })}
+                              className={inputClass}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Tier 2 — discount %</Label>
+                            <input
+                              type="number" inputMode="decimal" min={0} max={100}
+                              value={row.tier2Discount}
+                              onChange={(e) => patchRow(row.id, { tier2Discount: e.target.value })}
+                              className={inputClass}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="min-h-[48px]" onClick={handleCancel} disabled={saving}>
-                Cancel
-              </Button>
-              <Button className="min-h-[48px]" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : 'Save'}
-              </Button>
+              <Button variant="outline" className="min-h-[48px]" onClick={handleCancel} disabled={saving}>Cancel</Button>
+              <Button className="min-h-[48px]" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save All'}</Button>
             </div>
           </div>
         ) : (
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Status</span>
-              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${settings.loyaltyCardEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
-                {settings.loyaltyCardEnabled ? 'Enabled' : 'Disabled'}
-              </span>
+          <div className="space-y-3">
+            {/* General summary */}
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${settings.loyaltyCardEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                  {settings.loyaltyCardEnabled ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Card price</span>
+                <span className="font-medium">₱{fmt(settings.loyaltyCardPrice)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Card validity</span>
+                <span className="font-medium">{settings.loyaltyValidityMonths} months</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Card price</span>
-              <span className="font-medium">₱{fmt(settings.loyaltyCardPrice)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Card validity</span>
-              <span className="font-medium">{settings.loyaltyValidityMonths} months</span>
+
+            {/* Benefits summary */}
+            <div className="border-t pt-3 space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Benefits per card</p>
+              {template.map((svc) => (
+                <div key={svc.id} className="flex items-baseline justify-between text-sm">
+                  <span className="text-muted-foreground">{svc.label}</span>
+                  <span className="font-medium text-right">
+                    {svc.isFree
+                      ? 'Free (unlimited)'
+                      : svc.hasTier2
+                        ? `${svc.tier1Uses}× ${svc.tier1Discount}% + ${svc.tier2Uses}× ${svc.tier2Discount}%`
+                        : `${svc.tier1Uses}× ${svc.tier1Discount}%`}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -414,7 +524,7 @@ function CardDetail({
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function LoyaltyClient({ cards, settings }: Props) {
+export default function LoyaltyClient({ cards, settings, template }: Props) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterChip>('ALL')
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -461,7 +571,7 @@ export default function LoyaltyClient({ cards, settings }: Props) {
     <div className="space-y-4">
 
       {/* ── Clinic settings ── */}
-      <SettingsSection settings={settings} />
+      <SettingsSection settings={settings} template={template} />
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-3 gap-3">

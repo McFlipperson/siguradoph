@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type CheckoutLoyaltyCard, type FamilyCardResult, type LoyaltyBenefitApplication } from './actions'
+import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type CheckoutLoyaltyCard, type FamilyCardResult, type LoyaltyBenefitApplication, type CardTemplateService } from './actions'
+import { SERVICE_CARD_FIELDS } from '@/lib/loyaltyConfig'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,6 +20,7 @@ import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type 
 type Props = {
   visitData: CheckoutVisitData
   loyaltyCard: CheckoutLoyaltyCard | null
+  cardTemplate: CardTemplateService[]
 }
 
 type PrinterInfo = {
@@ -52,55 +54,90 @@ type BenefitOption = {
 }
 
 /**
- * Returns redeemable loyalty benefits for a card.
- * Pass `forCategory` to only get benefits relevant to a specific procedure category.
+ * Builds benefit options from the clinic's card template.
+ * Only shows benefits with remaining uses > 0.
+ * Pass `forCategory` to filter to a specific procedure category.
  */
-function getAvailableBenefits(card: CheckoutLoyaltyCard | null, forCategory?: string): BenefitOption[] {
+function getAvailableBenefits(
+  card: CheckoutLoyaltyCard | null,
+  template: CardTemplateService[],
+  forCategory?: string
+): BenefitOption[] {
   if (!card) return []
   const all: BenefitOption[] = []
 
-  all.push({ key: 'CHECKUP', category: 'CHECKUP', pct: 100, label: 'Free Check-up', remaining: '', isCheckup: true })
-
-  if (card.cleaningUses50 > 0)
-    all.push({ key: 'CLEANING_50', category: 'CLEANING', pct: 50, label: '50% off Cleaning', remaining: `${card.cleaningUses50} left`, isCheckup: false })
-  if (card.cleaningUses25 > 0)
-    all.push({ key: 'CLEANING_25', category: 'CLEANING', pct: 25, label: '25% off Cleaning', remaining: `${card.cleaningUses25} left`, isCheckup: false })
-  if (card.fillingUses50 > 0)
-    all.push({ key: 'FILLING_50', category: 'FILLING', pct: 50, label: '50% off Filling', remaining: `${card.fillingUses50} left`, isCheckup: false })
-  if (card.fillingUses25 > 0)
-    all.push({ key: 'FILLING_25', category: 'FILLING', pct: 25, label: '25% off Filling', remaining: `${card.fillingUses25} left`, isCheckup: false })
-  if (card.rctUses > 0)
-    all.push({ key: 'RCT', category: 'RCT', pct: 10, label: '10% off RCT', remaining: `${card.rctUses} left`, isCheckup: false })
-  if (card.dentureUses > 0)
-    all.push({ key: 'DENTURES', category: 'DENTURES', pct: 15, label: '15% off Dentures', remaining: `${card.dentureUses} left`, isCheckup: false })
-  if (card.bracesUses > 0)
-    all.push({ key: 'BRACES', category: 'BRACES', pct: 10, label: '10% off Braces', remaining: `${card.bracesUses} left`, isCheckup: false })
-  if (card.extractionUses > 0)
-    all.push({ key: 'EXTRACTION', category: 'EXTRACTION', pct: 20, label: '20% off Extraction', remaining: `${card.extractionUses} left`, isCheckup: false })
-  if (card.wisdomToothUses > 0)
-    all.push({ key: 'WISDOM_TOOTH', category: 'WISDOM_TOOTH', pct: 10, label: '10% off Wisdom Tooth', remaining: `${card.wisdomToothUses} left`, isCheckup: false })
+  for (const svc of template) {
+    if (svc.isFree) {
+      all.push({ key: 'CHECKUP', category: 'CHECKUP', pct: 100, label: 'Free Check-up', remaining: '', isCheckup: true })
+      continue
+    }
+    const fields = SERVICE_CARD_FIELDS[svc.serviceKey]
+    if (!fields) continue
+    const t1Remaining = card[fields.t1Field as keyof CheckoutLoyaltyCard] as number
+    if (t1Remaining > 0) {
+      all.push({
+        key: fields.t1Key,
+        category: svc.serviceKey,
+        pct: svc.tier1Discount,
+        label: `${svc.tier1Discount}% off ${svc.label}`,
+        remaining: `${t1Remaining} left`,
+        isCheckup: false,
+      })
+    }
+    if (svc.hasTier2 && fields.t2Field && fields.t2Key) {
+      const t2Remaining = card[fields.t2Field as keyof CheckoutLoyaltyCard] as number
+      if (t2Remaining > 0) {
+        all.push({
+          key: fields.t2Key,
+          category: svc.serviceKey,
+          pct: svc.tier2Discount,
+          label: `${svc.tier2Discount}% off ${svc.label}`,
+          remaining: `${t2Remaining} left`,
+          isCheckup: false,
+        })
+      }
+    }
+  }
 
   if (forCategory) return all.filter((b) => b.category === forCategory)
   return all
 }
 
-/** Discount % for a given benefit key */
-function benefitPctForKey(key: string): number {
-  const map: Record<string, number> = {
-    CHECKUP: 100,
-    CLEANING_50: 50, CLEANING_25: 25,
-    FILLING_50: 50,  FILLING_25: 25,
-    RCT: 10, DENTURES: 15, BRACES: 10,
-    EXTRACTION: 20, WISDOM_TOOTH: 10,
+/** Looks up the discount % for a benefit key from the clinic's template */
+function benefitPctForKey(key: string, template: CardTemplateService[]): number {
+  if (key === 'CHECKUP') return 100
+  for (const svc of template) {
+    const fields = SERVICE_CARD_FIELDS[svc.serviceKey]
+    if (!fields) continue
+    if (fields.t1Key === key) return svc.tier1Discount
+    if (fields.t2Key === key) return svc.tier2Discount
   }
-  return map[key] ?? 0
+  return 0
+}
+
+/** Builds initial uses for a synthetic new card from the template */
+function buildSyntheticCard(template: CardTemplateService[]): CheckoutLoyaltyCard {
+  const uses: Record<string, number> = {
+    cleaningUses50: 0, cleaningUses25: 0,
+    fillingUses50: 0,  fillingUses25: 0,
+    rctUses: 0, dentureUses: 0, bracesUses: 0,
+    wisdomToothUses: 0, extractionUses: 0,
+  }
+  for (const svc of template) {
+    if (svc.isFree) continue
+    const fields = SERVICE_CARD_FIELDS[svc.serviceKey]
+    if (!fields) continue
+    uses[fields.t1Field] = svc.tier1Uses
+    if (svc.hasTier2 && fields.t2Field) uses[fields.t2Field] = svc.tier2Uses
+  }
+  return { id: 'new', cardNumber: 'New Card', expiryDate: new Date(), isActive: true, ...uses } as CheckoutLoyaltyCard
 }
 
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
+export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }: Props) {
   const router = useRouter()
   const LOYALTY_CARD_PRICE = 500
 
@@ -190,23 +227,10 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   }
   // ──────────────────────────────────────────────────────────────────────────
 
-  // When purchasing a new card and no existing card, synthesise full default benefits
-  // so the patient can use one immediately in the same transaction.
-  const syntheticNewCard: CheckoutLoyaltyCard | null = !loyaltyCard ? {
-    id: 'new',
-    cardNumber: 'New Card',
-    expiryDate: new Date(),
-    isActive: true,
-    cleaningUses50: 2,
-    cleaningUses25: 2,
-    fillingUses50: 2,
-    fillingUses25: 2,
-    rctUses: 2,
-    dentureUses: 2,
-    bracesUses: 2,
-    wisdomToothUses: 2,
-    extractionUses: 8,
-  } : null
+  // When purchasing a new card with no existing card, synthesise benefits from the clinic template
+  const syntheticNewCard: CheckoutLoyaltyCard | null = !loyaltyCard
+    ? buildSyntheticCard(cardTemplate)
+    : null
 
   // Family card overrides own card for benefit selection
   const effectiveCard = familyCard?.card ?? loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
@@ -243,7 +267,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const loyaltyDiscountAmount = allocations.reduce((sum, a) => {
     if (!a.benefitKey || !a.amount) return sum
     const amt = parseFloat(a.amount) || 0
-    const pct = benefitPctForKey(a.benefitKey)
+    const pct = benefitPctForKey(a.benefitKey, cardTemplate)
     const disc = pct >= 100 ? amt : Math.round(amt * (pct / 100) * 100) / 100
     return sum + disc
   }, 0)
@@ -301,7 +325,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   function buildReceiptDiscountLabel(): string {
     const parts: string[] = []
     allocations.filter((a) => a.benefitKey).forEach((a) => {
-      const pct = benefitPctForKey(a.benefitKey!)
+      const pct = benefitPctForKey(a.benefitKey!, cardTemplate)
       parts.push(`${pct >= 100 ? 'Free' : `${pct}%`} ${a.name}`)
     })
     if (scPwdIdValid) parts.push(scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754')
@@ -326,7 +350,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
       .map((a) => ({
         benefitKey: a.benefitKey!,
         category: a.category,
-        discountPct: benefitPctForKey(a.benefitKey!),
+        discountPct: benefitPctForKey(a.benefitKey!, cardTemplate),
         serviceAmount: parseFloat(a.amount) || 0,
       }))
 
@@ -581,7 +605,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                   </p>
 
                   {allocations.map((alloc, idx) => {
-                    const procBenefits = getAvailableBenefits(effectiveCard, alloc.category)
+                    const procBenefits = getAvailableBenefits(effectiveCard, cardTemplate, alloc.category)
                     const amtNum = parseFloat(alloc.amount) || 0
                     return (
                       <div key={idx} className="rounded-xl border border-border p-3 flex flex-col gap-2.5">
@@ -656,7 +680,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Apply a benefit (tap to select, tap again to deselect)</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {getAvailableBenefits(effectiveCard, allocations[0]?.category).map((benefit) => {
+                    {getAvailableBenefits(effectiveCard, cardTemplate, allocations[0]?.category).map((benefit) => {
                       const selected = allocations[0]?.benefitKey === benefit.key
                       return (
                         <button
@@ -677,7 +701,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                         </button>
                       )
                     })}
-                    {getAvailableBenefits(effectiveCard, allocations[0]?.category).length === 0 && (
+                    {getAvailableBenefits(effectiveCard, cardTemplate, allocations[0]?.category).length === 0 && (
                       <p className="col-span-2 text-sm text-muted-foreground">No benefits available for this procedure.</p>
                     )}
                   </div>
@@ -844,7 +868,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             <span>₱{fmt(gross)}</span>
           </div>
           {allocations.filter((a) => a.benefitKey).map((a, idx) => {
-            const pct = benefitPctForKey(a.benefitKey!)
+            const pct = benefitPctForKey(a.benefitKey!, cardTemplate)
             const amt = parseFloat(a.amount) || 0
             const disc = pct >= 100 ? amt : Math.round(amt * (pct / 100) * 100) / 100
             return disc > 0 ? (
