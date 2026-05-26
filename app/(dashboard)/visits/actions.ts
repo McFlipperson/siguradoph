@@ -161,6 +161,67 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
   return visit.id
 }
 
+export type UpdateVisitData = {
+  visitId: string
+  treatment: string
+  diagnosis: string
+  toothNumber?: string
+  notes: string
+  // Only editable when no invoice has been issued yet
+  grossAmount?: number
+  visitDate?: string
+}
+
+export async function updateVisit(data: UpdateVisitData): Promise<void> {
+  const { clinicId, userEmail } = await getActor()
+
+  const visit = await prisma.visit.findUnique({
+    where: { id: data.visitId },
+    include: { invoice: { select: { id: true } } },
+  })
+  if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
+  if (visit.status === 'VOID') throw new Error('Cannot edit a voided visit')
+
+  const hasInvoice = !!visit.invoice
+
+  // Build the update payload — clinical fields are always editable
+  // Financial + date fields are locked once an invoice is issued
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updateData: Record<string, any> = {
+    treatment: data.treatment.trim(),
+    diagnosis: data.diagnosis.trim(),
+    toothNumber: data.toothNumber?.trim() || null,
+    notes: data.notes.trim(),
+  }
+
+  if (!hasInvoice) {
+    if (data.grossAmount !== undefined && data.grossAmount > 0) {
+      updateData.grossAmount = data.grossAmount
+      updateData.netAmount = data.grossAmount  // dental is VAT-exempt
+      updateData.vatAmount = 0
+    }
+    if (data.visitDate) {
+      updateData.visitDate = new Date(data.visitDate + ':00+08:00')
+    }
+  }
+
+  await prisma.visit.update({
+    where: { id: data.visitId },
+    data: updateData,
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'UPDATE_VISIT',
+    resourceType: 'VISIT',
+    resourceId: data.visitId,
+    detail: `Edited visit: ${data.treatment}${hasInvoice ? ' (clinical fields only — invoice locked)' : ''}`,
+  })
+
+  revalidatePath(`/patients/${visit.patientId}`)
+}
+
 export async function voidVisit(visitId: string): Promise<void> {
   const { clinicId, userEmail } = await getActor()
 

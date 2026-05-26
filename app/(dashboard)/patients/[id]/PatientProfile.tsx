@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, markBracesComplete, updatePatientScPwd, deletePatient } from '../actions'
-import { voidVisit } from '../../visits/actions'
+import { voidVisit, updateVisit } from '../../visits/actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -507,8 +507,24 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   const [expanded, setExpanded] = useState(false)
   const [showVoidConfirm, setShowVoidConfirm] = useState(false)
   const [voiding, setVoiding] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const router = useRouter()
   const isVoid = visit.status === 'VOID'
+  const hasInvoice = !!visit.invoice
+
+  // Edit form state — initialised from visit data
+  const [editTreatment, setEditTreatment] = useState(visit.treatment)
+  const [editDiagnosis, setEditDiagnosis] = useState(visit.diagnosis)
+  const [editTooth, setEditTooth] = useState(visit.toothNumber ?? '')
+  const [editNotes, setEditNotes] = useState(visit.notes ?? '')
+  const [editAmount, setEditAmount] = useState(String(visit.grossAmount))
+  const [editDate, setEditDate] = useState(() => {
+    // Convert stored UTC date back to PHT for the datetime-local input
+    const d = new Date(visit.visitDate)
+    const pht = new Date(d.getTime() + 8 * 60 * 60 * 1000)
+    return pht.toISOString().slice(0, 16)
+  })
 
   async function handleVoid() {
     setVoiding(true)
@@ -521,15 +537,51 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
     }
   }
 
+  function openEdit(e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditTreatment(visit.treatment)
+    setEditDiagnosis(visit.diagnosis)
+    setEditTooth(visit.toothNumber ?? '')
+    setEditNotes(visit.notes ?? '')
+    setEditAmount(String(visit.grossAmount))
+    setEditing(true)
+    setExpanded(true)
+  }
+
+  async function handleSave() {
+    if (!editTreatment.trim() || !editDiagnosis.trim() || !editNotes.trim()) return
+    const grossAmount = parseFloat(editAmount)
+    if (!hasInvoice && (!grossAmount || grossAmount <= 0)) return
+    setSaving(true)
+    try {
+      await updateVisit({
+        visitId: visit.id,
+        treatment: editTreatment,
+        diagnosis: editDiagnosis,
+        toothNumber: editTooth || undefined,
+        notes: editNotes,
+        grossAmount: hasInvoice ? undefined : grossAmount,
+        visitDate: hasInvoice ? undefined : editDate,
+      })
+      setEditing(false)
+      router.refresh()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const inputCls = 'w-full min-h-[48px] rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
+  const textareaCls = 'w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring resize-none'
+
   return (
     <div className={`rounded-xl bg-card ring-1 overflow-hidden ${isVoid ? 'ring-red-200 opacity-60' : 'ring-foreground/10'}`}>
       {/* Header row — tap to expand */}
       <div
-        onClick={() => !showVoidConfirm && setExpanded((v) => !v)}
+        onClick={() => !showVoidConfirm && !editing && setExpanded((v) => !v)}
         className="cursor-pointer px-4 py-3 flex flex-col gap-1"
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
               <p className="font-semibold text-sm">{visit.treatment}</p>
               {isVoid && (
@@ -540,15 +592,26 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
               <p className="text-xs text-muted-foreground">Tooth {visit.toothNumber}</p>
             )}
           </div>
-          <p className={`text-sm font-medium whitespace-nowrap ${isVoid ? 'line-through text-muted-foreground' : ''}`}>
-            ₱{formatMoney(visit.grossAmount)}
-          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            {!isVoid && !editing && (
+              <button
+                type="button"
+                onClick={openEdit}
+                className="text-xs text-primary underline underline-offset-2 py-1"
+              >
+                Edit
+              </button>
+            )}
+            <p className={`text-sm font-medium whitespace-nowrap ${isVoid ? 'line-through text-muted-foreground' : ''}`}>
+              ₱{formatMoney(visit.grossAmount)}
+            </p>
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">{formatDate(visit.visitDate)}</p>
         <p className="text-sm text-muted-foreground line-clamp-1">{visit.diagnosis}</p>
       </div>
 
-      {expanded && (
+      {expanded && !editing && (
         <div className="border-t border-border px-4 py-3 flex flex-col gap-3">
           {visit.notes && (
             <div>
@@ -605,6 +668,103 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
               </Button>
             )
           )}
+        </div>
+      )}
+
+      {/* ── Inline edit form ── */}
+      {editing && (
+        <div className="border-t border-border px-4 py-4 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+          {hasInvoice && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              OR #{visit.invoice!.orNumber} has been issued — date and amount are locked. You can still correct clinical details.
+            </p>
+          )}
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Treatment / Procedure</label>
+            <input
+              className={inputCls}
+              value={editTreatment}
+              onChange={(e) => setEditTreatment(e.target.value)}
+              placeholder="e.g. Extraction, Cleaning"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Diagnosis</label>
+            <input
+              className={inputCls}
+              value={editDiagnosis}
+              onChange={(e) => setEditDiagnosis(e.target.value)}
+              placeholder="e.g. Dental caries"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Tooth Number <span className="font-normal">(optional)</span></label>
+            <input
+              className={inputCls}
+              value={editTooth}
+              onChange={(e) => setEditTooth(e.target.value)}
+              placeholder="e.g. 16, 36"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-muted-foreground">Notes</label>
+            <textarea
+              className={textareaCls}
+              rows={3}
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Treatment notes…"
+            />
+          </div>
+
+          {!hasInvoice && (
+            <>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">Visit Date &amp; Time</label>
+                <input
+                  type="datetime-local"
+                  className={inputCls}
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-muted-foreground">Amount (₱)</label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  className={inputCls}
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Button
+              variant="outline"
+              className="min-h-[48px]"
+              onClick={() => setEditing(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="min-h-[48px]"
+              onClick={handleSave}
+              disabled={saving || !editTreatment.trim() || !editDiagnosis.trim() || !editNotes.trim()}
+            >
+              {saving ? 'Saving…' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       )}
     </div>

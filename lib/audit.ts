@@ -6,6 +6,7 @@ export type AuditAction =
   | 'EDIT_PATIENT_MEDICAL'
   | 'EDIT_PATIENT_SCPWD'
   | 'CREATE_VISIT'
+  | 'UPDATE_VISIT'
   | 'CONFIRM_PAYMENT'
   | 'VOID_INVOICE'
   | 'DELETE_PATIENT'
