@@ -80,6 +80,7 @@ export type SaveVisitData = {
   treatment: string
   notes: string
   grossAmount: number
+  procedureAmounts?: Array<{ name: string; amount: number }>
   isBracesReminder?: boolean
   reminderWeeks?: number
   isCleaningService?: boolean
@@ -109,6 +110,7 @@ export async function saveVisit(data: SaveVisitData): Promise<string> {
       grossAmount: gross,
       netAmount: net,
       vatAmount: vat,
+      procedureAmounts: data.procedureAmounts ?? undefined,
       intervalWeeks: data.reminderWeeks ?? null,
     },
   })

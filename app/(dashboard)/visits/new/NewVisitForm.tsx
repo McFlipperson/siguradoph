@@ -55,7 +55,8 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
 
   const [visitDate, setVisitDate] = useState(todayPHT)
   const [procedures, setProcedures] = useState<ProcedureEntry[]>([])
-  const [price, setPrice] = useState('')
+  const [price, setPrice] = useState('')          // single-proc price
+  const [procPrices, setProcPrices] = useState<Record<string, string>>({})  // multi-proc: uid → price
   const [isBracesReminder, setIsBracesReminder] = useState(false)
   const [reminderWeeks, setReminderWeeks] = useState(4)
   const [notes, setNotes] = useState('')
@@ -77,6 +78,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   }
 
   const addedIds = procedures.map((p) => p.serviceId)
+  const isMultiProc = procedures.length > 1
 
   const resolvedServices = procedures
     .map((p) => setup.serviceCatalog.find((s) => s.id === p.serviceId))
@@ -84,13 +86,21 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const isBracesCategory = resolvedServices.some((s) => s?.category === 'BRACES')
   const isCleaningCategory = resolvedServices.some((s) => s?.category === 'CLEANING')
 
-  const gross = parseFloat(price) || 0
+  // Gross amount: sum of per-proc prices (multi) or single price input (single)
+  const multiGross = isMultiProc
+    ? procedures.reduce((sum, p) => sum + (parseFloat(procPrices[p.uid] ?? '') || 0), 0)
+    : 0
+  const gross = isMultiProc ? multiGross : (parseFloat(price) || 0)
+
+  const allProcsHavePrice = isMultiProc
+    ? procedures.every((p) => (parseFloat(procPrices[p.uid] ?? '') || 0) > 0)
+    : gross > 0
 
   const canSubmit =
     visitDate &&
     procedures.length > 0 &&
     procedures.every((p) => p.serviceName.trim() && p.diagnosis.trim()) &&
-    gross > 0 &&
+    allProcsHavePrice &&
     notes.trim().length >= 1 &&
     !isPending
 
@@ -112,6 +122,10 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     })
 
     startTransition(async () => {
+      const procedureAmounts = isMultiProc
+        ? procedures.map((p) => ({ name: p.serviceName, amount: parseFloat(procPrices[p.uid] ?? '') || 0 }))
+        : undefined
+
       const visitId = await saveVisit({
         patientId: setup.patient.id,
         visitDate,
@@ -120,6 +134,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         treatment,
         notes,
         grossAmount: gross,
+        procedureAmounts,
         isBracesReminder: isBracesCategory && isBracesReminder && !!bracesEntry,
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
         isCleaningService: isCleaningCategory,
@@ -255,37 +270,78 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 placeholder="e.g. 16, 36"
               />
             </div>
+            {isMultiProc && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Price <span className="text-destructive ml-0.5">*</span></Label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  className={inputClass}
+                  value={procPrices[proc.uid] ?? ''}
+                  onChange={(e) => setProcPrices((prev) => ({ ...prev, [proc.uid]: e.target.value }))}
+                  placeholder="0.00"
+                  min={0}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
       ))}
 
-      {/* ── Price ── */}
-      <Card>
-        <CardHeader><CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle></CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <input
-            type="number"
-            inputMode="numeric"
-            className={inputClass}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="0"
-            min={0}
-          />
-          {gross > 0 && (
-            <div className="flex flex-col gap-1 text-sm rounded-lg bg-muted/50 px-4 py-3">
-              <div className="flex justify-between font-semibold">
-                <span>Total</span>
-                <span>₱{formatMoney(gross)}</span>
+      {/* ── Price ── single-proc only; multi-proc uses per-card inputs above */}
+      {!isMultiProc && (
+        <Card>
+          <CardHeader><CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle></CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <input
+              type="number"
+              inputMode="decimal"
+              className={inputClass}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="0.00"
+              min={0}
+            />
+            {gross > 0 && (
+              <div className="flex flex-col gap-1 text-sm rounded-lg bg-muted/50 px-4 py-3">
+                <div className="flex justify-between font-semibold">
+                  <span>Total</span>
+                  <span>₱{formatMoney(gross)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-emerald-600">
+                  <span>VAT-Exempt (NIRC §109)</span>
+                  <span>₱0.00</span>
+                </div>
               </div>
-              <div className="flex justify-between text-xs text-emerald-600">
-                <span>VAT-Exempt (NIRC §109)</span>
-                <span>₱0.00</span>
-              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Multi-proc running total ── */}
+      {isMultiProc && gross > 0 && (
+        <Card>
+          <CardContent className="py-3 flex flex-col gap-1 text-sm">
+            {procedures.map((p) => {
+              const amt = parseFloat(procPrices[p.uid] ?? '') || 0
+              return amt > 0 ? (
+                <div key={p.uid} className="flex justify-between text-muted-foreground">
+                  <span>{p.serviceName}</span>
+                  <span>₱{formatMoney(amt)}</span>
+                </div>
+              ) : null
+            })}
+            <div className="border-t pt-2 flex justify-between font-semibold">
+              <span>Total</span>
+              <span>₱{formatMoney(gross)}</span>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex justify-between text-xs text-emerald-600">
+              <span>VAT-Exempt (NIRC §109)</span>
+              <span>₱0.00</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Braces toggle */}
       {isBracesCategory && (

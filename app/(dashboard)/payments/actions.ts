@@ -56,7 +56,7 @@ export type CheckoutVisitData = {
   }
   serviceCategoryName: string
   // Individual procedures parsed from treatment string
-  procedures: Array<{ name: string; category: string }>
+  procedures: Array<{ name: string; category: string; amount?: number }>
 }
 
 export type CheckoutLoyaltyCard = {
@@ -140,9 +140,20 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
     select: { name: true, category: true },
   })
   const categoryByName = Object.fromEntries(catalogEntries.map((e) => [e.name, e.category]))
+
+  // Per-procedure amounts stored at visit creation time (null on older visits)
+  type StoredProcAmount = { name: string; amount: number }
+  const storedAmounts = Array.isArray(visit.procedureAmounts)
+    ? (visit.procedureAmounts as StoredProcAmount[])
+    : []
+  const amountByName: Record<string, number> = Object.fromEntries(
+    storedAmounts.map((e) => [e.name, e.amount])
+  )
+
   const procedures = procedureNames.map((name) => ({
     name,
     category: categoryByName[name] ?? 'OTHER',
+    amount: amountByName[name] ?? undefined,
   }))
 
   // Legacy single-category field (used by non-loyalty paths)

@@ -164,7 +164,13 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [waiveCardFee, setWaiveCardFee] = useState(false)
   const [allocations, setAllocations] = useState<ProcAlloc[]>(
-    visitData.procedures.map((p) => ({ name: p.name, category: p.category, amount: '', benefitKey: null }))
+    visitData.procedures.map((p) => ({
+      name: p.name,
+      category: p.category,
+      // Pre-fill amount from stored per-procedure breakdown (avoids re-entry at checkout)
+      amount: p.amount != null ? String(p.amount) : '',
+      benefitKey: null,
+    }))
   )
 
   const isMultiProc = visitData.procedures.length > 1
@@ -177,7 +183,9 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
   function handleSingleBenefitToggle(key: string) {
     setAllocations((prev) =>
       prev.map((a, i) =>
-        i === 0 ? { ...a, benefitKey: a.benefitKey === key ? null : key, amount: String(visitData.grossAmount) } : a
+        i === 0
+          ? { ...a, benefitKey: a.benefitKey === key ? null : key, amount: a.amount || String(visitData.grossAmount) }
+          : a
       )
     )
   }
@@ -888,10 +896,20 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
           <CardTitle className="text-base">Breakdown</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
-          <div className="flex justify-between text-muted-foreground">
-            <span>Service</span>
-            <span>₱{fmt(gross)}</span>
-          </div>
+          {/* Show itemized per-procedure amounts when stored, otherwise single service line */}
+          {visitData.procedures.length > 1 && visitData.procedures.some((p) => p.amount != null) ? (
+            visitData.procedures.map((p, i) => (
+              <div key={i} className="flex justify-between text-muted-foreground">
+                <span>{p.name}</span>
+                <span>₱{fmt(p.amount ?? 0)}</span>
+              </div>
+            ))
+          ) : (
+            <div className="flex justify-between text-muted-foreground">
+              <span>Service</span>
+              <span>₱{fmt(gross)}</span>
+            </div>
+          )}
           {allocations.filter((a) => a.benefitKey).map((a, idx) => {
             const pct = benefitPctForKey(a.benefitKey!, cardTemplate)
             const amt = parseFloat(a.amount) || 0

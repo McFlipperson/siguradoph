@@ -201,10 +201,11 @@ model Visit {
   toothNumber   String?
   treatment     String
   notes         String?
-  grossAmount   Decimal
-  netAmount     Decimal
-  vatAmount     Decimal
-  intervalWeeks Int?     // braces only — weeks until next alignment
+  grossAmount       Decimal
+  netAmount         Decimal
+  vatAmount         Decimal
+  procedureAmounts  Json?    // [{name:string,amount:number}] per-procedure breakdown
+  intervalWeeks     Int?     // braces only — weeks until next alignment
   status        String   @default("ACTIVE") // ACTIVE | VOID
   createdAt     DateTime @default(now())
 
