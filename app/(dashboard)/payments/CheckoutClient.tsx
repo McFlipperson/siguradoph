@@ -162,6 +162,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
   type ProcAlloc = { name: string; category: string; amount: string; benefitKey: string | null }
 
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
+  const [waiveCardFee, setWaiveCardFee] = useState(false)
   const [allocations, setAllocations] = useState<ProcAlloc[]>(
     visitData.procedures.map((p) => ({ name: p.name, category: p.category, amount: '', benefitKey: null }))
   )
@@ -183,7 +184,10 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
 
   function handlePurchaseCardToggle(val: boolean) {
     setPurchaseCard(val)
-    if (!val && !loyaltyCard) setAllocations((prev) => prev.map((a) => ({ ...a, benefitKey: null })))
+    if (!val) {
+      setWaiveCardFee(false)
+      if (!loyaltyCard) setAllocations((prev) => prev.map((a) => ({ ...a, benefitKey: null })))
+    }
   }
 
   // ── Family card state ──────────────────────────────────────────────────────
@@ -279,7 +283,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
     : 0
 
   const discountedGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
-  const loyaltyCardTotal = purchaseCard ? LOYALTY_CARD_PRICE : 0
+  const loyaltyCardTotal = purchaseCard && !waiveCardFee ? LOYALTY_CARD_PRICE : 0
   const combinedGross = discountedGross + loyaltyCardTotal
 
   // Multi-proc allocation validation
@@ -361,6 +365,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         loyaltyCardId: familyCard?.card.id ?? loyaltyCard?.id ?? null,
         loyaltyBenefits,
         purchaseNewLoyaltyCard: purchaseCard,
+        waiveCardFee: purchaseCard ? waiveCardFee : undefined,
         applyScPwdDiscount: scPwdIdValid,
         scPwdType: scPwdIdValid ? scPwdType : null,
         scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : null,
@@ -714,16 +719,36 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
                 This patient does not have a loyalty card.
               </p>
               {!familyCard && (
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
-                    Purchase loyalty card — ₱{fmt(LOYALTY_CARD_PRICE)}
-                  </Label>
-                  <Switch
-                    id="purchaseCard"
-                    checked={purchaseCard}
-                    onCheckedChange={handlePurchaseCardToggle}
-                    className="shrink-0"
-                  />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
+                      Purchase loyalty card — ₱{fmt(LOYALTY_CARD_PRICE)}
+                    </Label>
+                    <Switch
+                      id="purchaseCard"
+                      checked={purchaseCard}
+                      onCheckedChange={handlePurchaseCardToggle}
+                      className="shrink-0"
+                    />
+                  </div>
+                  {purchaseCard && (
+                    <div className="flex items-center justify-between gap-3 pl-1 pt-0.5 border-t">
+                      <div className="flex-1">
+                        <Label htmlFor="waiveCardFee" className="cursor-pointer text-sm text-muted-foreground">
+                          Waive card fee
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Card is issued free of charge — ₱0 added to total
+                        </p>
+                      </div>
+                      <Switch
+                        id="waiveCardFee"
+                        checked={waiveCardFee}
+                        onCheckedChange={setWaiveCardFee}
+                        className="shrink-0"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -887,7 +912,11 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
           {purchaseCard && (
             <div className="flex justify-between text-muted-foreground">
               <span>Loyalty card</span>
-              <span>₱{fmt(LOYALTY_CARD_PRICE)}</span>
+              {waiveCardFee ? (
+                <span className="text-emerald-600 font-medium">Waived</span>
+              ) : (
+                <span>₱{fmt(LOYALTY_CARD_PRICE)}</span>
+              )}
             </div>
           )}
           <div className="border-t mt-2 pt-2 flex justify-between font-bold text-base">

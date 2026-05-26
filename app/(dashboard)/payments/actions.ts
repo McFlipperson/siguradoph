@@ -250,6 +250,7 @@ export type ConfirmPaymentData = {
   loyaltyCardId: string | null
   loyaltyBenefits: LoyaltyBenefitApplication[]  // empty = no loyalty discount
   purchaseNewLoyaltyCard: boolean
+  waiveCardFee?: boolean            // card is still issued, but ₱0 charged
   // SC/PWD
   applyScPwdDiscount: boolean
   scPwdType: 'SC' | 'PWD' | null
@@ -406,11 +407,12 @@ export async function confirmPayment(
   const treatmentNet = treatmentGross
 
   const cardPrice = Number(clinic.loyaltyCardPrice)
-  const cardNet = data.purchaseNewLoyaltyCard ? cardPrice : 0
+  const cardFeeWaived = data.purchaseNewLoyaltyCard && !!data.waiveCardFee
+  const cardNet = data.purchaseNewLoyaltyCard && !cardFeeWaived ? cardPrice : 0
 
   const totalNet = Math.round((treatmentNet + cardNet) * 100) / 100
   const totalVat = 0
-  const totalGross = Math.round((treatmentGross + (data.purchaseNewLoyaltyCard ? cardPrice : 0)) * 100) / 100
+  const totalGross = Math.round((treatmentGross + cardNet) * 100) / 100
 
   // Combined loyalty discount amount (stored on invoice.discountAmount)
   const discountAmount = loyaltyDiscountAmount
@@ -562,7 +564,7 @@ export async function confirmPayment(
     action: 'CONFIRM_PAYMENT',
     resourceType: 'INVOICE',
     resourceId: invoiceId,
-    detail: `Issued OR #${orNumber} — ₱${totalGross} via ${data.paymentMethod} for patient ${visit.patient.id}`,
+    detail: `Issued OR #${orNumber} — ₱${totalGross} via ${data.paymentMethod} for patient ${visit.patient.id}${cardFeeWaived ? ' (loyalty card fee waived)' : ''}`,
   })
 
   revalidatePath(`/patients/${visit.patient.id}`)
