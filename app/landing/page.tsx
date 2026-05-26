@@ -374,8 +374,8 @@ export default function LandingPage() {
         <Image
           src="/images/section5.png"
           alt="Patient privacy — Sigurado keeps your records protected"
-          width={1672}
-          height={941}
+          width={1536}
+          height={1024}
           className="w-full h-auto block"
         />
       </section>
