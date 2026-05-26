@@ -35,6 +35,7 @@ const BASIC_FEATURES = [
 
 const PRO_EXTRAS = [
   'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
+  'Monthly reports delivered to your bookkeeper/Accountant — nothing for you to prepare',
   'Employee records & attendance tracking',
   'Service Incentive Leave (SIL) tracking',
   'Patient privacy tools — consent records & audit logs',
@@ -43,7 +44,6 @@ const PRO_EXTRAS = [
   'Quarterly revenue summary — gross sales, expenses, net payable',
   'Invoice & expense CSV export in accountant-ready format',
   'DAT file export for government submission',
-  'Monthly reports delivered to your bookkeeper — nothing for you to prepare',
   'Messenger support 9am–4pm',
 ]
 
@@ -82,79 +82,104 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 1 — HERO
-          Text top, dashboard screenshot below in a floating frame
+          Mobile: text → image stacked
+          sm+: text left, dashboard screenshot right (floats up)
       ══════════════════════════════════════════════════════════ */}
-      <section className="px-5 pt-12 pb-0" style={{ background: '#F5F8FF' }}>
-        <h1
-          className="font-black leading-tight mb-5"
-          style={{ fontSize: 'clamp(30px, 8vw, 58px)', color: '#0B1627', letterSpacing: '-0.025em' }}
-        >
-          Dental clinic software
-          <br />built for the Philippines.
-        </h1>
-        <p className="text-base leading-relaxed mb-8" style={{ color: '#5C6A85', maxWidth: 420 }}>
-          If you can use a smartphone, Sigurado is for you. Patient records, receipts,
-          payroll, and patient privacy — no tech background needed.
-        </p>
-        <Link
-          href="/register"
-          className="inline-block font-black text-base px-7 py-4 rounded-2xl mb-12"
-          style={{ background: '#1A3FD0', color: '#ffffff' }}
-        >
-          Start your free month — no credit card needed
-        </Link>
+      <section
+        className="overflow-hidden"
+        style={{ background: '#F5F8FF' }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0">
 
-        {/* Dashboard screenshot — floats up from bottom of hero */}
-        <div className="flex justify-center">
-          <div
-            className="relative overflow-hidden"
-            style={{
-              width: 260,
-              borderRadius: '24px 24px 0 0',
-              boxShadow: '0 -8px 40px rgba(26,63,208,0.15), 0 0 0 1.5px rgba(26,63,208,0.1)',
-              background: '#ffffff',
-            }}
-          >
-            <Image
-              src="/images/Hero-Dashboard.png"
-              alt="Sigurado dashboard"
-              width={260}
-              height={559}
-              className="object-top object-cover"
-              style={{ display: 'block' }}
-              priority
-            />
+          {/* Text side */}
+          <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
+            <h1
+              className="font-black leading-tight mb-5"
+              style={{ fontSize: 'clamp(28px, 7vw, 54px)', color: '#0B1627', letterSpacing: '-0.025em' }}
+            >
+              Dental clinic software
+              <br />built for the Philippines.
+            </h1>
+            <p className="text-base leading-relaxed mb-8" style={{ color: '#5C6A85', maxWidth: 400 }}>
+              If you can use a smartphone, Sigurado is for you. Patient records, receipts,
+              payroll, and patient privacy — no tech background needed.
+            </p>
+            <Link
+              href="/register"
+              className="inline-block font-black text-base px-7 py-4 rounded-2xl"
+              style={{ background: '#1A3FD0', color: '#ffffff' }}
+            >
+              Start your free month — no credit card needed
+            </Link>
           </div>
+
+          {/* Dashboard screenshot — right side, floats up from bottom */}
+          <div className="flex justify-center sm:justify-end sm:flex-shrink-0 sm:self-end px-5 sm:px-8 pt-6 sm:pt-0">
+            <div
+              style={{
+                width: 200,
+                borderRadius: '20px 20px 0 0',
+                overflow: 'hidden',
+                boxShadow: '0 -6px 32px rgba(26,63,208,0.18), 0 0 0 1.5px rgba(26,63,208,0.12)',
+                background: '#ffffff',
+              }}
+            >
+              <Image
+                src="/images/Hero-Dashboard.png"
+                alt="Sigurado app dashboard"
+                width={200}
+                height={430}
+                className="object-top object-cover block"
+                priority
+              />
+            </div>
+          </div>
+
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 2 — EGO + TRUST
-          Full-bleed photo, trust copy below
+          Full image shown (no crop), text overlaid at bottom
+          on the dark/neutral area — not over the doctor
       ══════════════════════════════════════════════════════════ */}
-      <section>
-        {/* Photo */}
-        <div className="relative w-full" style={{ height: 320 }}>
-          <Image
-            src="/images/section2.png"
-            alt="Filipino dental clinic"
-            fill
-            className="object-cover object-center"
-          />
-        </div>
+      <section className="relative">
+        {/* Full image at natural ratio — no crop, no cut head */}
+        <Image
+          src="/images/section2.png"
+          alt="Filipino dental clinic"
+          width={1448}
+          height={1086}
+          className="w-full h-auto block"
+        />
 
-        {/* Trust copy on dark */}
-        <div className="px-5 py-12" style={{ background: '#0B1627' }}>
+        {/* Gradient overlay — dark from the bottom third only,
+            so the doctor's face (top area) stays clear */}
+        <div
+          className="absolute inset-0 flex flex-col justify-end px-5 pb-8 sm:pb-12"
+          style={{
+            background: 'linear-gradient(to top, rgba(11,22,39,0.95) 0%, rgba(11,22,39,0.75) 30%, rgba(11,22,39,0.1) 55%, transparent 70%)',
+          }}
+        >
           <p
-            className="font-bold leading-snug mb-6"
-            style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', maxWidth: 480 }}
+            className="font-bold leading-snug mb-4"
+            style={{
+              fontSize: 'clamp(17px, 4vw, 28px)',
+              color: '#ffffff',
+              maxWidth: 460,
+              textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+            }}
           >
             Your patients judge your clinic before they sit in the chair.
             Sigurado makes sure what they see is professional.
           </p>
           <p
             className="font-black"
-            style={{ fontSize: 'clamp(18px, 4vw, 26px)', color: '#F5C018' }}
+            style={{
+              fontSize: 'clamp(16px, 3.5vw, 22px)',
+              color: '#F5C018',
+              textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+            }}
           >
             Built by a dentist, for dentists.
           </p>
@@ -163,20 +188,9 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 3 — HOW IT WORKS
-          Square lifestyle photo then the 3 steps
+          Heading → 3 steps → Messenger callout → lifestyle image
       ══════════════════════════════════════════════════════════ */}
       <section>
-        {/* Square photo — full width */}
-        <div className="relative w-full" style={{ height: 300 }}>
-          <Image
-            src="/images/section3.png"
-            alt="Using Sigurado on a smartphone"
-            fill
-            className="object-cover object-center"
-          />
-        </div>
-
-        {/* Steps */}
         <div className="px-5 py-14" style={{ background: '#ffffff' }}>
           <h2
             className="font-black leading-tight mb-10"
@@ -185,7 +199,7 @@ export default function LandingPage() {
             Register and you&apos;re ready to go.
           </h2>
 
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 mb-8">
             {[
               { n: '1', title: 'Create your clinic account — takes less than 5 minutes.' },
               { n: '2', title: 'Add your patients, services, and staff. We guide you through every step.' },
@@ -209,14 +223,46 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <p className="mt-6 text-sm" style={{ color: '#9AAABB' }}>
-            Questions? We&apos;re on Messenger, 9am–4pm.
-          </p>
+          {/* Messenger callout — prominent, confidence-building */}
+          <a
+            href="https://m.me/sigurado"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-4 p-5 rounded-2xl"
+            style={{ background: '#1A3FD0', textDecoration: 'none' }}
+          >
+            <div
+              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl"
+              style={{ background: 'rgba(255,255,255,0.15)' }}
+            >
+              💬
+            </div>
+            <div>
+              <p className="font-black text-base leading-tight mb-0.5" style={{ color: '#ffffff' }}>
+                Questions? We&apos;re on Messenger.
+              </p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                9am–4pm — real support, real people. You&apos;re not alone.
+              </p>
+            </div>
+            <span className="ml-auto text-xl" style={{ color: 'rgba(255,255,255,0.5)' }}>→</span>
+          </a>
+        </div>
+
+        {/* Lifestyle image at the bottom of this section */}
+        <div className="relative w-full" style={{ height: 280 }}>
+          <Image
+            src="/images/section3.png"
+            alt="Using Sigurado on a smartphone"
+            fill
+            className="object-cover object-center"
+          />
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 4 — PRICING
+          Hover: cards scale up slightly on hover
       ══════════════════════════════════════════════════════════ */}
       <section className="py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
         <div className="px-5 mb-8">
@@ -229,12 +275,12 @@ export default function LandingPage() {
           <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Month-to-month. Cancel any time.</p>
         </div>
 
-        <div className="px-5 overflow-x-auto pb-3">
+        <div className="px-5 overflow-x-auto pb-6">
           <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
 
             {/* FREE */}
             <div
-              className="flex flex-col rounded-2xl overflow-hidden"
+              className="flex flex-col rounded-2xl overflow-hidden transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
               style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
             >
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
@@ -260,7 +306,7 @@ export default function LandingPage() {
 
             {/* BASIC */}
             <div
-              className="flex flex-col rounded-2xl overflow-hidden"
+              className="flex flex-col rounded-2xl overflow-hidden transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
               style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
             >
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
@@ -285,7 +331,7 @@ export default function LandingPage() {
 
             {/* PRO */}
             <div
-              className="flex flex-col rounded-2xl overflow-hidden"
+              className="flex flex-col rounded-2xl overflow-hidden transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
               style={{ width: 260, background: '#1A3FD0', flexShrink: 0 }}
             >
               <div className="px-4 py-1.5 text-center" style={{ background: '#F5C018' }}>
@@ -315,29 +361,26 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <p className="px-5 mt-4 text-xs" style={{ color: '#9AAABB' }}>
+        <p className="px-5 mt-2 text-xs" style={{ color: '#9AAABB' }}>
           Prices are in Philippine Pesos (₱). Upgrade, downgrade, or cancel any time.
         </p>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
-          Background image with dark overlay
+          Background image with dark overlay, text on top
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden" style={{ minHeight: 320 }}>
-        {/* Background image */}
+      <section className="relative overflow-hidden" style={{ minHeight: 300 }}>
         <Image
           src="/images/section5.png"
           alt=""
           fill
           className="object-cover object-center"
         />
-        {/* Dark overlay */}
         <div
           className="absolute inset-0"
           style={{ background: 'linear-gradient(135deg, rgba(11,22,39,0.93) 0%, rgba(26,63,208,0.82) 100%)' }}
         />
-        {/* Content */}
         <div className="relative z-10 px-5 py-16">
           <h2
             className="font-black leading-tight mb-4"
@@ -345,7 +388,7 @@ export default function LandingPage() {
           >
             Patient records must be kept private by law.
           </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)', maxWidth: 400 }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 400 }}>
             Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
           </p>
         </div>
