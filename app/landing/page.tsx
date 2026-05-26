@@ -368,30 +368,16 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
-          Background image with dark overlay, text on top
+          Full-width image, no text overlay
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden" style={{ minHeight: 300 }}>
+      <section>
         <Image
           src="/images/section5.png"
-          alt=""
-          fill
-          className="object-cover object-center"
+          alt="Patient privacy — Sigurado keeps your records protected"
+          width={1672}
+          height={941}
+          className="w-full h-auto block"
         />
-        <div
-          className="absolute inset-0"
-          style={{ background: 'linear-gradient(135deg, rgba(11,22,39,0.93) 0%, rgba(26,63,208,0.82) 100%)' }}
-        />
-        <div className="relative z-10 px-5 py-16">
-          <h2
-            className="font-black leading-tight mb-4"
-            style={{ fontSize: 'clamp(22px, 6vw, 38px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 420 }}
-          >
-            Patient records must be kept private by law.
-          </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 400 }}>
-            Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
-          </p>
-        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
