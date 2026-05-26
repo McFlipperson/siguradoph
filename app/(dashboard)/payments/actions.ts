@@ -217,6 +217,75 @@ export type ConfirmPaymentResult = {
   newLoyaltyCardId?: string
 }
 
+// ---------------------------------------------------------------------------
+// Family card search
+// ---------------------------------------------------------------------------
+
+export type FamilyCardResult = {
+  patientId: string
+  holderName: string
+  card: CheckoutLoyaltyCard
+}
+
+export async function searchPatientLoyaltyCard(
+  query: string,
+  excludePatientId: string
+): Promise<FamilyCardResult[]> {
+  if (!query || query.trim().length < 2) return []
+  const clinicId = await getClinicId()
+
+  const patients = await prisma.patient.findMany({
+    where: {
+      clinicId,
+      id: { not: excludePatientId },
+      OR: [
+        { firstName: { contains: query.trim(), mode: 'insensitive' } },
+        { lastName: { contains: query.trim(), mode: 'insensitive' } },
+        { phone: { contains: query.trim() } },
+      ],
+      loyaltyCards: {
+        some: { isActive: true, expiryDate: { gte: new Date() } },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      loyaltyCards: {
+        where: { isActive: true, expiryDate: { gte: new Date() } },
+        orderBy: { purchaseDate: 'desc' },
+        take: 1,
+      },
+    },
+    take: 5,
+  })
+
+  return patients
+    .filter((p) => p.loyaltyCards.length > 0)
+    .map((p) => {
+      const c = p.loyaltyCards[0]
+      return {
+        patientId: p.id,
+        holderName: `${p.firstName} ${p.lastName}`,
+        card: {
+          id: c.id,
+          cardNumber: c.cardNumber,
+          expiryDate: c.expiryDate,
+          isActive: c.isActive,
+          cleaningUses50: c.cleaningUses50,
+          cleaningUses25: c.cleaningUses25,
+          fillingUses50: c.fillingUses50,
+          fillingUses25: c.fillingUses25,
+          rctUses: c.rctUses,
+          dentureUses: c.dentureUses,
+          bracesUses: c.bracesUses,
+          wisdomToothUses: c.wisdomToothUses,
+          extractionUses: c.extractionUses,
+        },
+      }
+    })
+}
+
 export async function confirmPayment(
   data: ConfirmPaymentData
 ): Promise<ConfirmPaymentResult> {

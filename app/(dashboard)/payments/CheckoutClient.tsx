@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { CheckCircle, Printer, Wifi, WifiOff } from 'lucide-react'
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { confirmPayment, type CheckoutVisitData, type CheckoutLoyaltyCard } from './actions'
+import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type CheckoutLoyaltyCard, type FamilyCardResult } from './actions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,9 +114,50 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
 
   function handlePurchaseCardToggle(val: boolean) {
     setPurchaseCard(val)
-    // Clear any benefit selected from the synthetic new card if toggling off
     if (!val && !loyaltyCard) setSelectedBenefitKey(null)
   }
+
+  // ── Family card state ──────────────────────────────────────────────────────
+  const [familyCardOpen, setFamilyCardOpen] = useState(false)
+  const [familyQuery, setFamilyQuery] = useState('')
+  const [familySearching, setFamilySearching] = useState(false)
+  const [familyResults, setFamilyResults] = useState<FamilyCardResult[]>([])
+  const [familyCard, setFamilyCard] = useState<(FamilyCardResult) | null>(null)
+  const familyDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (familyDebounce.current) clearTimeout(familyDebounce.current)
+    if (!familyQuery.trim() || familyQuery.trim().length < 2) {
+      setFamilyResults([])
+      return
+    }
+    familyDebounce.current = setTimeout(async () => {
+      setFamilySearching(true)
+      try {
+        const results = await searchPatientLoyaltyCard(familyQuery, visitData.patientId)
+        setFamilyResults(results)
+      } finally {
+        setFamilySearching(false)
+      }
+    }, 350)
+    return () => { if (familyDebounce.current) clearTimeout(familyDebounce.current) }
+  }, [familyQuery, visitData.patientId])
+
+  function selectFamilyCard(result: FamilyCardResult) {
+    setFamilyCard(result)
+    setFamilyResults([])
+    setFamilyQuery('')
+    setFamilyCardOpen(false)
+    setSelectedBenefitKey(null)
+    // Family card is mutually exclusive with purchasing a new card
+    setPurchaseCard(false)
+  }
+
+  function clearFamilyCard() {
+    setFamilyCard(null)
+    setSelectedBenefitKey(null)
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   // When purchasing a new card and no existing card, synthesise full default benefits
   // so the patient can use one immediately in the same transaction.
@@ -136,7 +177,8 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     extractionUses: 8,
   } : null
 
-  const effectiveCard = loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
+  // Family card overrides own card for benefit selection
+  const effectiveCard = familyCard?.card ?? loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
   const availableBenefits = getAvailableBenefits(effectiveCard)
   const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
   const [notes, setNotes] = useState('')
@@ -242,7 +284,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         applyLoyaltyDiscount: !!selectedBenefit,
         discountPct: availablePct,
         discountCategory: selectedBenefit?.category,
-        loyaltyCardId: loyaltyCard?.id ?? null,
+        loyaltyCardId: familyCard?.card.id ?? loyaltyCard?.id ?? null,
         purchaseNewLoyaltyCard: purchaseCard,
         applyScPwdDiscount: scPwdIdValid,
         scPwdType: scPwdIdValid ? scPwdType : null,
@@ -457,13 +499,35 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
               Loyalty card renewal pending for this patient.
             </div>
           )}
+
+          {/* ── Active family card banner ── */}
+          {familyCard && (
+            <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 flex items-start justify-between gap-2">
+              <div className="text-sm">
+                <p className="font-semibold text-blue-900">Using {familyCard.holderName}&apos;s card</p>
+                <p className="text-blue-700 text-xs mt-0.5">
+                  #{familyCard.card.cardNumber} · expires {fmtDate(familyCard.card.expiryDate)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={clearFamilyCard}
+                className="text-xs text-blue-500 underline shrink-0 mt-0.5"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+
           {effectiveCard ? (
             <>
-              <div className="text-sm text-muted-foreground">
-                {effectiveCard.id === 'new'
-                  ? 'New card — select a benefit to use immediately'
-                  : `Card #${effectiveCard.cardNumber} · expires ${fmtDate(effectiveCard.expiryDate)}`}
-              </div>
+              {!familyCard && (
+                <div className="text-sm text-muted-foreground">
+                  {effectiveCard.id === 'new'
+                    ? 'New card — select a benefit to use immediately'
+                    : `Card #${effectiveCard.cardNumber} · expires ${fmtDate(effectiveCard.expiryDate)}`}
+                </div>
+              )}
 
               <div>
                 <p className="text-xs font-medium text-muted-foreground mb-2">Apply a benefit (tap to select, tap again to deselect)</p>
@@ -500,19 +564,76 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
               <p className="text-sm text-muted-foreground">
                 This patient does not have a loyalty card.
               </p>
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
-                  Purchase loyalty card — ₱{fmt(LOYALTY_CARD_PRICE)}
-                </Label>
-                <Switch
-                  id="purchaseCard"
-                  checked={purchaseCard}
-                  onCheckedChange={handlePurchaseCardToggle}
-                  className="shrink-0"
-                />
-              </div>
+              {!familyCard && (
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
+                    Purchase loyalty card — ₱{fmt(LOYALTY_CARD_PRICE)}
+                  </Label>
+                  <Switch
+                    id="purchaseCard"
+                    checked={purchaseCard}
+                    onCheckedChange={handlePurchaseCardToggle}
+                    className="shrink-0"
+                  />
+                </div>
+              )}
             </div>
           )}
+
+          {/* ── Family card search ── */}
+          <div className="pt-1 border-t">
+            {!familyCard && (
+              <button
+                type="button"
+                onClick={() => { setFamilyCardOpen((v) => !v); setFamilyQuery(''); setFamilyResults([]) }}
+                className="text-sm text-primary underline underline-offset-2"
+              >
+                {familyCardOpen ? 'Cancel' : 'Use a family member\'s card'}
+              </button>
+            )}
+
+            {familyCardOpen && !familyCard && (
+              <div className="mt-3 space-y-2">
+                <Input
+                  autoFocus
+                  placeholder="Search by name or phone…"
+                  value={familyQuery}
+                  onChange={(e) => setFamilyQuery(e.target.value)}
+                  className="min-h-[48px]"
+                />
+                {familySearching && (
+                  <p className="text-xs text-muted-foreground px-1">Searching…</p>
+                )}
+                {!familySearching && familyQuery.trim().length >= 2 && familyResults.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-1">No patients with an active loyalty card found.</p>
+                )}
+                {familyResults.map((r) => (
+                  <button
+                    key={r.patientId}
+                    type="button"
+                    onClick={() => selectFamilyCard(r)}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-left hover:bg-muted transition-colors"
+                  >
+                    <p className="font-semibold text-sm">{r.holderName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Card #{r.card.cardNumber} · expires {fmtDate(r.card.expiryDate)}
+                    </p>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                      {r.card.cleaningUses50 > 0 && <span className="text-xs text-primary">{r.card.cleaningUses50}× cleaning 50%</span>}
+                      {r.card.cleaningUses25 > 0 && <span className="text-xs text-primary">{r.card.cleaningUses25}× cleaning 25%</span>}
+                      {r.card.fillingUses50 > 0 && <span className="text-xs text-primary">{r.card.fillingUses50}× filling 50%</span>}
+                      {r.card.fillingUses25 > 0 && <span className="text-xs text-primary">{r.card.fillingUses25}× filling 25%</span>}
+                      {r.card.extractionUses > 0 && <span className="text-xs text-primary">{r.card.extractionUses}× extraction</span>}
+                      {r.card.rctUses > 0 && <span className="text-xs text-primary">{r.card.rctUses}× RCT</span>}
+                      {r.card.bracesUses > 0 && <span className="text-xs text-primary">{r.card.bracesUses}× braces</span>}
+                      {r.card.dentureUses > 0 && <span className="text-xs text-primary">{r.card.dentureUses}× dentures</span>}
+                      {r.card.wisdomToothUses > 0 && <span className="text-xs text-primary">{r.card.wisdomToothUses}× wisdom tooth</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 
