@@ -21,6 +21,7 @@ async function getClinicId(): Promise<string> {
 export type PatientSummary = {
   id: string
   firstName: string
+  middleName: string | null
   lastName: string
   phone: string
   dateOfBirth: Date
@@ -51,6 +52,7 @@ export async function getPatients(): Promise<PatientSummary[]> {
   return patients.map((p) => ({
     id: p.id,
     firstName: p.firstName,
+    middleName: p.middleName ?? null,
     lastName: p.lastName,
     phone: p.phone,
     dateOfBirth: p.dateOfBirth,
@@ -62,6 +64,7 @@ export async function getPatients(): Promise<PatientSummary[]> {
 
 export type CreatePatientData = {
   firstName: string
+  middleName?: string
   lastName: string
   dateOfBirth: string
   address: string
@@ -98,6 +101,7 @@ export async function createPatient(data: CreatePatientData): Promise<string> {
     data: {
       clinicId,
       firstName: data.firstName,
+      middleName: data.middleName?.trim() || null,
       lastName: data.lastName,
       dateOfBirth: new Date(data.dateOfBirth),
       address: data.address,
@@ -137,6 +141,7 @@ export async function createPatient(data: CreatePatientData): Promise<string> {
 export type FullPatient = {
   id: string
   firstName: string
+  middleName: string | null
   lastName: string
   dateOfBirth: Date
   address: string
@@ -248,6 +253,7 @@ export async function updatePatientInfo(
   patientId: string,
   data: {
     firstName: string
+    middleName?: string
     lastName: string
     dateOfBirth: string
     phone: string
@@ -266,6 +272,7 @@ export async function updatePatientInfo(
     where: { id: patientId },
     data: {
       firstName: data.firstName.trim(),
+      middleName: data.middleName?.trim() || null,
       lastName: data.lastName.trim(),
       dateOfBirth: new Date(data.dateOfBirth),
       phone: data.phone.trim(),

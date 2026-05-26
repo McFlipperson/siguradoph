@@ -52,6 +52,8 @@ export type CheckoutVisitData = {
     orSeriesCurrentNumber: number
   }
   serviceCategoryName: string
+  // Individual procedures parsed from treatment string
+  procedures: Array<{ name: string; category: string }>
 }
 
 export type CheckoutLoyaltyCard = {
@@ -127,13 +129,20 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
     data: { isActive: false },
   })
 
-  // Look up service category
-  const serviceEntry = await prisma.serviceCatalog.findFirst({
-    where: { clinicId, name: visit.treatment },
-    select: { category: true },
+  // Parse individual procedures from comma-joined treatment string
+  const procedureNames = visit.treatment.split(',').map((s) => s.trim()).filter(Boolean)
+  const catalogEntries = await prisma.serviceCatalog.findMany({
+    where: { clinicId, name: { in: procedureNames } },
+    select: { name: true, category: true },
   })
+  const categoryByName = Object.fromEntries(catalogEntries.map((e) => [e.name, e.category]))
+  const procedures = procedureNames.map((name) => ({
+    name,
+    category: categoryByName[name] ?? 'OTHER',
+  }))
 
-  const category = serviceEntry?.category ?? 'OTHER'
+  // Legacy single-category field (used by non-loyalty paths)
+  const category = procedures[0]?.category ?? 'OTHER'
 
   const patientName = `${visit.patient.firstName} ${visit.patient.lastName}`
   const rawCard = visit.patient.loyaltyCards[0] ?? null
@@ -188,19 +197,27 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
         orSeriesCurrentNumber: visit.clinic.orSeriesCurrentNumber,
       },
       serviceCategoryName: category,
+      procedures,
     },
     loyaltyCard,
     serviceCategory: category,
   }
 }
 
+// One entry per procedure that uses a loyalty benefit.
+// serviceAmount is the portion of the visit total this procedure accounts for.
+export type LoyaltyBenefitApplication = {
+  benefitKey: string    // e.g. CLEANING_50, EXTRACTION
+  category: string      // e.g. CLEANING, EXTRACTION
+  discountPct: number   // 0–100; 100 = free (CHECKUP)
+  serviceAmount: number // the price of this individual procedure
+}
+
 export type ConfirmPaymentData = {
   visitId: string
   paymentMethod: 'CASH' | 'GCASH'
-  applyLoyaltyDiscount: boolean
-  discountPct: number
-  discountCategory?: string   // which card benefit to decrement (replaces server-side lookup)
   loyaltyCardId: string | null
+  loyaltyBenefits: LoyaltyBenefitApplication[]  // empty = no loyalty discount
   purchaseNewLoyaltyCard: boolean
   // SC/PWD
   applyScPwdDiscount: boolean
@@ -335,10 +352,6 @@ export async function confirmPayment(
   const pad = clinic.orSeriesStart.length
   const orNumber = String(clinic.orSeriesCurrentNumber).padStart(pad, '0')
 
-  // Use the explicitly passed discount category (handles multi-procedure visits
-  // where visit.treatment is a comma-joined list that won't match catalog lookup)
-  const category = data.discountCategory ?? 'OTHER'
-
   const originalGross = Number(visit.grossAmount)
 
   // SC/PWD discount: 20% off original gross (RA 9994 / RA 10754)
@@ -346,16 +359,14 @@ export async function confirmPayment(
     ? Math.round(originalGross * 0.20 * 100) / 100
     : 0
 
-  // Loyalty discount applied to original gross (independent of SC/PWD)
-  let loyaltyDiscountAmount = 0
-  let grossAfterLoyalty = originalGross
-  if (data.applyLoyaltyDiscount && category === 'CHECKUP') {
-    loyaltyDiscountAmount = originalGross
-    grossAfterLoyalty = 0
-  } else if (data.applyLoyaltyDiscount && data.discountPct > 0) {
-    loyaltyDiscountAmount = Math.round(originalGross * (data.discountPct / 100) * 100) / 100
-    grossAfterLoyalty = Math.round((originalGross - loyaltyDiscountAmount) * 100) / 100
-  }
+  // Loyalty discount = sum of per-procedure discounts
+  const loyaltyDiscountAmount = data.loyaltyBenefits.reduce((sum, b) => {
+    const disc = b.discountPct >= 100
+      ? b.serviceAmount                                                      // free (CHECKUP)
+      : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100
+    return sum + disc
+  }, 0)
+  const grossAfterLoyalty = Math.max(0, Math.round((originalGross - loyaltyDiscountAmount) * 100) / 100)
 
   // Treatment gross after both discounts, floored at 0
   const treatmentGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
@@ -455,54 +466,43 @@ export async function confirmPayment(
     // existing card passed in, OR the card just purchased in this same transaction
     const effectiveLoyaltyCardId = data.loyaltyCardId ?? newLoyaltyCardId ?? null
 
-    // LoyaltyCardUsage + decrement if discount applied
-    if (data.applyLoyaltyDiscount && effectiveLoyaltyCardId && category !== 'CHECKUP') {
+    // LoyaltyCardUsage + decrement — one pass per benefit applied
+    if (data.loyaltyBenefits.length > 0 && effectiveLoyaltyCardId) {
       const fieldMap: Record<string, string> = {
         CLEANING_50: 'cleaningUses50',
         CLEANING_25: 'cleaningUses25',
-        FILLING_50: 'fillingUses50',
-        FILLING_25: 'fillingUses25',
-        RCT: 'rctUses',
-        DENTURES: 'dentureUses',
-        BRACES: 'bracesUses',
-        EXTRACTION: 'extractionUses',
-        WISDOM_TOOTH: 'wisdomToothUses',
+        FILLING_50:  'fillingUses50',
+        FILLING_25:  'fillingUses25',
+        RCT:         'rctUses',
+        DENTURES:    'dentureUses',
+        BRACES:      'bracesUses',
+        EXTRACTION:  'extractionUses',
+        WISDOM_TOOTH:'wisdomToothUses',
       }
 
-      let fieldKey: string | null = null
-      if (category === 'CLEANING') {
-        fieldKey = data.discountPct === 50 ? 'CLEANING_50' : 'CLEANING_25'
-      } else if (category === 'FILLING') {
-        fieldKey = data.discountPct === 50 ? 'FILLING_50' : 'FILLING_25'
-      } else if (category === 'RCT') {
-        fieldKey = 'RCT'
-      } else if (category === 'DENTURES') {
-        fieldKey = 'DENTURES'
-      } else if (category === 'BRACES') {
-        fieldKey = 'BRACES'
-      } else if (category === 'EXTRACTION') {
-        fieldKey = 'EXTRACTION'
-      } else if (category === 'WISDOM_TOOTH') {
-        fieldKey = 'WISDOM_TOOTH'
-      }
+      for (const benefit of data.loyaltyBenefits) {
+        // CHECKUP is free — no field to decrement (unlimited)
+        if (benefit.category !== 'CHECKUP' && fieldMap[benefit.benefitKey]) {
+          await tx.loyaltyCard.update({
+            where: { id: effectiveLoyaltyCardId },
+            data: { [fieldMap[benefit.benefitKey]]: { decrement: 1 } },
+          })
+        }
 
-      if (fieldKey && fieldMap[fieldKey]) {
-        const dbField = fieldMap[fieldKey]
-        await tx.loyaltyCard.update({
-          where: { id: effectiveLoyaltyCardId },
-          data: { [dbField]: { decrement: 1 } },
+        const discAmt = benefit.discountPct >= 100
+          ? benefit.serviceAmount
+          : Math.round(benefit.serviceAmount * (benefit.discountPct / 100) * 100) / 100
+
+        await tx.loyaltyCardUsage.create({
+          data: {
+            loyaltyCardId: effectiveLoyaltyCardId,
+            serviceType: benefit.category,
+            discountPct: benefit.discountPct,
+            discountAmount: discAmt,
+            invoiceId: invoice.id,
+          },
         })
       }
-
-      await tx.loyaltyCardUsage.create({
-        data: {
-          loyaltyCardId: effectiveLoyaltyCardId,
-          serviceType: category,
-          discountPct: data.discountPct,
-          discountAmount,
-          invoiceId: invoice.id,
-        },
-      })
     }
   })
 

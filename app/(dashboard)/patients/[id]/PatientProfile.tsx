@@ -617,6 +617,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   const router = useRouter()
 
   const [firstName, setFirstName] = useState(patient.firstName)
+  const [middleName, setMiddleName] = useState(patient.middleName ?? '')
   const [lastName, setLastName] = useState(patient.lastName)
   const [dob, setDob] = useState(
     new Date(patient.dateOfBirth).toISOString().split('T')[0]
@@ -631,7 +632,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   function handleSave() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !dob) return
     startTransition(async () => {
-      await updatePatientInfo(patient.id, { firstName, lastName, dateOfBirth: dob, phone, email, address })
+      await updatePatientInfo(patient.id, { firstName, middleName: middleName || undefined, lastName, dateOfBirth: dob, phone, email, address })
       setEditing(false)
       router.refresh()
     })
@@ -651,6 +652,10 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
                 <label className="text-xs font-medium text-muted-foreground">Last Name <span className="text-destructive">*</span></label>
                 <input className={inputClass} value={lastName} onChange={(e) => setLastName(e.target.value)} />
               </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Middle Name <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <input className={inputClass} value={middleName} onChange={(e) => setMiddleName(e.target.value)} placeholder="e.g. Santos" />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-muted-foreground">Date of Birth <span className="text-destructive">*</span></label>
@@ -682,7 +687,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl font-bold font-heading">
-                  {patient.firstName} {patient.lastName}
+                  {patient.firstName}{patient.middleName ? ` ${patient.middleName}` : ''} {patient.lastName}
                 </h1>
                 {patient.isSeniorCitizen && (
                   <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-xs shrink-0">SC</Badge>

@@ -47,6 +47,7 @@ export function IntakeForm({
 
   // ── Step 1 fields ──────────────────────────────────────────────────────────
   const [firstName, setFirstName] = useState('')
+  const [middleName, setMiddleName] = useState('')
   const [lastName, setLastName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [address, setAddress] = useState('')
@@ -79,7 +80,7 @@ export function IntakeForm({
     }
     setSavingStep1(true)
     const data: IntakeStep1Data = {
-      firstName, lastName, dateOfBirth, address, phone,
+      firstName, middleName: middleName || undefined, lastName, dateOfBirth, address, phone,
       email: email || undefined,
       medicalHistory, medications, allergies,
       isMinor,
@@ -114,7 +115,7 @@ export function IntakeForm({
   }
 
   function handleReset() {
-    setFirstName(''); setLastName(''); setDateOfBirth(''); setAddress('')
+    setFirstName(''); setMiddleName(''); setLastName(''); setDateOfBirth(''); setAddress('')
     setPhone(''); setEmail(''); setMedicalHistory(''); setMedications('')
     setAllergies(''); setIsMinor(false); setGuardianName('')
     setGuardianRelationship(''); setConsentGiven(false)
@@ -297,6 +298,11 @@ export function IntakeForm({
             <Label htmlFor="lastName">Last Name *</Label>
             <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} required className="min-h-[48px]" />
           </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="middleName">Middle Name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input id="middleName" value={middleName} onChange={e => setMiddleName(e.target.value)} className="min-h-[48px]" placeholder="e.g. Santos" />
         </div>
 
         <div className="flex flex-col gap-1.5">

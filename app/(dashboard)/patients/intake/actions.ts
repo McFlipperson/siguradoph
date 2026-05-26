@@ -20,6 +20,7 @@ export type ReminderChannel = 'MESSENGER' | 'EMAIL' | 'SMS' | 'NONE'
 
 export type IntakeStep1Data = {
   firstName: string
+  middleName?: string
   lastName: string
   dateOfBirth: string
   address: string
@@ -59,6 +60,7 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
       data: {
         clinicId,
         firstName: data.firstName.trim(),
+        middleName: data.middleName?.trim() || null,
         lastName: data.lastName.trim(),
         dateOfBirth: new Date(data.dateOfBirth),
         address: data.address.trim(),

@@ -36,7 +36,7 @@ function PatientCard({ patient }: { patient: PatientSummary }) {
         <CardContent className="flex flex-col gap-1 py-1">
           <div className="flex items-start justify-between gap-2">
             <p className="text-base font-semibold leading-tight">
-              {patient.firstName} {patient.lastName}
+              {patient.firstName}{patient.middleName ? ` ${patient.middleName}` : ''} {patient.lastName}
             </p>
             {patient.hasActiveLoyaltyCard && (
               <Badge className="shrink-0 bg-emerald-100 text-emerald-800 border-emerald-200">

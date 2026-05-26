@@ -145,6 +145,7 @@ model Patient {
   clinicId        String
   clinic          Clinic   @relation(fields: [clinicId], references: [id])
   firstName       String
+  middleName      String?
   lastName        String
   dateOfBirth     DateTime
   address         String

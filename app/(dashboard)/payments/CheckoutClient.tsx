@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type CheckoutLoyaltyCard, type FamilyCardResult } from './actions'
+import { confirmPayment, searchPatientLoyaltyCard, type CheckoutVisitData, type CheckoutLoyaltyCard, type FamilyCardResult, type LoyaltyBenefitApplication } from './actions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,7 +20,6 @@ type Props = {
   visitData: CheckoutVisitData
   loyaltyCard: CheckoutLoyaltyCard | null
 }
-
 
 type PrinterInfo = {
   type: 'bluetooth' | 'serial'
@@ -52,33 +51,49 @@ type BenefitOption = {
   isCheckup: boolean
 }
 
-/** Returns all redeemable loyalty benefits for a given card. */
-function getAvailableBenefits(card: CheckoutLoyaltyCard | null): BenefitOption[] {
+/**
+ * Returns redeemable loyalty benefits for a card.
+ * Pass `forCategory` to only get benefits relevant to a specific procedure category.
+ */
+function getAvailableBenefits(card: CheckoutLoyaltyCard | null, forCategory?: string): BenefitOption[] {
   if (!card) return []
-  const b: BenefitOption[] = []
+  const all: BenefitOption[] = []
 
-  b.push({ key: 'CHECKUP', category: 'CHECKUP', pct: 100, label: 'Free Check-up', remaining: '', isCheckup: true })
+  all.push({ key: 'CHECKUP', category: 'CHECKUP', pct: 100, label: 'Free Check-up', remaining: '', isCheckup: true })
 
   if (card.cleaningUses50 > 0)
-    b.push({ key: 'CLEANING_50', category: 'CLEANING', pct: 50, label: '50% off Cleaning', remaining: `${card.cleaningUses50} left`, isCheckup: false })
+    all.push({ key: 'CLEANING_50', category: 'CLEANING', pct: 50, label: '50% off Cleaning', remaining: `${card.cleaningUses50} left`, isCheckup: false })
   if (card.cleaningUses25 > 0)
-    b.push({ key: 'CLEANING_25', category: 'CLEANING', pct: 25, label: '25% off Cleaning', remaining: `${card.cleaningUses25} left`, isCheckup: false })
+    all.push({ key: 'CLEANING_25', category: 'CLEANING', pct: 25, label: '25% off Cleaning', remaining: `${card.cleaningUses25} left`, isCheckup: false })
   if (card.fillingUses50 > 0)
-    b.push({ key: 'FILLING_50', category: 'FILLING', pct: 50, label: '50% off Filling', remaining: `${card.fillingUses50} left`, isCheckup: false })
+    all.push({ key: 'FILLING_50', category: 'FILLING', pct: 50, label: '50% off Filling', remaining: `${card.fillingUses50} left`, isCheckup: false })
   if (card.fillingUses25 > 0)
-    b.push({ key: 'FILLING_25', category: 'FILLING', pct: 25, label: '25% off Filling', remaining: `${card.fillingUses25} left`, isCheckup: false })
+    all.push({ key: 'FILLING_25', category: 'FILLING', pct: 25, label: '25% off Filling', remaining: `${card.fillingUses25} left`, isCheckup: false })
   if (card.rctUses > 0)
-    b.push({ key: 'RCT', category: 'RCT', pct: 10, label: '10% off RCT', remaining: `${card.rctUses} left`, isCheckup: false })
+    all.push({ key: 'RCT', category: 'RCT', pct: 10, label: '10% off RCT', remaining: `${card.rctUses} left`, isCheckup: false })
   if (card.dentureUses > 0)
-    b.push({ key: 'DENTURES', category: 'DENTURES', pct: 15, label: '15% off Dentures', remaining: `${card.dentureUses} left`, isCheckup: false })
+    all.push({ key: 'DENTURES', category: 'DENTURES', pct: 15, label: '15% off Dentures', remaining: `${card.dentureUses} left`, isCheckup: false })
   if (card.bracesUses > 0)
-    b.push({ key: 'BRACES', category: 'BRACES', pct: 10, label: '10% off Braces', remaining: `${card.bracesUses} left`, isCheckup: false })
+    all.push({ key: 'BRACES', category: 'BRACES', pct: 10, label: '10% off Braces', remaining: `${card.bracesUses} left`, isCheckup: false })
   if (card.extractionUses > 0)
-    b.push({ key: 'EXTRACTION', category: 'EXTRACTION', pct: 20, label: '20% off Extraction', remaining: `${card.extractionUses} left`, isCheckup: false })
+    all.push({ key: 'EXTRACTION', category: 'EXTRACTION', pct: 20, label: '20% off Extraction', remaining: `${card.extractionUses} left`, isCheckup: false })
   if (card.wisdomToothUses > 0)
-    b.push({ key: 'WISDOM_TOOTH', category: 'WISDOM_TOOTH', pct: 10, label: '10% off Wisdom Tooth', remaining: `${card.wisdomToothUses} left`, isCheckup: false })
+    all.push({ key: 'WISDOM_TOOTH', category: 'WISDOM_TOOTH', pct: 10, label: '10% off Wisdom Tooth', remaining: `${card.wisdomToothUses} left`, isCheckup: false })
 
-  return b
+  if (forCategory) return all.filter((b) => b.category === forCategory)
+  return all
+}
+
+/** Discount % for a given benefit key */
+function benefitPctForKey(key: string): number {
+  const map: Record<string, number> = {
+    CHECKUP: 100,
+    CLEANING_50: 50, CLEANING_25: 25,
+    FILLING_50: 50,  FILLING_25: 25,
+    RCT: 10, DENTURES: 15, BRACES: 10,
+    EXTRACTION: 20, WISDOM_TOOTH: 10,
+  }
+  return map[key] ?? 0
 }
 
 // ---------------------------------------------------------------------------
@@ -89,10 +104,9 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const router = useRouter()
   const LOYALTY_CARD_PRICE = 500
 
-  // Pending loyalty card renewal: auto-enable purchase if no current card
   const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
-  // SC/PWD state — always available at checkout; profile flags pre-fill but are not required
+  // SC/PWD state
   const profileScId = visitData.scIdNumber ?? ''
   const profilePwdId = visitData.pwdIdNumber ?? ''
   const defaultScPwdType: 'SC' | 'PWD' = visitData.isSeniorCitizen ? 'SC' : visitData.isPwd ? 'PWD' : 'SC'
@@ -102,19 +116,37 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     defaultScPwdType === 'SC' ? profileScId : profilePwdId
   )
 
-  // When type switches, pre-fill from profile if available
   function handleScPwdTypeChange(t: 'SC' | 'PWD') {
     setScPwdType(t)
     setScPwdIdInput(t === 'SC' ? profileScId : profilePwdId)
   }
 
-  // Form state — purchaseCard must be declared before effectiveCard below
+  // Per-procedure allocation — one entry per procedure in the visit
+  type ProcAlloc = { name: string; category: string; amount: string; benefitKey: string | null }
+
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
-  const [selectedBenefitKey, setSelectedBenefitKey] = useState<string | null>(null)
+  const [allocations, setAllocations] = useState<ProcAlloc[]>(
+    visitData.procedures.map((p) => ({ name: p.name, category: p.category, amount: '', benefitKey: null }))
+  )
+
+  const isMultiProc = visitData.procedures.length > 1
+
+  function setAlloc(idx: number, patch: Partial<ProcAlloc>) {
+    setAllocations((prev) => prev.map((a, i) => (i === idx ? { ...a, ...patch } : a)))
+  }
+
+  // Single-procedure convenience: mirrors old selectedBenefitKey behaviour
+  function handleSingleBenefitToggle(key: string) {
+    setAllocations((prev) =>
+      prev.map((a, i) =>
+        i === 0 ? { ...a, benefitKey: a.benefitKey === key ? null : key, amount: String(visitData.grossAmount) } : a
+      )
+    )
+  }
 
   function handlePurchaseCardToggle(val: boolean) {
     setPurchaseCard(val)
-    if (!val && !loyaltyCard) setSelectedBenefitKey(null)
+    if (!val && !loyaltyCard) setAllocations((prev) => prev.map((a) => ({ ...a, benefitKey: null })))
   }
 
   // ── Family card state ──────────────────────────────────────────────────────
@@ -122,7 +154,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
   const [familyQuery, setFamilyQuery] = useState('')
   const [familySearching, setFamilySearching] = useState(false)
   const [familyResults, setFamilyResults] = useState<FamilyCardResult[]>([])
-  const [familyCard, setFamilyCard] = useState<(FamilyCardResult) | null>(null)
+  const [familyCard, setFamilyCard] = useState<FamilyCardResult | null>(null)
   const familyDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -148,14 +180,13 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     setFamilyResults([])
     setFamilyQuery('')
     setFamilyCardOpen(false)
-    setSelectedBenefitKey(null)
-    // Family card is mutually exclusive with purchasing a new card
+    setAllocations((prev) => prev.map((a) => ({ ...a, benefitKey: null })))
     setPurchaseCard(false)
   }
 
   function clearFamilyCard() {
     setFamilyCard(null)
-    setSelectedBenefitKey(null)
+    setAllocations((prev) => prev.map((a) => ({ ...a, benefitKey: null })))
   }
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -179,8 +210,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
 
   // Family card overrides own card for benefit selection
   const effectiveCard = familyCard?.card ?? loyaltyCard ?? (purchaseCard ? syntheticNewCard : null)
-  const availableBenefits = getAvailableBenefits(effectiveCard)
-  const selectedBenefit = availableBenefits.find((b) => b.key === selectedBenefitKey) ?? null
+
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'GCASH' | null>(null)
   const [loading, setLoading] = useState(false)
@@ -200,41 +230,41 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     newLoyaltyCardId?: string
   } | null>(null)
 
-  // Read printer from localStorage on mount
   useEffect(() => {
     const type = localStorage.getItem('printer_type') as 'bluetooth' | 'serial' | null
     const name = localStorage.getItem('printer_name')
     if (type && name) setPrinter({ type, name })
   }, [])
 
-  // Price calculations — dental is VAT-exempt
+  // ── Price calculations — dental is VAT-exempt ────────────────────────────
   const gross = visitData.grossAmount
-  const isCheckup = selectedBenefit?.isCheckup ?? false
-  const availablePct = selectedBenefit?.pct ?? 0
 
-  // Loyalty discount (off original gross)
-  const loyaltyDiscountAmount = selectedBenefit
-    ? isCheckup
-      ? gross
-      : Math.round(gross * (availablePct / 100) * 100) / 100
-    : 0
+  // Sum discount amounts across all procedure allocations that have a benefit applied
+  const loyaltyDiscountAmount = allocations.reduce((sum, a) => {
+    if (!a.benefitKey || !a.amount) return sum
+    const amt = parseFloat(a.amount) || 0
+    const pct = benefitPctForKey(a.benefitKey)
+    const disc = pct >= 100 ? amt : Math.round(amt * (pct / 100) * 100) / 100
+    return sum + disc
+  }, 0)
   const grossAfterLoyalty = Math.max(0, Math.round((gross - loyaltyDiscountAmount) * 100) / 100)
 
-  // SC/PWD discount (20% off original gross, if applied with valid ID)
   const scPwdIdValid = applyScPwd && scPwdIdInput.trim().length >= 3
   const scPwdDiscountAmount = scPwdIdValid
     ? Math.round(gross * 0.20 * 100) / 100
     : 0
 
-  // Treatment total after all discounts
   const discountedGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
-
   const loyaltyCardTotal = purchaseCard ? LOYALTY_CARD_PRICE : 0
   const combinedGross = discountedGross + loyaltyCardTotal
 
-  // VAT-exempt: all amounts are gross amounts
+  // Multi-proc allocation validation
+  const allocatedTotal = allocations.reduce((s, a) => s + (parseFloat(a.amount) || 0), 0)
+  const allocatedRounded = Math.round(allocatedTotal * 100) / 100
+  const unallocated = Math.round((gross - allocatedRounded) * 100) / 100
+  const allocationValid = !isMultiProc || Math.abs(unallocated) < 0.01
 
-  // Printer reconnect
+  // ── Printer reconnect ────────────────────────────────────────────────────
   const handleReconnectBluetooth = useCallback(async () => {
     if (typeof navigator === 'undefined' || !('bluetooth' in navigator)) return
     try {
@@ -257,34 +287,55 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     }
   }, [])
 
-  // Print logic
   async function doPrint(bytes: Uint8Array) {
     const { printViaBluetooth, printViaSerial } = await import('@/lib/thermal')
     if (printer?.type === 'bluetooth') {
-      const device = bluetoothDevice
-      if (!device) throw new Error('Bluetooth device not connected. Use Reconnect.')
-      await printViaBluetooth(device, bytes)
+      if (!bluetoothDevice) throw new Error('Bluetooth device not connected. Use Reconnect.')
+      await printViaBluetooth(bluetoothDevice, bytes)
     } else if (printer?.type === 'serial') {
-      const port = serialPort
-      if (!port) throw new Error('Serial port not connected. Use Reconnect.')
-      await printViaSerial(port, bytes)
+      if (!serialPort) throw new Error('Serial port not connected. Use Reconnect.')
+      await printViaSerial(serialPort, bytes)
     }
   }
 
-  // Handle confirm
+  function buildReceiptDiscountLabel(): string {
+    const parts: string[] = []
+    allocations.filter((a) => a.benefitKey).forEach((a) => {
+      const pct = benefitPctForKey(a.benefitKey!)
+      parts.push(`${pct >= 100 ? 'Free' : `${pct}%`} ${a.name}`)
+    })
+    if (scPwdIdValid) parts.push(scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754')
+    return parts.join(' + ')
+  }
+
+  // ── Handle confirm ───────────────────────────────────────────────────────
   async function handleConfirm() {
     if (!paymentMethod) return
+
+    if (isMultiProc && !allocationValid) {
+      setError(`Procedure amounts must add up to ₱${fmt(gross)}. Currently ₱${fmt(allocatedRounded)}.`)
+      return
+    }
+
     setLoading(true)
     setError(null)
+
+    // Build the array of benefits to apply — one per procedure that has a benefit selected
+    const loyaltyBenefits: LoyaltyBenefitApplication[] = allocations
+      .filter((a) => a.benefitKey && (parseFloat(a.amount) || 0) > 0)
+      .map((a) => ({
+        benefitKey: a.benefitKey!,
+        category: a.category,
+        discountPct: benefitPctForKey(a.benefitKey!),
+        serviceAmount: parseFloat(a.amount) || 0,
+      }))
 
     try {
       const res = await confirmPayment({
         visitId: visitData.id,
         paymentMethod,
-        applyLoyaltyDiscount: !!selectedBenefit,
-        discountPct: availablePct,
-        discountCategory: selectedBenefit?.category,
         loyaltyCardId: familyCard?.card.id ?? loyaltyCard?.id ?? null,
+        loyaltyBenefits,
         purchaseNewLoyaltyCard: purchaseCard,
         applyScPwdDiscount: scPwdIdValid,
         scPwdType: scPwdIdValid ? scPwdType : null,
@@ -300,9 +351,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         try {
           const { buildReceiptBytes } = await import('@/lib/thermal')
           const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
-          const receiptDiscountLabels: string[] = []
-          if (selectedBenefit) receiptDiscountLabels.push(selectedBenefit.label)
-          if (scPwdIdValid) receiptDiscountLabels.push(scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754')
+          const discLabel = buildReceiptDiscountLabel()
           const bytes = await buildReceiptBytes({
             clinicName: visitData.clinic.name,
             clinicAddress,
@@ -312,11 +361,11 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             patientName: visitData.patientName,
             serviceDescription: visitData.treatment,
             toothNumber: visitData.toothNumber,
-            netAmount: res.totalAmount, // VAT-exempt
+            netAmount: res.totalAmount,
             vatAmount: 0,
             grossAmount: res.totalAmount,
             discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
-            discountLabel: receiptDiscountLabels.length > 0 ? receiptDiscountLabels.join(' + ') : undefined,
+            discountLabel: discLabel || undefined,
             scPwdType: scPwdIdValid ? scPwdType : undefined,
             scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
             paymentMethod,
@@ -324,9 +373,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
           })
           await doPrint(bytes)
         } catch (printErr) {
-          toast.error(
-            printErr instanceof Error ? printErr.message : 'Print failed'
-          )
+          toast.error(printErr instanceof Error ? printErr.message : 'Print failed')
         }
       }
     } catch (err) {
@@ -341,6 +388,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
     try {
       const { buildReceiptBytes } = await import('@/lib/thermal')
       const clinicAddress = `${visitData.clinic.street}, ${visitData.clinic.city}, ${visitData.clinic.province} ${visitData.clinic.zip}`
+      const discLabel = buildReceiptDiscountLabel()
       const bytes = await buildReceiptBytes({
         clinicName: visitData.clinic.name,
         clinicAddress,
@@ -350,14 +398,11 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         patientName: visitData.patientName,
         serviceDescription: visitData.treatment,
         toothNumber: visitData.toothNumber,
-        netAmount: result.totalAmount, // VAT-exempt
+        netAmount: result.totalAmount,
         vatAmount: 0,
         grossAmount: result.totalAmount,
         discountAmount: loyaltyDiscountAmount + scPwdDiscountAmount,
-        discountLabel: [
-          ...(selectedBenefit ? [selectedBenefit.label] : []),
-          ...(scPwdIdValid ? [scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754'] : []),
-        ].join(' + ') || undefined,
+        discountLabel: discLabel || undefined,
         scPwdType: scPwdIdValid ? scPwdType : undefined,
         scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : undefined,
         paymentMethod: paymentMethod ?? 'CASH',
@@ -425,7 +470,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
           </Button>
         </div>
 
-        {/* Reconnect printer if needed */}
         {printer?.type === 'bluetooth' && !bluetoothDevice && (
           <Button variant="outline" className="w-full min-h-[48px]" onClick={handleReconnectBluetooth}>
             Reconnect Printer
@@ -524,40 +568,121 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
               {!familyCard && (
                 <div className="text-sm text-muted-foreground">
                   {effectiveCard.id === 'new'
-                    ? 'New card — select a benefit to use immediately'
+                    ? 'New card — select benefits to use immediately'
                     : `Card #${effectiveCard.cardNumber} · expires ${fmtDate(effectiveCard.expiryDate)}`}
                 </div>
               )}
 
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-2">Apply a benefit (tap to select, tap again to deselect)</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {availableBenefits.map((benefit) => {
-                    const selected = selectedBenefitKey === benefit.key
+              {isMultiProc ? (
+                /* ── MULTI-PROCEDURE: per-procedure rows ─────────────────── */
+                <div className="flex flex-col gap-4">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Enter the amount for each procedure, then tap a benefit to apply.
+                  </p>
+
+                  {allocations.map((alloc, idx) => {
+                    const procBenefits = getAvailableBenefits(effectiveCard, alloc.category)
+                    const amtNum = parseFloat(alloc.amount) || 0
                     return (
-                      <button
-                        key={benefit.key}
-                        type="button"
-                        onClick={() => setSelectedBenefitKey(selected ? null : benefit.key)}
-                        className={[
-                          'rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-colors',
-                          selected
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-background text-foreground',
-                        ].join(' ')}
-                      >
-                        <p className="font-semibold leading-tight">{benefit.label}</p>
-                        {benefit.remaining && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{benefit.remaining}</p>
+                      <div key={idx} className="rounded-xl border border-border p-3 flex flex-col gap-2.5">
+                        <p className="text-sm font-semibold">{alloc.name}</p>
+
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-muted-foreground">Amount (₱)</label>
+                          <Input
+                            type="number"
+                            inputMode="decimal"
+                            min={0}
+                            step="0.01"
+                            placeholder="0.00"
+                            value={alloc.amount}
+                            onChange={(e) => setAlloc(idx, { amount: e.target.value })}
+                            className="min-h-[48px]"
+                          />
+                        </div>
+
+                        {procBenefits.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {procBenefits.map((benefit) => {
+                              const selected = alloc.benefitKey === benefit.key
+                              const disabled = amtNum <= 0
+                              return (
+                                <button
+                                  key={benefit.key}
+                                  type="button"
+                                  disabled={disabled}
+                                  onClick={() => setAlloc(idx, { benefitKey: selected ? null : benefit.key })}
+                                  className={[
+                                    'rounded-xl border-2 px-3 py-2 text-left text-sm transition-colors',
+                                    selected
+                                      ? 'border-primary bg-primary/10 text-primary'
+                                      : 'border-border bg-background text-foreground',
+                                    disabled ? 'opacity-40 cursor-not-allowed' : '',
+                                  ].join(' ')}
+                                >
+                                  <p className="font-semibold leading-tight">{benefit.label}</p>
+                                  {benefit.remaining && (
+                                    <p className="text-xs text-muted-foreground mt-0.5">{benefit.remaining}</p>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">No card benefits for this procedure.</p>
                         )}
-                      </button>
+                      </div>
                     )
                   })}
-                  {availableBenefits.length === 0 && (
-                    <p className="col-span-2 text-sm text-muted-foreground">No benefits available on this card.</p>
+
+                  {/* Allocation total vs expected */}
+                  <div className={[
+                    'flex justify-between text-sm px-1 font-medium',
+                    allocationValid ? 'text-emerald-700' : 'text-amber-700',
+                  ].join(' ')}>
+                    <span>Total allocated</span>
+                    <span>₱{fmt(allocatedRounded)} / ₱{fmt(gross)}</span>
+                  </div>
+                  {!allocationValid && allocatedRounded > 0 && (
+                    <p className="text-xs text-amber-700 px-1">
+                      {unallocated > 0
+                        ? `₱${fmt(unallocated)} still unallocated`
+                        : `Over by ₱${fmt(Math.abs(unallocated))}`}
+                    </p>
                   )}
                 </div>
-              </div>
+              ) : (
+                /* ── SINGLE PROCEDURE: benefit grid ──────────────────────── */
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Apply a benefit (tap to select, tap again to deselect)</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {getAvailableBenefits(effectiveCard, allocations[0]?.category).map((benefit) => {
+                      const selected = allocations[0]?.benefitKey === benefit.key
+                      return (
+                        <button
+                          key={benefit.key}
+                          type="button"
+                          onClick={() => handleSingleBenefitToggle(benefit.key)}
+                          className={[
+                            'rounded-xl border-2 px-3 py-2.5 text-left text-sm transition-colors',
+                            selected
+                              ? 'border-primary bg-primary/10 text-primary'
+                              : 'border-border bg-background text-foreground',
+                          ].join(' ')}
+                        >
+                          <p className="font-semibold leading-tight">{benefit.label}</p>
+                          {benefit.remaining && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{benefit.remaining}</p>
+                          )}
+                        </button>
+                      )
+                    })}
+                    {getAvailableBenefits(effectiveCard, allocations[0]?.category).length === 0 && (
+                      <p className="col-span-2 text-sm text-muted-foreground">No benefits available for this procedure.</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="space-y-3">
@@ -588,7 +713,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                 onClick={() => { setFamilyCardOpen((v) => !v); setFamilyQuery(''); setFamilyResults([]) }}
                 className="text-sm text-primary underline underline-offset-2"
               >
-                {familyCardOpen ? 'Cancel' : 'Use a family member\'s card'}
+                {familyCardOpen ? 'Cancel' : "Use a family member's card"}
               </button>
             )}
 
@@ -657,7 +782,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
 
           {applyScPwd && (
             <div className="space-y-3 pt-1">
-              {/* Type selector — always show both options */}
               <div className="grid grid-cols-2 gap-2">
                 {(['SC', 'PWD'] as const).map((t) => (
                   <button
@@ -682,7 +806,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
                   : 'RA 10754 — PWD 20% discount (VAT-exempt)'}
               </p>
 
-              {/* ID number */}
               <div className="space-y-1">
                 <Label htmlFor="scPwdId" className="text-xs text-muted-foreground">
                   {scPwdType === 'SC' ? 'Senior Citizen ID No.' : 'PWD ID No.'}{' '}
@@ -720,12 +843,17 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
             <span>Service</span>
             <span>₱{fmt(gross)}</span>
           </div>
-          {selectedBenefit && loyaltyDiscountAmount > 0 && (
-            <div className="flex justify-between text-red-600">
-              <span>{selectedBenefit.label}</span>
-              <span>-₱{fmt(loyaltyDiscountAmount)}</span>
-            </div>
-          )}
+          {allocations.filter((a) => a.benefitKey).map((a, idx) => {
+            const pct = benefitPctForKey(a.benefitKey!)
+            const amt = parseFloat(a.amount) || 0
+            const disc = pct >= 100 ? amt : Math.round(amt * (pct / 100) * 100) / 100
+            return disc > 0 ? (
+              <div key={idx} className="flex justify-between text-red-600">
+                <span>{pct >= 100 ? 'Free' : `${pct}%`} off {a.name}</span>
+                <span>-₱{fmt(disc)}</span>
+              </div>
+            ) : null
+          })}
           {scPwdIdValid && (
             <div className="flex justify-between text-red-600">
               <span>{scPwdType === 'SC' ? 'SC 20% (RA 9994)' : 'PWD 20% (RA 10754)'}</span>
@@ -791,7 +919,7 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── Section 6: Confirm ───────────────────────────────── */}
+      {/* ── Section 5: Confirm ───────────────────────────────── */}
       <Button
         className="w-full min-h-[56px] text-base font-semibold"
         disabled={!paymentMethod || loading}
@@ -819,7 +947,6 @@ export default function CheckoutClient({ visitData, loyaltyCard }: Props) {
         )}
       </div>
 
-      {/* Reconnect button if printer stored but device not linked */}
       {printer?.type === 'bluetooth' && !bluetoothDevice && (
         <Button variant="outline" className="w-full min-h-[48px]" onClick={handleReconnectBluetooth}>
           Reconnect Printer
