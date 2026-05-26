@@ -3,184 +3,156 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Sigurado — Dental Clinic Management Built for the Philippines',
+  title: 'Sigurado — Dental Clinic Software Built for the Philippines',
   description:
-    'Run your dental clinic from your phone. Receipts, patient records, government tax requirements, and appointment reminders — handled automatically.',
+    'If you can use a smartphone, Sigurado is for you. Patient records, receipts, payroll, and patient privacy — no tech background needed.',
 }
+
+const FREE_FEATURES = [
+  'Patient records, medical history & visit notes',
+  'OR receipts, invoices & thermal printing',
+  'Scheduling & appointments',
+  'Patient reminders via Messenger & email',
+  'Loyalty cards & Senior Citizen / PWD discounts',
+  'Expense tracking & revenue reports',
+  'Data export — patients, invoices, expenses',
+  'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holidays',
+  'Patient privacy tools — consent records & audit logs',
+  'Bookkeeper portal with monthly ready-to-file reports',
+  'Messenger support 9am–4pm',
+]
+
+const BASIC_FEATURES = [
+  'Patient records, medical history & visit notes',
+  'OR receipts, invoices & thermal printing',
+  'Scheduling & appointments',
+  'Patient reminders via Messenger & email',
+  'Loyalty cards & Senior Citizen / PWD discounts',
+  'Expense tracking & revenue reports',
+  'Data export — patients, invoices, expenses',
+  'Messenger support 9am–4pm',
+]
+
+const PRO_EXTRAS = [
+  'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
+  'Employee records & attendance tracking',
+  'Service Incentive Leave (SIL) tracking',
+  'Patient privacy tools — consent records & audit logs',
+  'Incident logging & breach reporting',
+  'Bookkeeper portal — read-only access to your clinic financials',
+  'Quarterly revenue summary — gross sales, expenses, net payable',
+  'Invoice & expense CSV export in accountant-ready format',
+  'DAT file export for government submission',
+  'Monthly reports delivered to your bookkeeper — nothing for you to prepare',
+  'Messenger support 9am–4pm',
+]
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen antialiased" style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}>
+    <div
+      className="min-h-screen antialiased"
+      style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}
+    >
 
-      {/* ════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════
           NAV
-      ════════════════════════════════════════════════════════ */}
-      <nav className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid #EEF0F5' }}>
-        <Image src="/logo.png" alt="Sigurado" width={160} height={107} className="object-contain" priority />
-        <Link
-          href="/login"
-          className="text-sm font-semibold px-5 py-2.5 rounded-xl"
-          style={{ background: '#1A3FD0', color: '#ffffff' }}
-        >
-          Sign in
-        </Link>
-      </nav>
-
-      {/* ════════════════════════════════════════════════════════
-          HERO — white, clean, logo front and centre
-      ════════════════════════════════════════════════════════ */}
-      <section
-        className="px-5 pt-12 pb-16 flex flex-col items-center text-center"
-        style={{ background: '#F5F8FF' }}
+      ══════════════════════════════════════════════════════════ */}
+      <nav
+        className="flex items-center justify-between px-5 py-4"
+        style={{ borderBottom: '1px solid #EEF0F5', background: '#ffffff' }}
       >
-        {/* Big logo */}
-        <Image
-          src="/logo.png"
-          alt="Sigurado"
-          width={320}
-          height={213}
-          className="object-contain mb-8"
-          priority
-        />
-
-        {/* Badge */}
-        <span
-          className="text-xs font-bold tracking-widest uppercase px-3 py-1.5 rounded-full mb-5"
-          style={{ background: '#E8EEFB', color: '#1A3FD0' }}
-        >
-          Built for Philippine Dental Clinics
-        </span>
-
-        {/* Headline */}
-        <h1
-          className="font-black leading-tight mb-5"
-          style={{ fontSize: 'clamp(32px, 9vw, 64px)', color: '#0B1627', letterSpacing: '-0.025em', maxWidth: 560 }}
-        >
-          Your clinic&apos;s paperwork,{' '}
-          <span style={{ color: '#1A3FD0' }}>handled.</span>
-        </h1>
-
-        <p className="text-base leading-relaxed mb-8 max-w-sm" style={{ color: '#5C6A85' }}>
-          Sigurado generates official receipts, tracks patient records, and keeps you
-          compliant with Philippine tax and privacy laws — automatically, from any phone.
-        </p>
-
-        {/* CTAs */}
-        <div className="flex flex-col gap-3 w-full max-w-xs">
+        <Image src="/logo.png" alt="Sigurado" width={160} height={107} className="object-contain" priority />
+        <div className="flex items-center gap-2">
           <Link
             href="/register"
-            className="block text-center font-bold text-base py-4 rounded-2xl"
+            className="text-sm font-bold px-4 py-2.5 rounded-xl"
             style={{ background: '#1A3FD0', color: '#ffffff' }}
           >
-            Start for free
+            Register
           </Link>
           <Link
             href="/login"
-            className="block text-center font-semibold text-sm py-3.5 rounded-2xl"
-            style={{ background: '#ffffff', color: '#1A3FD0', border: '1.5px solid #C7D3F0' }}
+            className="text-sm font-semibold px-4 py-2.5 rounded-xl"
+            style={{ background: '#F5F8FF', color: '#1A3FD0', border: '1.5px solid #C7D3F0' }}
           >
-            Sign in to your clinic →
+            Sign in
           </Link>
         </div>
-        <p className="mt-4 text-xs" style={{ color: '#9AAABB' }}>
-          Free plan available. No credit card required.
-        </p>
-      </section>
+      </nav>
 
-      {/* ════════════════════════════════════════════════════════
-          COMPLIANCE STRIP — three pills
-      ════════════════════════════════════════════════════════ */}
-      <section className="px-5 py-8" style={{ background: '#ffffff', borderTop: '1px solid #EEF0F5', borderBottom: '1px solid #EEF0F5' }}>
-        <p className="text-xs font-semibold tracking-widest uppercase text-center mb-5" style={{ color: '#9AAABB' }}>
-          Compliant with Philippine law
-        </p>
-        <div className="flex flex-col gap-3">
-          {[
-            { tag: 'RR 11-2025', label: 'Bureau of Internal Revenue e-invoicing' },
-            { tag: 'RA 10173', label: 'Data Privacy Act — patient records protected' },
-            { tag: 'RA 9994 / 10754', label: 'Senior Citizen & PWD discounts applied automatically' },
-          ].map((item) => (
-            <div
-              key={item.tag}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{ background: '#F5F8FF', border: '1px solid #E0E8F8' }}
-            >
-              <span
-                className="shrink-0 text-xs font-black tracking-tight px-2 py-1 rounded-lg"
-                style={{ background: '#1A3FD0', color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}
-              >
-                {item.tag}
-              </span>
-              <span className="text-sm font-medium" style={{ color: '#2A3A56' }}>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ════════════════════════════════════════════════════════
-          PAIN POINTS
-      ════════════════════════════════════════════════════════ */}
-      <section className="px-5 py-14" style={{ background: '#0B1627' }}>
-        <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#F5C018' }}>
-          Sound familiar?
-        </p>
-        <h2
-          className="font-black leading-tight mb-9"
-          style={{ fontSize: 'clamp(26px, 7vw, 44px)', color: '#ffffff', letterSpacing: '-0.02em' }}
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 1 — HERO
+      ══════════════════════════════════════════════════════════ */}
+      <section className="px-5 pt-12 pb-14" style={{ background: '#F5F8FF' }}>
+        <h1
+          className="font-black leading-tight mb-5"
+          style={{ fontSize: 'clamp(30px, 8vw, 58px)', color: '#0B1627', letterSpacing: '-0.025em', maxWidth: 560 }}
         >
-          You didn&apos;t go to dental
-          <br />school to fill out forms.
-        </h2>
-        <div className="flex flex-col gap-4">
-          {[
-            'Hand-writing OR numbers on every receipt and computing the total yourself.',
-            'Forgetting which patients are six months overdue for their cleaning.',
-            'Digging through paper folders when a patient asks about last year\'s treatment.',
-            'Not being sure if the BIR paperwork is done right — or at all.',
-            'Processing payroll at the end of the day when you should be going home.',
-          ].map((pain) => (
-            <div
-              key={pain}
-              className="flex gap-3 px-4 py-4 rounded-xl text-sm leading-relaxed"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.75)', border: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              <span className="shrink-0 font-bold mt-0.5" style={{ color: '#F5C018' }}>—</span>
-              {pain}
-            </div>
-          ))}
-        </div>
+          Dental clinic software
+          <br />built for the Philippines.
+        </h1>
+        <p
+          className="text-base leading-relaxed mb-8"
+          style={{ color: '#5C6A85', maxWidth: 460 }}
+        >
+          If you can use a smartphone, Sigurado is for you. Patient records, receipts,
+          payroll, and patient privacy — no tech background needed.
+        </p>
+        <Link
+          href="/register"
+          className="inline-block font-black text-base px-7 py-4 rounded-2xl"
+          style={{ background: '#1A3FD0', color: '#ffffff' }}
+        >
+          Start your free month — no credit card needed
+        </Link>
       </section>
 
-      {/* ════════════════════════════════════════════════════════
-          HOW IT WORKS
-      ════════════════════════════════════════════════════════ */}
-      <section className="px-5 py-14" style={{ background: '#ffffff' }}>
-        <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#1A3FD0' }}>
-          How it works
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 2 — EGO + TRUST
+      ══════════════════════════════════════════════════════════ */}
+      <section
+        className="px-5 py-12"
+        style={{ background: '#0B1627' }}
+      >
+        <p
+          className="font-bold leading-snug mb-6"
+          style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', maxWidth: 480 }}
+        >
+          Your patients judge your clinic before they sit in the chair.
+          Sigurado makes sure what they see is professional.
         </p>
+        <p
+          className="font-black"
+          style={{ fontSize: 'clamp(18px, 4vw, 26px)', color: '#F5C018' }}
+        >
+          Built by a dentist, for dentists.
+        </p>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 3 — HOW IT WORKS
+      ══════════════════════════════════════════════════════════ */}
+      <section className="px-5 py-14" style={{ background: '#ffffff' }}>
         <h2
           className="font-black leading-tight mb-10"
-          style={{ fontSize: 'clamp(26px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
+          style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
         >
-          Up and running
-          <br />in three steps.
+          Register and you&apos;re ready to go.
         </h2>
+
         <div className="flex flex-col gap-6">
           {[
             {
               n: '1',
-              title: 'Register your clinic',
-              body: 'Enter your clinic name, TIN, and address. Start on the free plan immediately — no credit card, no waiting.',
+              title: 'Create your clinic account — takes less than 5 minutes.',
             },
             {
               n: '2',
-              title: 'Record visits from your phone',
-              body: 'Your secretary taps through a quick visit form. Diagnosis, treatment, price — done in under a minute from any phone or tablet.',
+              title: 'Add your patients, services, and staff. We guide you through every step.',
             },
             {
               n: '3',
-              title: 'Official receipts appear automatically',
-              body: 'Every visit generates a properly numbered, BIR-compliant official receipt. Email it, print it, or keep it on record. No spreadsheets.',
+              title: 'Start seeing patients. Sigurado handles the records, receipts, and reports.',
             },
           ].map((step) => (
             <div
@@ -194,53 +166,49 @@ export default function LandingPage() {
               >
                 {step.n}
               </div>
-              <div>
-                <p className="font-bold text-sm mb-1.5" style={{ color: '#0B1627' }}>{step.title}</p>
-                <p className="text-sm leading-relaxed" style={{ color: '#5C6A85' }}>{step.body}</p>
-              </div>
+              <p className="text-sm leading-relaxed font-medium pt-1.5" style={{ color: '#2A3A56' }}>
+                {step.title}
+              </p>
             </div>
           ))}
         </div>
+
+        <p className="mt-6 text-sm" style={{ color: '#9AAABB' }}>
+          Questions? We&apos;re on Messenger, 9am–4pm.
+        </p>
       </section>
 
-      {/* ════════════════════════════════════════════════════════
-          PRICING — 3 columns side by side, horizontal scroll
-      ════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 4 — PRICING
+      ══════════════════════════════════════════════════════════ */}
       <section className="py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
         <div className="px-5 mb-8">
-          <p className="text-xs font-bold tracking-widest uppercase mb-2" style={{ color: '#1A3FD0' }}>Pricing</p>
           <h2
             className="font-black leading-tight"
-            style={{ fontSize: 'clamp(26px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
+            style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
           >
             Simple, honest pricing.
           </h2>
           <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Month-to-month. Cancel any time.</p>
         </div>
 
-        {/* Side-by-side cards — scroll on small phones */}
-        <div className="px-5 overflow-x-auto pb-2">
+        {/* Horizontal scroll container */}
+        <div className="px-5 overflow-x-auto pb-3">
           <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
 
-            {/* FREE */}
+            {/* ── FREE ── */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden"
-              style={{ width: 240, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
+              style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
             >
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
-                <p className="font-black text-lg mb-0.5" style={{ color: '#0B1627' }}>Free</p>
-                <p className="text-xs mb-3" style={{ color: '#9AAABB' }}>Forever</p>
-                <p className="font-black text-3xl" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱0</p>
+                <p className="font-black text-xl mb-0.5" style={{ color: '#0B1627' }}>Free — 1 Month</p>
+                <p className="text-xs mb-1" style={{ color: '#5C6A85' }}>Try everything, no commitment.</p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>Free</p>
+                <p className="text-xs mt-1" style={{ color: '#9AAABB' }}>No credit card needed. Full access for 30 days.</p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
-                {[
-                  '1 clinic location',
-                  'Unlimited patients',
-                  'Unlimited visits',
-                  'Official receipt generation',
-                  'Patient records',
-                  'Appointment scheduling',
-                ].map((f) => (
+                {FREE_FEATURES.map((f) => (
                   <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: '#3A4A66' }}>
                     <span className="shrink-0 font-bold" style={{ color: '#1A3FD0' }}>✓</span>
                     {f}
@@ -250,38 +218,59 @@ export default function LandingPage() {
               <div className="px-5 pb-5">
                 <Link
                   href="/register"
-                  className="block text-center font-bold text-sm py-3 rounded-xl"
+                  className="block text-center font-bold text-sm py-3.5 rounded-xl"
                   style={{ background: '#E8EEFB', color: '#1A3FD0' }}
                 >
-                  Get started free
+                  Start for free
                 </Link>
               </div>
             </div>
 
-            {/* BASIC */}
+            {/* ── BASIC ── */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden"
-              style={{ width: 240, background: '#1A3FD0', flexShrink: 0 }}
+              style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
+            >
+              <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
+                <p className="font-black text-xl mb-0.5" style={{ color: '#0B1627' }}>Basic</p>
+                <p className="text-xs mb-1" style={{ color: '#5C6A85' }}>Everything your clinic needs to run smoothly.</p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱999<span className="text-sm font-semibold">/month</span></p>
+              </div>
+              <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
+                {BASIC_FEATURES.map((f) => (
+                  <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: '#3A4A66' }}>
+                    <span className="shrink-0 font-bold" style={{ color: '#1A3FD0' }}>✓</span>
+                    {f}
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 pb-5">
+                <Link
+                  href="/register"
+                  className="block text-center font-bold text-sm py-3.5 rounded-xl"
+                  style={{ background: '#0B1627', color: '#ffffff' }}
+                >
+                  Get Basic
+                </Link>
+              </div>
+            </div>
+
+            {/* ── PRO ── */}
+            <div
+              className="flex flex-col rounded-2xl overflow-hidden"
+              style={{ width: 260, background: '#1A3FD0', flexShrink: 0 }}
             >
               <div className="px-4 py-1.5 text-center" style={{ background: '#F5C018' }}>
                 <p className="text-xs font-black tracking-widest uppercase" style={{ color: '#0B1627' }}>Most Popular</p>
               </div>
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
-                <p className="font-black text-lg mb-0.5" style={{ color: '#ffffff' }}>Basic</p>
-                <p className="text-xs mb-3" style={{ color: 'rgba(255,255,255,0.55)' }}>per month</p>
-                <p className="font-black text-3xl" style={{ color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱999</p>
+                <p className="font-black text-xl mb-0.5" style={{ color: '#ffffff' }}>Pro</p>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>With Bookkeeping Support.</p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱1,500<span className="text-sm font-semibold">/month</span></p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
-                {[
-                  'Everything in Free',
-                  'Payroll tracking for staff',
-                  'Expense recording',
-                  'Loyalty card management',
-                  'Patient reminders via Messenger',
-                  'Quarterly financial summaries',
-                  'Audit logs for data privacy',
-                  'SC / PWD discount tracking',
-                ].map((f) => (
+                <p className="text-xs font-bold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Everything in Basic, plus:</p>
+                {PRO_EXTRAS.map((f) => (
                   <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: 'rgba(255,255,255,0.85)' }}>
                     <span className="shrink-0 font-bold" style={{ color: '#F5C018' }}>✓</span>
                     {f}
@@ -291,44 +280,10 @@ export default function LandingPage() {
               <div className="px-5 pb-5">
                 <Link
                   href="/register"
-                  className="block text-center font-black text-sm py-3 rounded-xl"
+                  className="block text-center font-black text-sm py-3.5 rounded-xl"
                   style={{ background: '#F5C018', color: '#0B1627' }}
                 >
-                  Get Basic — ₱999 / mo
-                </Link>
-              </div>
-            </div>
-
-            {/* PRO */}
-            <div
-              className="flex flex-col rounded-2xl overflow-hidden"
-              style={{ width: 240, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
-            >
-              <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
-                <p className="font-black text-lg mb-0.5" style={{ color: '#0B1627' }}>Pro</p>
-                <p className="text-xs mb-3" style={{ color: '#9AAABB' }}>per month</p>
-                <p className="font-black text-3xl" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱1,500</p>
-              </div>
-              <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
-                {[
-                  'Everything in Basic',
-                  'With Bookkeeping Support — a real accountant reviews your records each quarter',
-                  'BIR e-invoicing transmittal',
-                  'Priority support',
-                ].map((f) => (
-                  <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: '#3A4A66' }}>
-                    <span className="shrink-0 font-bold" style={{ color: '#1A3FD0' }}>✓</span>
-                    {f}
-                  </div>
-                ))}
-              </div>
-              <div className="px-5 pb-5 mt-auto">
-                <Link
-                  href="/register"
-                  className="block text-center font-bold text-sm py-3 rounded-xl"
-                  style={{ background: '#0B1627', color: '#ffffff' }}
-                >
-                  Get Pro — ₱1,500 / mo
+                  Get Pro
                 </Link>
               </div>
             </div>
@@ -336,107 +291,75 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <p className="px-5 mt-5 text-xs" style={{ color: '#9AAABB' }}>
+        <p className="px-5 mt-4 text-xs" style={{ color: '#9AAABB' }}>
           Prices are in Philippine Pesos (₱). Upgrade, downgrade, or cancel any time.
         </p>
       </section>
 
-      {/* ════════════════════════════════════════════════════════
-          PRIVACY CALLOUT
-      ════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 5 — PRIVACY CALLOUT
+      ══════════════════════════════════════════════════════════ */}
       <section className="px-5 py-14" style={{ background: '#ffffff', borderTop: '1px solid #EEF0F5' }}>
-        <div
-          className="rounded-2xl p-6"
-          style={{ background: '#0B1627' }}
-        >
-          <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: '#F5C018' }}>
-            Data privacy
-          </p>
+        <div className="rounded-2xl p-6" style={{ background: '#0B1627' }}>
           <h2
             className="font-black leading-tight mb-4"
-            style={{ fontSize: 'clamp(22px, 5vw, 34px)', color: '#ffffff', letterSpacing: '-0.02em' }}
+            style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', letterSpacing: '-0.02em' }}
           >
-            Patient records are
-            Sensitive Personal
-            Information under
-            Philippine law.
+            Patient records must be kept private by law.
           </h2>
-          <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.65)' }}>
-            Republic Act 10173 — the Data Privacy Act — requires dental clinics to protect
-            patient information. Sigurado logs every access, records consent at enrollment,
-            and ensures no clinic ever sees another clinic&apos;s data.
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+            Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
           </p>
-          <div className="flex flex-col gap-2">
-            {[
-              'Every patient record access is logged with the user and timestamp',
-              'Consent is recorded at patient enrollment',
-              'Clinics are fully isolated — your data stays yours',
-            ].map((point) => (
-              <div key={point} className="flex gap-2 text-xs leading-snug" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                <span style={{ color: '#F5C018' }}>—</span> {point}
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════════════════════
-          FINAL CTA
-      ════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 6 — FINAL CTA
+      ══════════════════════════════════════════════════════════ */}
       <section
         className="px-5 py-16 flex flex-col items-center text-center"
         style={{ background: '#1A3FD0' }}
       >
-        <Image
-          src="/logo.png"
-          alt="Sigurado"
-          width={200}
-          height={133}
-          className="object-contain mb-7 brightness-0 invert"
-        />
         <h2
-          className="font-black leading-tight mb-4"
-          style={{ fontSize: 'clamp(28px, 7vw, 48px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 420 }}
+          className="font-black leading-tight mb-3"
+          style={{ fontSize: 'clamp(26px, 7vw, 46px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 420 }}
         >
-          Your clinic is ready
-          <br />when you are.
+          Ready to run your clinic the modern way?
         </h2>
-        <p className="text-sm mb-9 max-w-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
-          Start on the free plan today. No credit card, no setup fee, no contracts.
+        <p className="text-sm mb-9" style={{ color: 'rgba(255,255,255,0.65)', maxWidth: 340 }}>
+          Join dental clinics across the Philippines already using Sigurado.
         </p>
-        <div className="flex flex-col gap-3 w-full max-w-xs">
-          <Link
-            href="/register"
-            className="block text-center font-black text-base py-4 rounded-2xl"
-            style={{ background: '#F5C018', color: '#0B1627' }}
-          >
-            Register your clinic — it&apos;s free
-          </Link>
-          <Link
-            href="/login"
-            className="block text-center font-semibold text-sm py-3.5 rounded-2xl"
-            style={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)' }}
-          >
-            Already registered? Sign in →
-          </Link>
-        </div>
+        <Link
+          href="/register"
+          className="inline-block font-black text-base px-7 py-4 rounded-2xl"
+          style={{ background: '#F5C018', color: '#0B1627' }}
+        >
+          Start your free month — no credit card needed
+        </Link>
       </section>
 
-      {/* ════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════
           FOOTER
-      ════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════ */}
       <footer
-        className="px-5 py-6 flex flex-col gap-1"
-        style={{ background: '#060E1F', borderTop: '1px solid rgba(255,255,255,0.05)' }}
+        className="px-5 py-8 flex flex-col gap-3"
+        style={{ background: '#060E1F' }}
       >
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        <Image src="/logo.png" alt="Sigurado" width={100} height={67} className="object-contain brightness-0 invert opacity-60" />
+        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
         </p>
-        <div className="flex gap-5 mt-1">
-          <Link href="/login" className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Sign in</Link>
-          <Link href="/register" className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>Register</Link>
-        </div>
+        <a
+          href="https://m.me/sigurado"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs underline"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
+        >
+          Contact us on Messenger
+        </a>
       </footer>
+
     </div>
   )
 }

@@ -87,6 +87,7 @@ model Clinic {
   loyaltyCardPrice         Decimal      @default(500)
   loyaltyValidityMonths    Int          @default(24)
   accountantEmail          String?
+  trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
 

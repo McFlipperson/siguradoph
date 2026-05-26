@@ -180,6 +180,8 @@ export async function saveStep1(data: Step1Data): Promise<string> {
         facebookPageUrl: data.facebookPageUrl || null,
         accountantEmail: data.accountantEmail || null,
         enrollmentDate: new Date(data.enrollmentDate),
+        // 30-day free trial starts the moment the clinic is created
+        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         // Required fields with defaults until step 2
         tin: '',
         rdoCode: '',

@@ -19,6 +19,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user?.clinic?.onboardingComplete) redirect('/onboarding')
 
+  // Trial enforcement — block access 30 days after registration
+  if (user.clinic.trialEndsAt && new Date() > user.clinic.trialEndsAt) {
+    redirect('/trial-expired')
+  }
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <main className="max-w-screen-sm mx-auto px-4 py-6">{children}</main>
