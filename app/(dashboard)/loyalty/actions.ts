@@ -101,3 +101,85 @@ export async function setPendingLoyaltyCard(patientId: string) {
   })
   revalidatePath('/loyalty')
 }
+
+// ---------------------------------------------------------------------------
+// Clinic loyalty settings
+// ---------------------------------------------------------------------------
+
+export async function getClinicLoyaltySettings() {
+  const clinicId = await getClinicId()
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: {
+      loyaltyCardEnabled: true,
+      loyaltyCardPrice: true,
+      loyaltyValidityMonths: true,
+    },
+  })
+  if (!clinic) throw new Error('Clinic not found')
+  return {
+    loyaltyCardEnabled: clinic.loyaltyCardEnabled,
+    loyaltyCardPrice: Number(clinic.loyaltyCardPrice),
+    loyaltyValidityMonths: clinic.loyaltyValidityMonths,
+  }
+}
+
+export async function updateClinicLoyaltySettings(data: {
+  loyaltyCardPrice: number
+  loyaltyValidityMonths: number
+  loyaltyCardEnabled: boolean
+}) {
+  const clinicId = await getClinicId()
+  await prisma.clinic.update({
+    where: { id: clinicId },
+    data: {
+      loyaltyCardPrice: data.loyaltyCardPrice,
+      loyaltyValidityMonths: data.loyaltyValidityMonths,
+      loyaltyCardEnabled: data.loyaltyCardEnabled,
+    },
+  })
+  revalidatePath('/loyalty')
+}
+
+// ---------------------------------------------------------------------------
+// Edit a patient's loyalty card uses / expiry
+// ---------------------------------------------------------------------------
+
+export async function updateLoyaltyCard(
+  cardId: string,
+  data: {
+    cleaningUses50: number
+    cleaningUses25: number
+    fillingUses50: number
+    fillingUses25: number
+    rctUses: number
+    dentureUses: number
+    bracesUses: number
+    wisdomToothUses: number
+    extractionUses: number
+    expiryDate: string
+  }
+) {
+  const clinicId = await getClinicId()
+  const card = await prisma.loyaltyCard.findFirst({
+    where: { id: cardId, clinicId },
+  })
+  if (!card) throw new Error('Card not found')
+
+  await prisma.loyaltyCard.update({
+    where: { id: cardId },
+    data: {
+      cleaningUses50: Math.max(0, data.cleaningUses50),
+      cleaningUses25: Math.max(0, data.cleaningUses25),
+      fillingUses50: Math.max(0, data.fillingUses50),
+      fillingUses25: Math.max(0, data.fillingUses25),
+      rctUses: Math.max(0, data.rctUses),
+      dentureUses: Math.max(0, data.dentureUses),
+      bracesUses: Math.max(0, data.bracesUses),
+      wisdomToothUses: Math.max(0, data.wisdomToothUses),
+      extractionUses: Math.max(0, data.extractionUses),
+      expiryDate: new Date(data.expiryDate),
+    },
+  })
+  revalidatePath('/loyalty')
+}

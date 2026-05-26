@@ -13,6 +13,7 @@ import {
   LogOut,
   X,
   ChevronRight,
+  CreditCard,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -53,8 +54,9 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Clinic',
     items: [
-      { label: 'Employees',   href: '/employees', icon: Users,     color: 'bg-violet-500' },
-      { label: 'Reports',     href: '/reports',   icon: BarChart2, color: 'bg-emerald-500'},
+      { label: 'Employees',     href: '/employees', icon: Users,       color: 'bg-violet-500' },
+      { label: 'Loyalty Cards', href: '/loyalty',   icon: CreditCard,  color: 'bg-rose-500'   },
+      { label: 'Reports',       href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500'},
     ],
   },
   {

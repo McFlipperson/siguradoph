@@ -6,7 +6,9 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { setPendingLoyaltyCard } from './actions'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { setPendingLoyaltyCard, updateClinicLoyaltySettings, updateLoyaltyCard } from './actions'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -21,6 +23,18 @@ type UsageHistory = {
   usedAt: string
 }
 
+type CardUses = {
+  cleaningUses50: number
+  cleaningUses25: number
+  fillingUses50: number
+  fillingUses25: number
+  rctUses: number
+  dentureUses: number
+  bracesUses: number
+  wisdomToothUses: number
+  extractionUses: number
+}
+
 type LoyaltyCard = {
   id: string
   patientId: string
@@ -32,21 +46,18 @@ type LoyaltyCard = {
   status: 'ACTIVE' | 'EXPIRED' | 'EXHAUSTED'
   usageSummary: string[]
   usageHistory: UsageHistory[]
-  uses: {
-    cleaningUses50: number
-    cleaningUses25: number
-    fillingUses50: number
-    fillingUses25: number
-    rctUses: number
-    dentureUses: number
-    bracesUses: number
-    wisdomToothUses: number
-    extractionUses: number
-  }
+  uses: CardUses
+}
+
+type ClinicSettings = {
+  loyaltyCardEnabled: boolean
+  loyaltyCardPrice: number
+  loyaltyValidityMonths: number
 }
 
 type Props = {
   cards: LoyaltyCard[]
+  settings: ClinicSettings
 }
 
 type FilterChip = 'ALL' | 'ACTIVE' | 'EXPIRED' | 'EXHAUSTED'
@@ -59,33 +70,222 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
+function fmt(n: number): string {
+  return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2 }).format(n)
+}
+
 const STATUS_BADGE: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-800',
   EXPIRED: 'bg-red-100 text-red-800',
   EXHAUSTED: 'bg-amber-100 text-amber-800',
 }
 
-// Service rows for the uses table
-type ServiceRow = {
-  label: string
-  initial: number
-  remaining: number
-  isInfinite?: boolean
+const USE_FIELDS: { key: keyof CardUses; label: string }[] = [
+  { key: 'cleaningUses50',  label: 'Cleaning 50%'    },
+  { key: 'cleaningUses25',  label: 'Cleaning 25%'    },
+  { key: 'fillingUses50',   label: 'Filling 50%'     },
+  { key: 'fillingUses25',   label: 'Filling 25%'     },
+  { key: 'rctUses',         label: 'RCT'             },
+  { key: 'dentureUses',     label: 'Dentures'        },
+  { key: 'bracesUses',      label: 'Braces'          },
+  { key: 'wisdomToothUses', label: 'Wisdom Tooth'    },
+  { key: 'extractionUses',  label: 'Extraction'      },
+]
+
+// ---------------------------------------------------------------------------
+// Settings section
+// ---------------------------------------------------------------------------
+
+function SettingsSection({ settings }: { settings: ClinicSettings }) {
+  const [editing, setEditing] = useState(false)
+  const [enabled, setEnabled] = useState(settings.loyaltyCardEnabled)
+  const [price, setPrice] = useState(String(settings.loyaltyCardPrice))
+  const [months, setMonths] = useState(String(settings.loyaltyValidityMonths))
+  const [saving, setSaving] = useState(false)
+
+  async function handleSave() {
+    const priceNum = parseFloat(price)
+    const monthsNum = parseInt(months)
+    if (!priceNum || priceNum <= 0 || !monthsNum || monthsNum <= 0) return
+    setSaving(true)
+    try {
+      await updateClinicLoyaltySettings({
+        loyaltyCardEnabled: enabled,
+        loyaltyCardPrice: priceNum,
+        loyaltyValidityMonths: monthsNum,
+      })
+      toast.success('Settings saved')
+      setEditing(false)
+    } catch {
+      toast.error('Failed to save settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleCancel() {
+    setEnabled(settings.loyaltyCardEnabled)
+    setPrice(String(settings.loyaltyCardPrice))
+    setMonths(String(settings.loyaltyValidityMonths))
+    setEditing(false)
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-semibold">Card Settings</p>
+          {!editing && (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-xs text-primary underline underline-offset-2"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+
+        {editing ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="loyaltyEnabled" className="text-sm flex-1">Loyalty cards enabled</Label>
+              <Switch id="loyaltyEnabled" checked={enabled} onCheckedChange={setEnabled} />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Card price (₱)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={1}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="min-h-[48px]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Card validity (months)</Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                value={months}
+                onChange={(e) => setMonths(e.target.value)}
+                className="min-h-[48px]"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="min-h-[48px]" onClick={handleCancel} disabled={saving}>
+                Cancel
+              </Button>
+              <Button className="min-h-[48px]" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Status</span>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${settings.loyaltyCardEnabled ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}`}>
+                {settings.loyaltyCardEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Card price</span>
+              <span className="font-medium">₱{fmt(settings.loyaltyCardPrice)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Card validity</span>
+              <span className="font-medium">{settings.loyaltyValidityMonths} months</span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
-function getServiceRows(uses: LoyaltyCard['uses']): ServiceRow[] {
-  return [
-    { label: 'Cleaning 50%', initial: 2, remaining: uses.cleaningUses50 },
-    { label: 'Cleaning 25%', initial: 2, remaining: uses.cleaningUses25 },
-    { label: 'Tooth Filling 50%', initial: 2, remaining: uses.fillingUses50 },
-    { label: 'Tooth Filling 25%', initial: 2, remaining: uses.fillingUses25 },
-    { label: 'RCT', initial: 2, remaining: uses.rctUses },
-    { label: 'Dentures', initial: 2, remaining: uses.dentureUses },
-    { label: 'Braces', initial: 2, remaining: uses.bracesUses },
-    { label: 'Wisdom Tooth', initial: 2, remaining: uses.wisdomToothUses },
-    { label: 'Extraction', initial: 8, remaining: uses.extractionUses },
-    { label: 'Check-up', initial: 0, remaining: 0, isInfinite: true },
-  ]
+// ---------------------------------------------------------------------------
+// Card edit form (inline)
+// ---------------------------------------------------------------------------
+
+function CardEditForm({ card, onDone }: { card: LoyaltyCard; onDone: () => void }) {
+  const [uses, setUses] = useState<CardUses>({ ...card.uses })
+  const [expiry, setExpiry] = useState(card.expiryDate.split('T')[0])
+  const [saving, setSaving] = useState(false)
+
+  function setUse(key: keyof CardUses, val: string) {
+    const n = parseInt(val) || 0
+    setUses((prev) => ({ ...prev, [key]: Math.max(0, n) }))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await updateLoyaltyCard(card.id, { ...uses, expiryDate: expiry })
+      toast.success('Card updated')
+      onDone()
+    } catch {
+      toast.error('Failed to update card')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4 pt-3 border-t border-border">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Edit Card</p>
+
+      <div className="space-y-1">
+        <Label className="text-xs text-muted-foreground">Expiry date</Label>
+        <Input
+          type="date"
+          value={expiry}
+          onChange={(e) => setExpiry(e.target.value)}
+          className="min-h-[48px]"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium">Remaining uses</p>
+        {USE_FIELDS.map(({ key, label }) => (
+          <div key={key} className="flex items-center gap-3">
+            <span className="text-sm flex-1">{label}</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setUse(key, String(uses[key] - 1))}
+                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-lg font-bold text-muted-foreground active:bg-muted"
+              >
+                −
+              </button>
+              <span className="w-8 text-center text-sm font-semibold tabular-nums">{uses[key]}</span>
+              <button
+                type="button"
+                onClick={() => setUse(key, String(uses[key] + 1))}
+                className="w-9 h-9 rounded-lg border border-border flex items-center justify-center text-lg font-bold text-muted-foreground active:bg-muted"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" className="min-h-[48px]" onClick={onDone} disabled={saving}>
+          Cancel
+        </Button>
+        <Button className="min-h-[48px]" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Card'}
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -100,8 +300,8 @@ function CardDetail({
   onRenew: () => void
 }) {
   const router = useRouter()
-  const rows = getServiceRows(card.uses)
   const isExpired = new Date(card.expiryDate) <= new Date()
+  const [editMode, setEditMode] = useState(false)
 
   return (
     <div className="space-y-4 pt-4 border-t border-border">
@@ -135,69 +335,76 @@ function CardDetail({
         </div>
       </div>
 
-      {/* Uses table (flex rows, no HTML table) */}
-      <div className="space-y-1">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Service Uses</p>
-        {/* Header row */}
-        <div className="flex text-xs font-semibold text-muted-foreground">
-          <span className="flex-1">Service</span>
-          <span className="w-12 text-center">Total</span>
-          <span className="w-12 text-center">Used</span>
-          <span className="w-16 text-center">Left</span>
-        </div>
-        {rows.map((row) => {
-          const used = row.isInfinite ? null : row.initial - row.remaining
-          return (
-            <div key={row.label} className="flex text-sm py-1 border-b border-border/50 last:border-0">
-              <span className="flex-1 text-xs">{row.label}</span>
-              <span className="w-12 text-center text-xs text-muted-foreground">
-                {row.isInfinite ? '∞' : row.initial}
-              </span>
-              <span className="w-12 text-center text-xs text-muted-foreground">
-                {row.isInfinite ? '—' : used}
-              </span>
-              <span className="w-16 text-center text-xs font-medium">
-                {row.isInfinite ? '∞' : row.remaining}
-              </span>
+      {editMode ? (
+        <CardEditForm card={card} onDone={() => setEditMode(false)} />
+      ) : (
+        <>
+          {/* Uses table */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Service Uses</p>
+              <button
+                type="button"
+                onClick={() => setEditMode(true)}
+                className="text-xs text-primary underline underline-offset-2"
+              >
+                Edit card
+              </button>
             </div>
-          )
-        })}
-      </div>
-
-      {/* Usage history */}
-      {card.usageHistory.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Usage History</p>
-          {[...card.usageHistory]
-            .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
-            .map((u) => (
-              <div key={u.id} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{fmtDate(u.usedAt)}</span>
-                <span>·</span>
-                <span>{u.serviceType}</span>
-                <span>·</span>
-                <span>{u.discountPct}%</span>
-                <span>·</span>
-                <button
-                  onClick={() => router.push('/invoices/' + u.invoiceId)}
-                  className="text-primary underline underline-offset-1"
-                >
-                  OR
-                </button>
+            <div className="flex text-xs font-semibold text-muted-foreground">
+              <span className="flex-1">Service</span>
+              <span className="w-16 text-center">Remaining</span>
+            </div>
+            {USE_FIELDS.map(({ key, label }) => (
+              <div key={key} className="flex text-sm py-1 border-b border-border/50 last:border-0">
+                <span className="flex-1 text-xs">{label}</span>
+                <span className={`w-16 text-center text-xs font-medium ${card.uses[key] === 0 ? 'text-muted-foreground' : 'text-foreground'}`}>
+                  {card.uses[key]}
+                </span>
               </div>
             ))}
-        </div>
-      )}
+            <div className="flex text-sm py-1">
+              <span className="flex-1 text-xs">Check-up</span>
+              <span className="w-16 text-center text-xs font-medium">∞</span>
+            </div>
+          </div>
 
-      {/* Renew button for EXPIRED or EXHAUSTED */}
-      {(card.status === 'EXPIRED' || card.status === 'EXHAUSTED') && (
-        <Button
-          className="w-full min-h-[48px] mt-2"
-          variant="outline"
-          onClick={onRenew}
-        >
-          Renew Card — ₱500
-        </Button>
+          {/* Usage history */}
+          {card.usageHistory.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Usage History</p>
+              {[...card.usageHistory]
+                .sort((a, b) => new Date(b.usedAt).getTime() - new Date(a.usedAt).getTime())
+                .map((u) => (
+                  <div key={u.id} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{fmtDate(u.usedAt)}</span>
+                    <span>·</span>
+                    <span>{u.serviceType}</span>
+                    <span>·</span>
+                    <span>{u.discountPct}%</span>
+                    <span>·</span>
+                    <button
+                      onClick={() => router.push('/invoices/' + u.invoiceId)}
+                      className="text-primary underline underline-offset-1"
+                    >
+                      OR
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {/* Renew button */}
+          {(card.status === 'EXPIRED' || card.status === 'EXHAUSTED') && (
+            <Button
+              className="w-full min-h-[48px] mt-2"
+              variant="outline"
+              onClick={onRenew}
+            >
+              Renew Card — ₱500
+            </Button>
+          )}
+        </>
       )}
     </div>
   )
@@ -207,30 +414,23 @@ function CardDetail({
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function LoyaltyClient({ cards }: Props) {
+export default function LoyaltyClient({ cards, settings }: Props) {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<FilterChip>('ALL')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [renewingCard, setRenewingCard] = useState<LoyaltyCard | null>(null)
   const [confirmingRenew, setConfirmingRenew] = useState(false)
 
-  // Stats
-  const stats = useMemo(() => {
-    const active = cards.filter((c) => c.status === 'ACTIVE').length
-    const expired = cards.filter((c) => c.status === 'EXPIRED').length
-    const exhausted = cards.filter((c) => c.status === 'EXHAUSTED').length
-    return { active, expired, exhausted }
-  }, [cards])
+  const stats = useMemo(() => ({
+    active:    cards.filter((c) => c.status === 'ACTIVE').length,
+    expired:   cards.filter((c) => c.status === 'EXPIRED').length,
+    exhausted: cards.filter((c) => c.status === 'EXHAUSTED').length,
+  }), [cards])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
     return cards.filter((card) => {
-      if (q) {
-        const matches =
-          card.patientName.toLowerCase().includes(q) ||
-          card.cardNumber.toLowerCase().includes(q)
-        if (!matches) return false
-      }
+      if (q && !card.patientName.toLowerCase().includes(q) && !card.cardNumber.toLowerCase().includes(q)) return false
       if (filter !== 'ALL' && card.status !== filter) return false
       return true
     })
@@ -251,15 +451,19 @@ export default function LoyaltyClient({ cards }: Props) {
   }
 
   const CHIPS: { key: FilterChip; label: string }[] = [
-    { key: 'ALL', label: 'All' },
-    { key: 'ACTIVE', label: 'Active' },
-    { key: 'EXPIRED', label: 'Expired' },
+    { key: 'ALL',       label: 'All'       },
+    { key: 'ACTIVE',    label: 'Active'    },
+    { key: 'EXPIRED',   label: 'Expired'   },
     { key: 'EXHAUSTED', label: 'Exhausted' },
   ]
 
   return (
     <div className="space-y-4">
-      {/* Stats row */}
+
+      {/* ── Clinic settings ── */}
+      <SettingsSection settings={settings} />
+
+      {/* ── Stats row ── */}
       <div className="grid grid-cols-3 gap-3">
         <Card>
           <CardContent className="p-3 text-center">
@@ -281,7 +485,7 @@ export default function LoyaltyClient({ cards }: Props) {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* ── Search ── */}
       <Input
         placeholder="Search by patient or card #…"
         value={search}
@@ -289,7 +493,7 @@ export default function LoyaltyClient({ cards }: Props) {
         className="min-h-[48px]"
       />
 
-      {/* Filter chips */}
+      {/* ── Filter chips ── */}
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
         {CHIPS.map((chip) => (
           <button
@@ -307,7 +511,7 @@ export default function LoyaltyClient({ cards }: Props) {
         ))}
       </div>
 
-      {/* Card list */}
+      {/* ── Card list ── */}
       {filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground py-4">No loyalty cards found.</p>
       ) : (
@@ -319,7 +523,6 @@ export default function LoyaltyClient({ cards }: Props) {
             return (
               <Card key={card.id}>
                 <CardContent className="p-4">
-                  {/* Summary row (always visible) */}
                   <button
                     className="w-full text-left"
                     onClick={() => setExpandedId(isExpanded ? null : card.id)}
@@ -346,7 +549,6 @@ export default function LoyaltyClient({ cards }: Props) {
                     </div>
                   </button>
 
-                  {/* Expanded detail */}
                   {isExpanded && (
                     <CardDetail
                       card={card}
@@ -360,7 +562,7 @@ export default function LoyaltyClient({ cards }: Props) {
         </div>
       )}
 
-      {/* Renew confirmation */}
+      {/* ── Renew confirmation sheet ── */}
       {renewingCard && (
         <div className="fixed inset-0 z-50 flex items-end">
           <div
@@ -394,6 +596,7 @@ export default function LoyaltyClient({ cards }: Props) {
           </div>
         </div>
       )}
+
     </div>
   )
 }
