@@ -82,100 +82,137 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 1 — HERO
+          Text top, dashboard screenshot below in a floating frame
       ══════════════════════════════════════════════════════════ */}
-      <section className="px-5 pt-12 pb-14" style={{ background: '#F5F8FF' }}>
+      <section className="px-5 pt-12 pb-0" style={{ background: '#F5F8FF' }}>
         <h1
           className="font-black leading-tight mb-5"
-          style={{ fontSize: 'clamp(30px, 8vw, 58px)', color: '#0B1627', letterSpacing: '-0.025em', maxWidth: 560 }}
+          style={{ fontSize: 'clamp(30px, 8vw, 58px)', color: '#0B1627', letterSpacing: '-0.025em' }}
         >
           Dental clinic software
           <br />built for the Philippines.
         </h1>
-        <p
-          className="text-base leading-relaxed mb-8"
-          style={{ color: '#5C6A85', maxWidth: 460 }}
-        >
+        <p className="text-base leading-relaxed mb-8" style={{ color: '#5C6A85', maxWidth: 420 }}>
           If you can use a smartphone, Sigurado is for you. Patient records, receipts,
           payroll, and patient privacy — no tech background needed.
         </p>
         <Link
           href="/register"
-          className="inline-block font-black text-base px-7 py-4 rounded-2xl"
+          className="inline-block font-black text-base px-7 py-4 rounded-2xl mb-12"
           style={{ background: '#1A3FD0', color: '#ffffff' }}
         >
           Start your free month — no credit card needed
         </Link>
+
+        {/* Dashboard screenshot — floats up from bottom of hero */}
+        <div className="flex justify-center">
+          <div
+            className="relative overflow-hidden"
+            style={{
+              width: 260,
+              borderRadius: '24px 24px 0 0',
+              boxShadow: '0 -8px 40px rgba(26,63,208,0.15), 0 0 0 1.5px rgba(26,63,208,0.1)',
+              background: '#ffffff',
+            }}
+          >
+            <Image
+              src="/images/Hero-Dashboard.png"
+              alt="Sigurado dashboard"
+              width={260}
+              height={559}
+              className="object-top object-cover"
+              style={{ display: 'block' }}
+              priority
+            />
+          </div>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 2 — EGO + TRUST
+          Full-bleed photo, trust copy below
       ══════════════════════════════════════════════════════════ */}
-      <section
-        className="px-5 py-12"
-        style={{ background: '#0B1627' }}
-      >
-        <p
-          className="font-bold leading-snug mb-6"
-          style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', maxWidth: 480 }}
-        >
-          Your patients judge your clinic before they sit in the chair.
-          Sigurado makes sure what they see is professional.
-        </p>
-        <p
-          className="font-black"
-          style={{ fontSize: 'clamp(18px, 4vw, 26px)', color: '#F5C018' }}
-        >
-          Built by a dentist, for dentists.
-        </p>
+      <section>
+        {/* Photo */}
+        <div className="relative w-full" style={{ height: 320 }}>
+          <Image
+            src="/images/section2.png"
+            alt="Filipino dental clinic"
+            fill
+            className="object-cover object-center"
+          />
+        </div>
+
+        {/* Trust copy on dark */}
+        <div className="px-5 py-12" style={{ background: '#0B1627' }}>
+          <p
+            className="font-bold leading-snug mb-6"
+            style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', maxWidth: 480 }}
+          >
+            Your patients judge your clinic before they sit in the chair.
+            Sigurado makes sure what they see is professional.
+          </p>
+          <p
+            className="font-black"
+            style={{ fontSize: 'clamp(18px, 4vw, 26px)', color: '#F5C018' }}
+          >
+            Built by a dentist, for dentists.
+          </p>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 3 — HOW IT WORKS
+          Square lifestyle photo then the 3 steps
       ══════════════════════════════════════════════════════════ */}
-      <section className="px-5 py-14" style={{ background: '#ffffff' }}>
-        <h2
-          className="font-black leading-tight mb-10"
-          style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
-        >
-          Register and you&apos;re ready to go.
-        </h2>
-
-        <div className="flex flex-col gap-6">
-          {[
-            {
-              n: '1',
-              title: 'Create your clinic account — takes less than 5 minutes.',
-            },
-            {
-              n: '2',
-              title: 'Add your patients, services, and staff. We guide you through every step.',
-            },
-            {
-              n: '3',
-              title: 'Start seeing patients. Sigurado handles the records, receipts, and reports.',
-            },
-          ].map((step) => (
-            <div
-              key={step.n}
-              className="flex gap-4 p-5 rounded-2xl"
-              style={{ background: '#F5F8FF', border: '1px solid #E0E8F8' }}
-            >
-              <div
-                className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-black text-base"
-                style={{ background: '#1A3FD0', color: '#ffffff' }}
-              >
-                {step.n}
-              </div>
-              <p className="text-sm leading-relaxed font-medium pt-1.5" style={{ color: '#2A3A56' }}>
-                {step.title}
-              </p>
-            </div>
-          ))}
+      <section>
+        {/* Square photo — full width */}
+        <div className="relative w-full" style={{ height: 300 }}>
+          <Image
+            src="/images/section3.png"
+            alt="Using Sigurado on a smartphone"
+            fill
+            className="object-cover object-center"
+          />
         </div>
 
-        <p className="mt-6 text-sm" style={{ color: '#9AAABB' }}>
-          Questions? We&apos;re on Messenger, 9am–4pm.
-        </p>
+        {/* Steps */}
+        <div className="px-5 py-14" style={{ background: '#ffffff' }}>
+          <h2
+            className="font-black leading-tight mb-10"
+            style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
+          >
+            Register and you&apos;re ready to go.
+          </h2>
+
+          <div className="flex flex-col gap-6">
+            {[
+              { n: '1', title: 'Create your clinic account — takes less than 5 minutes.' },
+              { n: '2', title: 'Add your patients, services, and staff. We guide you through every step.' },
+              { n: '3', title: 'Start seeing patients. Sigurado handles the records, receipts, and reports.' },
+            ].map((step) => (
+              <div
+                key={step.n}
+                className="flex gap-4 p-5 rounded-2xl"
+                style={{ background: '#F5F8FF', border: '1px solid #E0E8F8' }}
+              >
+                <div
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-black text-base"
+                  style={{ background: '#1A3FD0', color: '#ffffff' }}
+                >
+                  {step.n}
+                </div>
+                <p className="text-sm leading-relaxed font-medium pt-1.5" style={{ color: '#2A3A56' }}>
+                  {step.title}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-sm" style={{ color: '#9AAABB' }}>
+            Questions? We&apos;re on Messenger, 9am–4pm.
+          </p>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
@@ -192,11 +229,10 @@ export default function LandingPage() {
           <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Month-to-month. Cancel any time.</p>
         </div>
 
-        {/* Horizontal scroll container */}
         <div className="px-5 overflow-x-auto pb-3">
           <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
 
-            {/* ── FREE ── */}
+            {/* FREE */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden"
               style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
@@ -216,17 +252,13 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link
-                  href="/register"
-                  className="block text-center font-bold text-sm py-3.5 rounded-xl"
-                  style={{ background: '#E8EEFB', color: '#1A3FD0' }}
-                >
+                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#E8EEFB', color: '#1A3FD0' }}>
                   Start for free
                 </Link>
               </div>
             </div>
 
-            {/* ── BASIC ── */}
+            {/* BASIC */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden"
               style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
@@ -245,17 +277,13 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link
-                  href="/register"
-                  className="block text-center font-bold text-sm py-3.5 rounded-xl"
-                  style={{ background: '#0B1627', color: '#ffffff' }}
-                >
+                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#0B1627', color: '#ffffff' }}>
                   Get Basic
                 </Link>
               </div>
             </div>
 
-            {/* ── PRO ── */}
+            {/* PRO */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden"
               style={{ width: 260, background: '#1A3FD0', flexShrink: 0 }}
@@ -278,11 +306,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link
-                  href="/register"
-                  className="block text-center font-black text-sm py-3.5 rounded-xl"
-                  style={{ background: '#F5C018', color: '#0B1627' }}
-                >
+                <Link href="/register" className="block text-center font-black text-sm py-3.5 rounded-xl" style={{ background: '#F5C018', color: '#0B1627' }}>
                   Get Pro
                 </Link>
               </div>
@@ -298,16 +322,30 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
+          Background image with dark overlay
       ══════════════════════════════════════════════════════════ */}
-      <section className="px-5 py-14" style={{ background: '#ffffff', borderTop: '1px solid #EEF0F5' }}>
-        <div className="rounded-2xl p-6" style={{ background: '#0B1627' }}>
+      <section className="relative overflow-hidden" style={{ minHeight: 320 }}>
+        {/* Background image */}
+        <Image
+          src="/images/section5.png"
+          alt=""
+          fill
+          className="object-cover object-center"
+        />
+        {/* Dark overlay */}
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(135deg, rgba(11,22,39,0.93) 0%, rgba(26,63,208,0.82) 100%)' }}
+        />
+        {/* Content */}
+        <div className="relative z-10 px-5 py-16">
           <h2
             className="font-black leading-tight mb-4"
-            style={{ fontSize: 'clamp(20px, 5vw, 32px)', color: '#ffffff', letterSpacing: '-0.02em' }}
+            style={{ fontSize: 'clamp(22px, 6vw, 38px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 420 }}
           >
             Patient records must be kept private by law.
           </h2>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)', maxWidth: 400 }}>
             Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
           </p>
         </div>
@@ -341,10 +379,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           FOOTER
       ══════════════════════════════════════════════════════════ */}
-      <footer
-        className="px-5 py-8 flex flex-col gap-3"
-        style={{ background: '#060E1F' }}
-      >
+      <footer className="px-5 py-8 flex flex-col gap-3" style={{ background: '#060E1F' }}>
         <Image src="/logo.png" alt="Sigurado" width={100} height={67} className="object-contain brightness-0 invert opacity-60" />
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
