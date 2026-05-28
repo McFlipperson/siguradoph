@@ -59,6 +59,7 @@ export type VisitSetup = {
   }>
   clinic: {
     enrollmentDate: Date
+    loyaltyCardPrice: number
   }
   loyaltyCard: VisitLoyaltyCard | null
   cardTemplate: CardTemplateService[]
@@ -84,7 +85,7 @@ export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
     }),
     prisma.clinic.findUnique({
       where: { id: clinicId },
-      select: { enrollmentDate: true },
+      select: { enrollmentDate: true, loyaltyCardPrice: true },
     }),
     prisma.serviceCatalog.findMany({
       where: { clinicId, isActive: true },
@@ -155,7 +156,7 @@ export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
       pendingLoyaltyCardPurchase: patient.pendingLoyaltyCardPurchase,
     },
     serviceCatalog: services,
-    clinic: { enrollmentDate: clinic.enrollmentDate },
+    clinic: { enrollmentDate: clinic.enrollmentDate, loyaltyCardPrice: Number(clinic.loyaltyCardPrice) },
     loyaltyCard,
     cardTemplate,
   }

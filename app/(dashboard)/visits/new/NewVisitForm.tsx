@@ -136,8 +136,38 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     if (!val) setWaiveCardFee(false)
   }
 
-  // The card whose benefits are applied
-  const effectiveCard: VisitLoyaltyCard | null = familyCard?.card ?? setup.loyaltyCard ?? null
+  // When buying a new card, build a virtual card from the template so benefits
+  // can be applied to this visit immediately — the real card is created at payment time.
+  const virtualNewCard = useMemo<VisitLoyaltyCard | null>(() => {
+    if (!purchaseCard || setup.loyaltyCard || familyCard) return null
+    const uses: Record<string, number> = {}
+    for (const svc of setup.cardTemplate) {
+      if (svc.isFree) continue
+      const fields = SERVICE_CARD_FIELDS[svc.serviceKey]
+      if (!fields) continue
+      uses[fields.t1Field] = svc.tier1Uses
+      if (fields.t2Field && svc.hasTier2) uses[fields.t2Field] = svc.tier2Uses
+    }
+    const expiry = new Date()
+    expiry.setFullYear(expiry.getFullYear() + 1)
+    return {
+      id: 'new',
+      cardNumber: 'NEW',
+      expiryDate: expiry,
+      cleaningUses50: uses.cleaningUses50 ?? 0,
+      cleaningUses25: uses.cleaningUses25 ?? 0,
+      fillingUses50: uses.fillingUses50 ?? 0,
+      fillingUses25: uses.fillingUses25 ?? 0,
+      rctUses: uses.rctUses ?? 0,
+      dentureUses: uses.dentureUses ?? 0,
+      bracesUses: uses.bracesUses ?? 0,
+      wisdomToothUses: uses.wisdomToothUses ?? 0,
+      extractionUses: uses.extractionUses ?? 0,
+    }
+  }, [purchaseCard, setup.loyaltyCard, familyCard, setup.cardTemplate])
+
+  // The card whose benefits are applied — family card > own card > new card being purchased
+  const effectiveCard: VisitLoyaltyCard | null = familyCard?.card ?? setup.loyaltyCard ?? virtualNewCard ?? null
 
   // Auto-apply benefits from the effective card based on procedure categories + prices
   const autoAppliedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
@@ -182,7 +212,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     [autoAppliedBenefits]
   )
 
-  const loyaltyCardFee = purchaseCard && !waiveCardFee ? 500 : 0
+  const loyaltyCardFee = purchaseCard && !waiveCardFee ? setup.clinic.loyaltyCardPrice : 0
   const netTotal = Math.max(0, Math.round((gross - loyaltyDiscountAmount) * 100) / 100) + loyaltyCardFee
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -227,7 +257,8 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         isCleaningService: isCleaningCategory,
         appointmentId,
         // Loyalty
-        appliedLoyaltyCardId: effectiveCard && applyCardBenefits ? effectiveCard.id : undefined,
+        // 'new' is the virtual card id — real card created at payment; confirmPayment uses newLoyaltyCardId
+        appliedLoyaltyCardId: effectiveCard && applyCardBenefits && effectiveCard.id !== 'new' ? effectiveCard.id : undefined,
         purchaseNewLoyaltyCard: purchaseCard,
         waiveCardFee: purchaseCard ? waiveCardFee : undefined,
         loyaltyBenefits: autoAppliedBenefits.length > 0 ? autoAppliedBenefits : undefined,
@@ -459,7 +490,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 )}
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
-                    Purchase loyalty card — ₱500.00
+                    Purchase loyalty card — ₱{formatMoney(setup.clinic.loyaltyCardPrice)}
                   </Label>
                   <Switch
                     id="purchaseCard"
@@ -469,20 +500,26 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                   />
                 </div>
                 {purchaseCard && (
-                  <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
-                    <div className="flex-1">
-                      <Label htmlFor="waiveCardFee" className="cursor-pointer text-sm text-muted-foreground">
-                        Waive card fee
-                      </Label>
-                      <p className="text-xs text-muted-foreground mt-0.5">Card issued free — ₱0 added to total</p>
+                  <>
+                    {/* New card banner — shows benefits apply now */}
+                    <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900">
+                      New card benefits apply to this visit automatically.
                     </div>
-                    <Switch
-                      id="waiveCardFee"
-                      checked={waiveCardFee}
-                      onCheckedChange={setWaiveCardFee}
-                      className="shrink-0"
-                    />
-                  </div>
+                    <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
+                      <div className="flex-1">
+                        <Label htmlFor="waiveCardFee" className="cursor-pointer text-sm text-muted-foreground">
+                          Waive card fee
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">Card issued free — ₱0 added to total</p>
+                      </div>
+                      <Switch
+                        id="waiveCardFee"
+                        checked={waiveCardFee}
+                        onCheckedChange={setWaiveCardFee}
+                        className="shrink-0"
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -578,7 +615,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 <span>Loyalty card</span>
                 {waiveCardFee
                   ? <span className="text-emerald-600 font-medium">Waived</span>
-                  : <span>₱500.00</span>
+                  : <span>₱{formatMoney(setup.clinic.loyaltyCardPrice)}</span>
                 }
               </div>
             )}
