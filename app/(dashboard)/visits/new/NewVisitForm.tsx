@@ -39,10 +39,12 @@ type ProcedureEntry = {
   uid: string
   serviceId: string | null
   serviceName: string
-  category: string   // resolved from service catalog
+  category: string
   diagnosis: string
   toothNumber: string
 }
+
+type BenefitOption = { key: string; label: string; discountPct: number }
 
 let _uidCounter = 0
 function makeUid() { return `proc-${++_uidCounter}-${Date.now()}` }
@@ -80,6 +82,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   }
   function removeProcedure(uid: string) {
     setProcedures((prev) => prev.filter((p) => p.uid !== uid))
+    setSelectedBenefitKeys((prev) => { const next = { ...prev }; delete next[uid]; return next })
   }
   function updateProcedure(uid: string, field: 'serviceName' | 'diagnosis' | 'toothNumber', value: string) {
     setProcedures((prev) => prev.map((p) => (p.uid === uid ? { ...p, [field]: value } : p)))
@@ -103,7 +106,9 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const hasPendingRenewal = setup.patient.pendingLoyaltyCardPurchase && !setup.loyaltyCard
   const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
   const [waiveCardFee, setWaiveCardFee] = useState(false)
-  const [applyCardBenefits, setApplyCardBenefits] = useState(true)
+
+  // selectedBenefitKeys: uid → benefit key chosen by dentist (null = no discount)
+  const [selectedBenefitKeys, setSelectedBenefitKeys] = useState<Record<string, string | null>>({})
 
   const [familyCard, setFamilyCard] = useState<FamilyCardResult | null>(null)
   const [familyCardOpen, setFamilyCardOpen] = useState(false)
@@ -136,14 +141,12 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     if (!val) setWaiveCardFee(false)
   }
 
-  // Resolve which card to use for benefits — family card > own card > virtual new card.
-  // When purchasing a new card, we build a virtual card with full uses from the template
-  // so benefits apply to this visit immediately. The real card is created at payment time.
+  // Resolve which card to use — family > own > virtual new card
   const effectiveCard = useMemo<VisitLoyaltyCard | null>(() => {
     if (familyCard?.card) return familyCard.card
     if (setup.loyaltyCard) return setup.loyaltyCard
     if (!purchaseCard) return null
-    // Build virtual card from template
+    // Virtual card built from template — real card created at payment time
     const uses: Record<string, number> = {}
     for (const svc of setup.cardTemplate) {
       if (svc.isFree) continue
@@ -153,9 +156,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       if (fields.t2Field && svc.hasTier2) uses[fields.t2Field] = svc.tier2Uses
     }
     return {
-      id: 'new',
-      cardNumber: 'NEW',
-      expiryDate: new Date(),
+      id: 'new', cardNumber: 'NEW', expiryDate: new Date(),
       cleaningUses50: uses.cleaningUses50 ?? 0,
       cleaningUses25: uses.cleaningUses25 ?? 0,
       fillingUses50: uses.fillingUses50 ?? 0,
@@ -168,47 +169,99 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     }
   }, [familyCard, setup.loyaltyCard, purchaseCard, setup.cardTemplate])
 
-  // Auto-apply benefits from the effective card based on procedure categories + prices
-  const autoAppliedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
-    if (!effectiveCard || !applyCardBenefits || procedures.length === 0) return []
+  // Clear all discount selections when the active card changes
+  useEffect(() => {
+    setSelectedBenefitKeys({})
+  }, [effectiveCard])
 
-    return procedures.flatMap((proc) => {
-      const amt = isMultiProc
-        ? (parseFloat(procPrices[proc.uid] ?? '') || 0)
-        : gross
-      if (amt <= 0) return []
+  // ── Remaining uses after accounting for other procedure selections ────────
+  const BENEFIT_KEY_TO_FIELD: Record<string, string> = {
+    CLEANING_50: 'cleaningUses50', CLEANING_25: 'cleaningUses25',
+    FILLING_50: 'fillingUses50',   FILLING_25: 'fillingUses25',
+    RCT: 'rctUses', DENTURES: 'dentureUses', BRACES: 'bracesUses',
+    WISDOM_TOOTH: 'wisdomToothUses', EXTRACTION: 'extractionUses',
+  }
 
-      const category = proc.category
-      if (category === 'CHECKUP') {
-        return setup.cardTemplate.some((t) => t.isFree)
-          ? [{ benefitKey: 'CHECKUP', category: 'CHECKUP', discountPct: 100, serviceAmount: amt }]
-          : []
+  function getRemainingUses(excludeUid: string): Record<string, number> {
+    if (!effectiveCard) return {}
+    const rem: Record<string, number> = {
+      cleaningUses50: effectiveCard.cleaningUses50,
+      cleaningUses25: effectiveCard.cleaningUses25,
+      fillingUses50:  effectiveCard.fillingUses50,
+      fillingUses25:  effectiveCard.fillingUses25,
+      rctUses:        effectiveCard.rctUses,
+      dentureUses:    effectiveCard.dentureUses,
+      bracesUses:     effectiveCard.bracesUses,
+      wisdomToothUses:effectiveCard.wisdomToothUses,
+      extractionUses: effectiveCard.extractionUses,
+    }
+    for (const [uid, key] of Object.entries(selectedBenefitKeys)) {
+      if (uid === excludeUid || !key || key === 'CHECKUP') continue
+      const field = BENEFIT_KEY_TO_FIELD[key]
+      if (field) rem[field] = Math.max(0, (rem[field] ?? 0) - 1)
+    }
+    return rem
+  }
+
+  // Available discount options for a procedure given what's been allocated elsewhere
+  function getAvailableOptions(proc: ProcedureEntry): BenefitOption[] {
+    if (!effectiveCard) return []
+    const rem = getRemainingUses(proc.uid)
+    const { category } = proc
+    const options: BenefitOption[] = []
+
+    if (category === 'CHECKUP') {
+      if (setup.cardTemplate.some((t) => t.serviceKey === 'CHECKUP' && t.isFree)) {
+        options.push({ key: 'CHECKUP', label: 'Free (Check-up)', discountPct: 100 })
       }
+      return options
+    }
 
+    const fields = SERVICE_CARD_FIELDS[category]
+    if (!fields) return []
+    const svc = setup.cardTemplate.find((t) => t.serviceKey === category)
+    if (!svc) return []
+
+    const t1 = rem[fields.t1Field] ?? 0
+    if (t1 > 0) {
+      options.push({ key: fields.t1Key, label: `${svc.tier1Discount}% off — ${t1} use${t1 !== 1 ? 's' : ''} left`, discountPct: svc.tier1Discount })
+    }
+    if (svc.hasTier2 && fields.t2Field && fields.t2Key) {
+      const t2 = rem[fields.t2Field] ?? 0
+      if (t2 > 0) {
+        options.push({ key: fields.t2Key, label: `${svc.tier2Discount}% off — ${t2} use${t2 !== 1 ? 's' : ''} left`, discountPct: svc.tier2Discount })
+      }
+    }
+    return options
+  }
+
+  // ── Build benefit applications from dentist's selections ─────────────────
+  const selectedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
+    if (!effectiveCard) return []
+    return procedures.flatMap((proc) => {
+      const key = selectedBenefitKeys[proc.uid] ?? null
+      if (!key) return []
+      const amt = isMultiProc ? (parseFloat(procPrices[proc.uid] ?? '') || 0) : gross
+      if (amt <= 0) return []
+      const { category } = proc
+      if (key === 'CHECKUP') {
+        return [{ benefitKey: 'CHECKUP', category: 'CHECKUP', discountPct: 100, serviceAmount: amt }]
+      }
       const fields = SERVICE_CARD_FIELDS[category]
       if (!fields) return []
       const svc = setup.cardTemplate.find((t) => t.serviceKey === category)
       if (!svc) return []
-
-      const t1 = (effectiveCard as unknown as Record<string, number>)[fields.t1Field] ?? 0
-      if (t1 > 0) {
-        return [{ benefitKey: fields.t1Key, category, discountPct: svc.tier1Discount, serviceAmount: amt }]
-      }
-      if (svc.hasTier2 && fields.t2Field && fields.t2Key) {
-        const t2 = (effectiveCard as unknown as Record<string, number>)[fields.t2Field] ?? 0
-        if (t2 > 0) {
-          return [{ benefitKey: fields.t2Key, category, discountPct: svc.tier2Discount, serviceAmount: amt }]
-        }
-      }
+      if (key === fields.t1Key) return [{ benefitKey: key, category, discountPct: svc.tier1Discount, serviceAmount: amt }]
+      if (fields.t2Key && key === fields.t2Key) return [{ benefitKey: key, category, discountPct: svc.tier2Discount, serviceAmount: amt }]
       return []
     })
-  }, [effectiveCard, applyCardBenefits, procedures, procPrices, gross, isMultiProc, setup.cardTemplate])
+  }, [effectiveCard, procedures, procPrices, gross, isMultiProc, setup.cardTemplate, selectedBenefitKeys])
 
   const loyaltyDiscountAmount = useMemo(() =>
-    autoAppliedBenefits.reduce((sum, b) => {
+    selectedBenefits.reduce((sum, b) => {
       return sum + (b.discountPct >= 100 ? b.serviceAmount : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100)
     }, 0),
-    [autoAppliedBenefits]
+    [selectedBenefits]
   )
 
   const loyaltyCardFee = purchaseCard && !waiveCardFee ? setup.clinic.loyaltyCardPrice : 0
@@ -255,12 +308,11 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
         isCleaningService: isCleaningCategory,
         appointmentId,
-        // Loyalty
-        // 'new' is the virtual card id — real card created at payment; confirmPayment uses newLoyaltyCardId
-        appliedLoyaltyCardId: effectiveCard && applyCardBenefits && effectiveCard.id !== 'new' ? effectiveCard.id : undefined,
+        // Loyalty — 'new' id means real card created at payment; confirmPayment uses newLoyaltyCardId
+        appliedLoyaltyCardId: effectiveCard && selectedBenefits.length > 0 && effectiveCard.id !== 'new' ? effectiveCard.id : undefined,
         purchaseNewLoyaltyCard: purchaseCard,
         waiveCardFee: purchaseCard ? waiveCardFee : undefined,
-        loyaltyBenefits: autoAppliedBenefits.length > 0 ? autoAppliedBenefits : undefined,
+        loyaltyBenefits: selectedBenefits.length > 0 ? selectedBenefits : undefined,
       })
       if (action === 'checkout') {
         router.push(`/payments?visitId=${visitId}`)
@@ -344,72 +396,115 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       </Card>
 
       {/* One card per procedure */}
-      {procedures.map((proc, i) => (
-        <Card key={proc.uid} className="border-primary/40">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="shrink-0 h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
-                  {i + 1}
-                </span>
-                {proc.serviceId ? (
-                  <CardTitle className="text-base">{proc.serviceName}</CardTitle>
-                ) : (
-                  <input
-                    className="flex-1 min-h-[40px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="Procedure name…"
-                    value={proc.serviceName}
-                    onChange={(e) => updateProcedure(proc.uid, 'serviceName', e.target.value)}
-                    autoFocus
-                  />
-                )}
+      {procedures.map((proc, i) => {
+        const benefitOptions = getAvailableOptions(proc)
+        const selectedKey = selectedBenefitKeys[proc.uid] ?? null
+
+        return (
+          <Card key={proc.uid} className="border-primary/40">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="shrink-0 h-6 w-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                    {i + 1}
+                  </span>
+                  {proc.serviceId ? (
+                    <CardTitle className="text-base">{proc.serviceName}</CardTitle>
+                  ) : (
+                    <input
+                      className="flex-1 min-h-[40px] rounded-lg border border-input bg-background px-3 py-1.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Procedure name…"
+                      value={proc.serviceName}
+                      onChange={(e) => updateProcedure(proc.uid, 'serviceName', e.target.value)}
+                      autoFocus
+                    />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeProcedure(proc.uid)}
+                  className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-lg"
+                  aria-label="Remove"
+                >
+                  ×
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => removeProcedure(proc.uid)}
-                className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-lg"
-                aria-label="Remove"
-              >
-                ×
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 pt-0">
-            <div className="flex flex-col gap-1.5">
-              <Label>Diagnosis<span className="text-destructive ml-0.5">*</span></Label>
-              <input
-                className={inputClass}
-                value={proc.diagnosis}
-                onChange={(e) => updateProcedure(proc.uid, 'diagnosis', e.target.value)}
-                placeholder="e.g. Dental caries, tooth decay"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label>Tooth Number <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
-              <input
-                className={inputClass}
-                value={proc.toothNumber}
-                onChange={(e) => updateProcedure(proc.uid, 'toothNumber', e.target.value)}
-                placeholder="e.g. 16, 36"
-              />
-            </div>
-            {isMultiProc && (
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3 pt-0">
               <div className="flex flex-col gap-1.5">
-                <Label>Price<span className="text-destructive ml-0.5">*</span></Label>
+                <Label>Diagnosis<span className="text-destructive ml-0.5">*</span></Label>
                 <input
-                  type="number"
-                  inputMode="decimal"
                   className={inputClass}
-                  value={procPrices[proc.uid] ?? ''}
-                  onChange={(e) => setProcPrices((prev) => ({ ...prev, [proc.uid]: e.target.value }))}
-                  placeholder="0.00"
-                  min={0}
+                  value={proc.diagnosis}
+                  onChange={(e) => updateProcedure(proc.uid, 'diagnosis', e.target.value)}
+                  placeholder="e.g. Dental caries, tooth decay"
                 />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              <div className="flex flex-col gap-1.5">
+                <Label>Tooth Number <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label>
+                <input
+                  className={inputClass}
+                  value={proc.toothNumber}
+                  onChange={(e) => updateProcedure(proc.uid, 'toothNumber', e.target.value)}
+                  placeholder="e.g. 16, 36"
+                />
+              </div>
+              {isMultiProc && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Price<span className="text-destructive ml-0.5">*</span></Label>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    className={inputClass}
+                    value={procPrices[proc.uid] ?? ''}
+                    onChange={(e) => setProcPrices((prev) => ({ ...prev, [proc.uid]: e.target.value }))}
+                    placeholder="0.00"
+                    min={0}
+                  />
+                </div>
+              )}
+
+              {/* ── Loyalty card discount selector ── */}
+              {effectiveCard && benefitOptions.length > 0 && (
+                <div className="flex flex-col gap-2 pt-1 border-t">
+                  <Label className="text-xs text-muted-foreground">Card Discount</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {/* None button */}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: null }))}
+                      className={[
+                        'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
+                        !selectedKey
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground',
+                      ].join(' ')}
+                    >
+                      None
+                    </button>
+                    {/* Discount option buttons */}
+                    {benefitOptions.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: opt.key }))}
+                        className={[
+                          'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
+                          selectedKey === opt.key
+                            ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                            : 'border-border bg-background text-foreground hover:bg-muted',
+                        ].join(' ')}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })}
 
       {/* Single-proc price */}
       {!isMultiProc && procedures.length > 0 && (
@@ -466,21 +561,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               </div>
             )}
 
-            {/* Apply discount toggle — when a card is active */}
-            {effectiveCard && (
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="applyBenefits" className="flex-1 cursor-pointer text-sm">
-                  Apply card discount
-                </Label>
-                <Switch
-                  id="applyBenefits"
-                  checked={applyCardBenefits}
-                  onCheckedChange={setApplyCardBenefits}
-                  className="shrink-0"
-                />
-              </div>
-            )}
-
             {/* No card — buy option */}
             {!setup.loyaltyCard && !familyCard && (
               <div className="space-y-3">
@@ -500,9 +580,8 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 </div>
                 {purchaseCard && (
                   <>
-                    {/* New card banner — shows benefits apply now */}
                     <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900">
-                      New card benefits apply to this visit automatically.
+                      New card benefits apply to this visit — select discounts on each procedure above.
                     </div>
                     <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
                       <div className="flex-1">
@@ -590,8 +669,8 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               </div>
             )}
 
-            {/* Applied loyalty discounts */}
-            {autoAppliedBenefits.map((b, i) => {
+            {/* Selected loyalty discounts */}
+            {selectedBenefits.map((b, i) => {
               const disc = b.discountPct >= 100
                 ? b.serviceAmount
                 : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100
