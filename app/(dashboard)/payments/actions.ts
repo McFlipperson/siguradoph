@@ -9,6 +9,7 @@ import {
   type LoyaltyBenefitApplication,
   SERVICE_CARD_FIELDS,
   SERVICE_LABELS,
+  resolveServiceKey,
 } from '@/lib/loyaltyConfig'
 
 export type { LoyaltyBenefitApplication }
@@ -417,7 +418,7 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
       const cardUses: Record<string, number> = {}
       for (const tpl of tplRows) {
         if (tpl.isFree) continue
-        const fields = SERVICE_CARD_FIELDS[tpl.serviceName]
+        const fields = SERVICE_CARD_FIELDS[resolveServiceKey(tpl.serviceName)]
         if (!fields) continue
         cardUses[fields.t1Field] = tpl.tier1Uses
         if (fields.t2Field && tpl.tier2Uses !== null) cardUses[fields.t2Field] = tpl.tier2Uses

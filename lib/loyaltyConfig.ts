@@ -50,6 +50,32 @@ export const SERVICE_LABELS: Record<string, string> = {
   CHECKUP:      'Check-up',
 }
 
+/**
+ * Maps the human-readable serviceName values stored by onboarding Step 8
+ * (e.g. "Tooth Filling", "Cleaning") to the category code keys used by
+ * SERVICE_CARD_FIELDS and the service catalog (e.g. "FILLING", "CLEANING").
+ * Clinics seeded from DEFAULT_TEMPLATE_ROWS already use code keys and won't
+ * be found here, so the caller falls back to using serviceName as-is.
+ */
+export const TEMPLATE_NAME_TO_CATEGORY: Record<string, string> = {
+  'Check-up':         'CHECKUP',
+  'Cleaning':         'CLEANING',
+  'Tooth Filling':    'FILLING',
+  'RCT (Root Canal)': 'RCT',
+  'Dentures':         'DENTURES',
+  'Braces':           'BRACES',
+  'Wisdom Tooth':     'WISDOM_TOOTH',
+  'Tooth Extraction': 'EXTRACTION',
+  'Jacket Crown':     'CROWN',
+  'Fixed Bridge':     'BRIDGE',
+  'Retainer':         'RETAINER',
+}
+
+/** Resolve a LoyaltyCardTemplate.serviceName to the category code key */
+export function resolveServiceKey(serviceName: string): string {
+  return TEMPLATE_NAME_TO_CATEGORY[serviceName] ?? serviceName
+}
+
 /** Default template used when a clinic has no rows yet */
 export const DEFAULT_TEMPLATE_ROWS: Array<{
   serviceName: string

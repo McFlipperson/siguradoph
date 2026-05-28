@@ -10,6 +10,7 @@ import {
   type LoyaltyBenefitApplication,
   SERVICE_LABELS,
   DEFAULT_TEMPLATE_ROWS,
+  resolveServiceKey,
 } from '@/lib/loyaltyConfig'
 
 export type { LoyaltyBenefitApplication }
@@ -135,17 +136,20 @@ export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
       orderBy: { sortOrder: 'asc' },
     })
   }
-  const cardTemplate: CardTemplateService[] = templateRows.map((r) => ({
-    id: r.id,
-    serviceKey: r.serviceName,
-    label: SERVICE_LABELS[r.serviceName] ?? r.serviceName,
-    isFree: r.isFree,
-    tier1Uses: r.tier1Uses,
-    tier1Discount: Number(r.tier1Discount),
-    hasTier2: r.tier2Uses !== null,
-    tier2Uses: r.tier2Uses ?? 0,
-    tier2Discount: Number(r.tier2Discount ?? 0),
-  }))
+  const cardTemplate: CardTemplateService[] = templateRows.map((r) => {
+    const serviceKey = resolveServiceKey(r.serviceName)
+    return {
+      id: r.id,
+      serviceKey,
+      label: SERVICE_LABELS[serviceKey] ?? r.serviceName,
+      isFree: r.isFree,
+      tier1Uses: r.tier1Uses,
+      tier1Discount: Number(r.tier1Discount),
+      hasTier2: r.tier2Uses !== null,
+      tier2Uses: r.tier2Uses ?? 0,
+      tier2Discount: Number(r.tier2Discount ?? 0),
+    }
+  })
 
   return {
     patient: {
