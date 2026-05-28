@@ -360,6 +360,10 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
           {setup.serviceCatalog.length === 0 ? (
             <p className="text-sm text-muted-foreground">No services configured yet.</p>
           ) : (
+            <>
+              <p className="text-xs text-muted-foreground mb-3">
+                Tap a procedure to add it. Tap the same one again to add it a second time (e.g. two fillings in the same visit).
+              </p>
             <div className="grid grid-cols-2 gap-2">
               {setup.serviceCatalog.map((svc) => {
                 const count = addedIds.filter((id) => id === svc.id).length
@@ -391,6 +395,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 + Other
               </button>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
