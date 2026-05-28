@@ -136,10 +136,14 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     if (!val) setWaiveCardFee(false)
   }
 
-  // When buying a new card, build a virtual card from the template so benefits
-  // can be applied to this visit immediately — the real card is created at payment time.
-  const virtualNewCard = useMemo<VisitLoyaltyCard | null>(() => {
-    if (!purchaseCard || setup.loyaltyCard || familyCard) return null
+  // Resolve which card to use for benefits — family card > own card > virtual new card.
+  // When purchasing a new card, we build a virtual card with full uses from the template
+  // so benefits apply to this visit immediately. The real card is created at payment time.
+  const effectiveCard = useMemo<VisitLoyaltyCard | null>(() => {
+    if (familyCard?.card) return familyCard.card
+    if (setup.loyaltyCard) return setup.loyaltyCard
+    if (!purchaseCard) return null
+    // Build virtual card from template
     const uses: Record<string, number> = {}
     for (const svc of setup.cardTemplate) {
       if (svc.isFree) continue
@@ -148,12 +152,10 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       uses[fields.t1Field] = svc.tier1Uses
       if (fields.t2Field && svc.hasTier2) uses[fields.t2Field] = svc.tier2Uses
     }
-    const expiry = new Date()
-    expiry.setFullYear(expiry.getFullYear() + 1)
     return {
       id: 'new',
       cardNumber: 'NEW',
-      expiryDate: expiry,
+      expiryDate: new Date(),
       cleaningUses50: uses.cleaningUses50 ?? 0,
       cleaningUses25: uses.cleaningUses25 ?? 0,
       fillingUses50: uses.fillingUses50 ?? 0,
@@ -164,10 +166,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       wisdomToothUses: uses.wisdomToothUses ?? 0,
       extractionUses: uses.extractionUses ?? 0,
     }
-  }, [purchaseCard, setup.loyaltyCard, familyCard, setup.cardTemplate])
-
-  // The card whose benefits are applied — family card > own card > new card being purchased
-  const effectiveCard: VisitLoyaltyCard | null = familyCard?.card ?? setup.loyaltyCard ?? virtualNewCard ?? null
+  }, [familyCard, setup.loyaltyCard, purchaseCard, setup.cardTemplate])
 
   // Auto-apply benefits from the effective card based on procedure categories + prices
   const autoAppliedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
