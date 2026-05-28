@@ -1,18 +1,27 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveVisit } from '../actions'
+import { searchPatientLoyaltyCard, type FamilyCardResult } from '../../payments/actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import type { VisitSetup } from '../actions'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { SERVICE_CARD_FIELDS, type LoyaltyBenefitApplication } from '@/lib/loyaltyConfig'
+import type { VisitSetup, VisitLoyaltyCard } from '../actions'
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 function formatMoney(n: number) {
-  return new Intl.NumberFormat('en-PH', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n)
+  return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+}
+
+function fmtDate(d: Date | string) {
+  return new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 const REMINDER_OPTIONS = [
@@ -30,49 +39,48 @@ type ProcedureEntry = {
   uid: string
   serviceId: string | null
   serviceName: string
+  category: string   // resolved from service catalog
   diagnosis: string
   toothNumber: string
 }
 
 let _uidCounter = 0
-function makeUid() {
-  return `proc-${++_uidCounter}-${Date.now()}`
-}
+function makeUid() { return `proc-${++_uidCounter}-${Date.now()}` }
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSetup; appointmentId?: string }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [pendingAction, setPendingAction] = useState<'checkout' | 'save' | null>(null)
 
-  // Format current time as PHT (UTC+8) for the datetime-local input
   function nowPHT(): string {
-    const now = new Date()
-    const pht = new Date(now.getTime() + 8 * 60 * 60 * 1000)
-    return pht.toISOString().slice(0, 16) // "YYYY-MM-DDTHH:MM"
+    const pht = new Date(Date.now() + 8 * 60 * 60 * 1000)
+    return pht.toISOString().slice(0, 16)
   }
   const todayPHT = nowPHT()
   const minDate = new Date(setup.clinic.enrollmentDate).toISOString().split('T')[0]
 
+  // ── Visit fields ─────────────────────────────────────────────────────────
   const [visitDate, setVisitDate] = useState(todayPHT)
   const [procedures, setProcedures] = useState<ProcedureEntry[]>([])
-  const [price, setPrice] = useState('')          // single-proc price
-  const [procPrices, setProcPrices] = useState<Record<string, string>>({})  // multi-proc: uid → price
+  const [price, setPrice] = useState('')
+  const [procPrices, setProcPrices] = useState<Record<string, string>>({})
   const [isBracesReminder, setIsBracesReminder] = useState(false)
   const [reminderWeeks, setReminderWeeks] = useState(4)
   const [notes, setNotes] = useState('')
 
-  function addProcedure(serviceId: string, serviceName: string) {
-    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId, serviceName, diagnosis: '', toothNumber: '' }])
+  function addProcedure(serviceId: string, serviceName: string, category: string) {
+    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId, serviceName, category, diagnosis: '', toothNumber: '' }])
   }
-
   function addOther() {
-    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId: null, serviceName: '', diagnosis: '', toothNumber: '' }])
+    setProcedures((prev) => [...prev, { uid: makeUid(), serviceId: null, serviceName: '', category: 'OTHER', diagnosis: '', toothNumber: '' }])
   }
-
   function removeProcedure(uid: string) {
     setProcedures((prev) => prev.filter((p) => p.uid !== uid))
   }
-
   function updateProcedure(uid: string, field: 'serviceName' | 'diagnosis' | 'toothNumber', value: string) {
     setProcedures((prev) => prev.map((p) => (p.uid === uid ? { ...p, [field]: value } : p)))
   }
@@ -80,22 +88,104 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   const addedIds = procedures.map((p) => p.serviceId)
   const isMultiProc = procedures.length > 1
 
-  const resolvedServices = procedures
-    .map((p) => setup.serviceCatalog.find((s) => s.id === p.serviceId))
-    .filter(Boolean)
-  const isBracesCategory = resolvedServices.some((s) => s?.category === 'BRACES')
-  const isCleaningCategory = resolvedServices.some((s) => s?.category === 'CLEANING')
+  const isBracesCategory = procedures.some((p) => p.category === 'BRACES')
+  const isCleaningCategory = procedures.some((p) => p.category === 'CLEANING')
 
-  // Gross amount: sum of per-proc prices (multi) or single price input (single)
   const multiGross = isMultiProc
     ? procedures.reduce((sum, p) => sum + (parseFloat(procPrices[p.uid] ?? '') || 0), 0)
     : 0
   const gross = isMultiProc ? multiGross : (parseFloat(price) || 0)
-
   const allProcsHavePrice = isMultiProc
     ? procedures.every((p) => (parseFloat(procPrices[p.uid] ?? '') || 0) > 0)
     : gross > 0
 
+  // ── Loyalty card ─────────────────────────────────────────────────────────
+  const hasPendingRenewal = setup.patient.pendingLoyaltyCardPurchase && !setup.loyaltyCard
+  const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
+  const [waiveCardFee, setWaiveCardFee] = useState(false)
+  const [applyCardBenefits, setApplyCardBenefits] = useState(true)
+
+  const [familyCard, setFamilyCard] = useState<FamilyCardResult | null>(null)
+  const [familyCardOpen, setFamilyCardOpen] = useState(false)
+  const [familyQuery, setFamilyQuery] = useState('')
+  const [familySearching, setFamilySearching] = useState(false)
+  const [familyResults, setFamilyResults] = useState<FamilyCardResult[]>([])
+  const familyDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (familyDebounce.current) clearTimeout(familyDebounce.current)
+    if (familyQuery.trim().length < 2) { setFamilyResults([]); return }
+    familyDebounce.current = setTimeout(async () => {
+      setFamilySearching(true)
+      try { setFamilyResults(await searchPatientLoyaltyCard(familyQuery, setup.patient.id)) }
+      finally { setFamilySearching(false) }
+    }, 350)
+    return () => { if (familyDebounce.current) clearTimeout(familyDebounce.current) }
+  }, [familyQuery, setup.patient.id])
+
+  function selectFamilyCard(r: FamilyCardResult) {
+    setFamilyCard(r)
+    setFamilyResults([])
+    setFamilyQuery('')
+    setFamilyCardOpen(false)
+    setPurchaseCard(false)
+  }
+
+  function handlePurchaseCardToggle(val: boolean) {
+    setPurchaseCard(val)
+    if (!val) setWaiveCardFee(false)
+  }
+
+  // The card whose benefits are applied
+  const effectiveCard: VisitLoyaltyCard | null = familyCard?.card ?? setup.loyaltyCard ?? null
+
+  // Auto-apply benefits from the effective card based on procedure categories + prices
+  const autoAppliedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
+    if (!effectiveCard || !applyCardBenefits || procedures.length === 0) return []
+
+    return procedures.flatMap((proc) => {
+      const amt = isMultiProc
+        ? (parseFloat(procPrices[proc.uid] ?? '') || 0)
+        : gross
+      if (amt <= 0) return []
+
+      const category = proc.category
+      if (category === 'CHECKUP') {
+        return setup.cardTemplate.some((t) => t.isFree)
+          ? [{ benefitKey: 'CHECKUP', category: 'CHECKUP', discountPct: 100, serviceAmount: amt }]
+          : []
+      }
+
+      const fields = SERVICE_CARD_FIELDS[category]
+      if (!fields) return []
+      const svc = setup.cardTemplate.find((t) => t.serviceKey === category)
+      if (!svc) return []
+
+      const t1 = (effectiveCard as unknown as Record<string, number>)[fields.t1Field] ?? 0
+      if (t1 > 0) {
+        return [{ benefitKey: fields.t1Key, category, discountPct: svc.tier1Discount, serviceAmount: amt }]
+      }
+      if (svc.hasTier2 && fields.t2Field && fields.t2Key) {
+        const t2 = (effectiveCard as unknown as Record<string, number>)[fields.t2Field] ?? 0
+        if (t2 > 0) {
+          return [{ benefitKey: fields.t2Key, category, discountPct: svc.tier2Discount, serviceAmount: amt }]
+        }
+      }
+      return []
+    })
+  }, [effectiveCard, applyCardBenefits, procedures, procPrices, gross, isMultiProc, setup.cardTemplate])
+
+  const loyaltyDiscountAmount = useMemo(() =>
+    autoAppliedBenefits.reduce((sum, b) => {
+      return sum + (b.discountPct >= 100 ? b.serviceAmount : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100)
+    }, 0),
+    [autoAppliedBenefits]
+  )
+
+  const loyaltyCardFee = purchaseCard && !waiveCardFee ? 500 : 0
+  const netTotal = Math.max(0, Math.round((gross - loyaltyDiscountAmount) * 100) / 100) + loyaltyCardFee
+
+  // ── Validation ────────────────────────────────────────────────────────────
   const canSubmit =
     visitDate &&
     procedures.length > 0 &&
@@ -104,6 +194,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     notes.trim().length >= 1 &&
     !isPending
 
+  // ── Submit ────────────────────────────────────────────────────────────────
   function submit(action: 'checkout' | 'save') {
     if (!canSubmit) return
     setPendingAction(action)
@@ -113,19 +204,15 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       procedures.length === 1
         ? procedures[0].diagnosis
         : procedures.map((p) => `${p.serviceName}: ${p.diagnosis}`).join('; ')
-    const toothNumber =
-      procedures.map((p) => p.toothNumber.trim()).filter(Boolean).join(', ') || undefined
+    const toothNumber = procedures.map((p) => p.toothNumber.trim()).filter(Boolean).join(', ') || undefined
 
-    const bracesEntry = procedures.find((p) => {
-      const svc = setup.serviceCatalog.find((s) => s.id === p.serviceId)
-      return svc?.category === 'BRACES'
-    })
+    const bracesEntry = procedures.find((p) => p.category === 'BRACES')
+
+    const procedureAmounts = isMultiProc
+      ? procedures.map((p) => ({ name: p.serviceName, amount: parseFloat(procPrices[p.uid] ?? '') || 0 }))
+      : undefined
 
     startTransition(async () => {
-      const procedureAmounts = isMultiProc
-        ? procedures.map((p) => ({ name: p.serviceName, amount: parseFloat(procPrices[p.uid] ?? '') || 0 }))
-        : undefined
-
       const visitId = await saveVisit({
         patientId: setup.patient.id,
         visitDate,
@@ -139,6 +226,11 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         reminderWeeks: isBracesCategory && isBracesReminder ? reminderWeeks : undefined,
         isCleaningService: isCleaningCategory,
         appointmentId,
+        // Loyalty
+        appliedLoyaltyCardId: effectiveCard && applyCardBenefits ? effectiveCard.id : undefined,
+        purchaseNewLoyaltyCard: purchaseCard,
+        waiveCardFee: purchaseCard ? waiveCardFee : undefined,
+        loyaltyBenefits: autoAppliedBenefits.length > 0 ? autoAppliedBenefits : undefined,
       })
       if (action === 'checkout') {
         router.push(`/payments?visitId=${visitId}`)
@@ -148,6 +240,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
     })
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Patient header */}
@@ -176,7 +269,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </CardContent>
       </Card>
 
-      {/* ── Procedure picker ── */}
+      {/* Procedure picker */}
       <Card>
         <CardHeader>
           <CardTitle>Procedures<span className="text-destructive ml-0.5">*</span></CardTitle>
@@ -192,7 +285,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                   <button
                     key={svc.id}
                     type="button"
-                    onClick={() => addProcedure(svc.id, svc.name)}
+                    onClick={() => addProcedure(svc.id, svc.name, svc.category)}
                     className={`relative min-h-[48px] rounded-lg border-2 px-3 py-2 text-sm font-medium text-left transition-colors ${
                       count > 0
                         ? 'border-primary bg-primary/10 text-primary'
@@ -220,7 +313,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </CardContent>
       </Card>
 
-      {/* ── One card per added procedure ── */}
+      {/* One card per procedure */}
       {procedures.map((proc, i) => (
         <Card key={proc.uid} className="border-primary/40">
           <CardHeader className="pb-2">
@@ -272,7 +365,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
             </div>
             {isMultiProc && (
               <div className="flex flex-col gap-1.5">
-                <Label>Price <span className="text-destructive ml-0.5">*</span></Label>
+                <Label>Price<span className="text-destructive ml-0.5">*</span></Label>
                 <input
                   type="number"
                   inputMode="decimal"
@@ -288,11 +381,11 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </Card>
       ))}
 
-      {/* ── Price ── single-proc only; multi-proc uses per-card inputs above */}
-      {!isMultiProc && (
+      {/* Single-proc price */}
+      {!isMultiProc && procedures.length > 0 && (
         <Card>
           <CardHeader><CardTitle>Price<span className="text-destructive ml-0.5">*</span></CardTitle></CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent>
             <input
               type="number"
               inputMode="decimal"
@@ -302,38 +395,197 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               placeholder="0.00"
               min={0}
             />
-            {gross > 0 && (
-              <div className="flex flex-col gap-1 text-sm rounded-lg bg-muted/50 px-4 py-3">
-                <div className="flex justify-between font-semibold">
-                  <span>Total</span>
-                  <span>₱{formatMoney(gross)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-emerald-600">
-                  <span>VAT-Exempt (NIRC §109)</span>
-                  <span>₱0.00</span>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       )}
 
-      {/* ── Multi-proc running total ── */}
-      {isMultiProc && gross > 0 && (
+      {/* ── Loyalty Card ─────────────────────────────────────────────────── */}
+      {procedures.length > 0 && gross > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Loyalty Card</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+
+            {hasPendingRenewal && (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+                Loyalty card renewal pending for this patient.
+              </div>
+            )}
+
+            {/* Family card banner */}
+            {familyCard && (
+              <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 flex items-start justify-between gap-2">
+                <div className="text-sm">
+                  <p className="font-semibold text-blue-900">Using {familyCard.holderName}&apos;s card</p>
+                  <p className="text-blue-700 text-xs mt-0.5">
+                    #{familyCard.card.cardNumber} · expires {fmtDate(familyCard.card.expiryDate)}
+                  </p>
+                </div>
+                <button type="button" onClick={() => setFamilyCard(null)} className="text-xs text-blue-500 underline shrink-0 mt-0.5">
+                  Remove
+                </button>
+              </div>
+            )}
+
+            {/* Own active card */}
+            {!familyCard && setup.loyaltyCard && (
+              <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-sm">
+                <p className="font-semibold text-green-900">Card #{setup.loyaltyCard.cardNumber}</p>
+                <p className="text-green-700 text-xs mt-0.5">Expires {fmtDate(setup.loyaltyCard.expiryDate)}</p>
+              </div>
+            )}
+
+            {/* Apply discount toggle — when a card is active */}
+            {effectiveCard && (
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="applyBenefits" className="flex-1 cursor-pointer text-sm">
+                  Apply card discount
+                </Label>
+                <Switch
+                  id="applyBenefits"
+                  checked={applyCardBenefits}
+                  onCheckedChange={setApplyCardBenefits}
+                  className="shrink-0"
+                />
+              </div>
+            )}
+
+            {/* No card — buy option */}
+            {!setup.loyaltyCard && !familyCard && (
+              <div className="space-y-3">
+                {!hasPendingRenewal && (
+                  <p className="text-sm text-muted-foreground">This patient does not have a loyalty card.</p>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
+                    Purchase loyalty card — ₱500.00
+                  </Label>
+                  <Switch
+                    id="purchaseCard"
+                    checked={purchaseCard}
+                    onCheckedChange={handlePurchaseCardToggle}
+                    className="shrink-0"
+                  />
+                </div>
+                {purchaseCard && (
+                  <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
+                    <div className="flex-1">
+                      <Label htmlFor="waiveCardFee" className="cursor-pointer text-sm text-muted-foreground">
+                        Waive card fee
+                      </Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">Card issued free — ₱0 added to total</p>
+                    </div>
+                    <Switch
+                      id="waiveCardFee"
+                      checked={waiveCardFee}
+                      onCheckedChange={setWaiveCardFee}
+                      className="shrink-0"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Family card search */}
+            <div className="pt-1 border-t">
+              {!familyCard && (
+                <button
+                  type="button"
+                  onClick={() => { setFamilyCardOpen((v) => !v); setFamilyQuery(''); setFamilyResults([]) }}
+                  className="text-sm text-primary underline underline-offset-2"
+                >
+                  {familyCardOpen ? 'Cancel' : "Use a family member's card"}
+                </button>
+              )}
+              {familyCardOpen && !familyCard && (
+                <div className="mt-3 space-y-2">
+                  <Input
+                    autoFocus
+                    placeholder="Search by name or phone…"
+                    value={familyQuery}
+                    onChange={(e) => setFamilyQuery(e.target.value)}
+                    className="min-h-[48px]"
+                  />
+                  {familySearching && <p className="text-xs text-muted-foreground px-1">Searching…</p>}
+                  {!familySearching && familyQuery.trim().length >= 2 && familyResults.length === 0 && (
+                    <p className="text-xs text-muted-foreground px-1">No patients with an active loyalty card found.</p>
+                  )}
+                  {familyResults.map((r) => (
+                    <button
+                      key={r.patientId}
+                      type="button"
+                      onClick={() => selectFamilyCard(r)}
+                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-left hover:bg-muted transition-colors"
+                    >
+                      <p className="font-semibold text-sm">{r.holderName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Card #{r.card.cardNumber} · expires {fmtDate(r.card.expiryDate)}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Price summary ─────────────────────────────────────────────────── */}
+      {gross > 0 && (
         <Card>
           <CardContent className="py-3 flex flex-col gap-1 text-sm">
-            {procedures.map((p) => {
-              const amt = parseFloat(procPrices[p.uid] ?? '') || 0
-              return amt > 0 ? (
-                <div key={p.uid} className="flex justify-between text-muted-foreground">
-                  <span>{p.serviceName}</span>
-                  <span>₱{formatMoney(amt)}</span>
+            {/* Itemized procedures (multi) or single line */}
+            {isMultiProc ? (
+              procedures.map((p) => {
+                const amt = parseFloat(procPrices[p.uid] ?? '') || 0
+                return amt > 0 ? (
+                  <div key={p.uid} className="flex justify-between text-muted-foreground">
+                    <span>{p.serviceName}</span>
+                    <span>₱{formatMoney(amt)}</span>
+                  </div>
+                ) : null
+              })
+            ) : (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Service</span>
+                <span>₱{formatMoney(gross)}</span>
+              </div>
+            )}
+
+            {/* Applied loyalty discounts */}
+            {autoAppliedBenefits.map((b, i) => {
+              const disc = b.discountPct >= 100
+                ? b.serviceAmount
+                : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100
+              if (disc <= 0) return null
+              const svc = setup.cardTemplate.find((t) => t.serviceKey === b.category)
+              const label = b.discountPct >= 100
+                ? `Free ${svc?.label ?? b.category}`
+                : `${b.discountPct}% off ${svc?.label ?? b.category}`
+              return (
+                <div key={i} className="flex justify-between text-red-600">
+                  <span>{label}</span>
+                  <span>-₱{formatMoney(disc)}</span>
                 </div>
-              ) : null
+              )
             })}
+
+            {/* Card purchase fee */}
+            {purchaseCard && (
+              <div className="flex justify-between text-muted-foreground">
+                <span>Loyalty card</span>
+                {waiveCardFee
+                  ? <span className="text-emerald-600 font-medium">Waived</span>
+                  : <span>₱500.00</span>
+                }
+              </div>
+            )}
+
             <div className="border-t pt-2 flex justify-between font-semibold">
               <span>Total</span>
-              <span>₱{formatMoney(gross)}</span>
+              <span>₱{formatMoney(netTotal)}</span>
             </div>
             <div className="flex justify-between text-xs text-emerald-600">
               <span>VAT-Exempt (NIRC §109)</span>
@@ -343,7 +595,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </Card>
       )}
 
-      {/* Braces toggle */}
+      {/* Braces reminder toggle */}
       {isBracesCategory && (
         <Card>
           <CardContent className="flex flex-col gap-3 py-4">
@@ -353,13 +605,9 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 role="switch"
                 aria-checked={isBracesReminder}
                 onClick={() => setIsBracesReminder((v) => !v)}
-                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors ${
-                  isBracesReminder ? 'bg-primary' : 'bg-muted'
-                }`}
+                className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full transition-colors ${isBracesReminder ? 'bg-primary' : 'bg-muted'}`}
               >
-                <span className={`pointer-events-none inline-block h-6 w-6 translate-y-0.5 rounded-full bg-white shadow transition-transform ${
-                  isBracesReminder ? 'translate-x-5' : 'translate-x-0.5'
-                }`} />
+                <span className={`pointer-events-none inline-block h-6 w-6 translate-y-0.5 rounded-full bg-white shadow transition-transform ${isBracesReminder ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
               <span className="text-sm font-medium">This is a braces alignment visit</span>
             </div>
@@ -367,9 +615,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               <div className="flex flex-col gap-1.5">
                 <Label>Reminder interval</Label>
                 <select className={inputClass} value={reminderWeeks} onChange={(e) => setReminderWeeks(Number(e.target.value))}>
-                  {REMINDER_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
+                  {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             )}
@@ -377,7 +623,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </Card>
       )}
 
-      {/* Cleaning recall */}
+      {/* Cleaning recall notice */}
       {isCleaningCategory && (
         <Card>
           <CardContent className="py-4">

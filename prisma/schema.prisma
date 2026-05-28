@@ -204,8 +204,12 @@ model Visit {
   grossAmount       Decimal
   netAmount         Decimal
   vatAmount         Decimal
-  procedureAmounts  Json?    // [{name:string,amount:number}] per-procedure breakdown
-  intervalWeeks     Int?     // braces only — weeks until next alignment
+  procedureAmounts       Json?    // [{name:string,amount:number}] per-procedure breakdown
+  appliedLoyaltyCardId   String?  // card used for discounts (own or family — no FK, applied at confirm time)
+  purchaseNewLoyaltyCard Boolean  @default(false)
+  waiveCardFee           Boolean  @default(false)
+  loyaltyBenefits        Json?    // LoyaltyBenefitApplication[] stored at visit-save time
+  intervalWeeks          Int?     // braces only — weeks until next alignment
   status        String   @default("ACTIVE") // ACTIVE | VOID
   createdAt     DateTime @default(now())
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { CheckCircle, Printer, Wifi, WifiOff } from 'lucide-react'
@@ -12,14 +12,8 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   confirmPayment,
-  searchPatientLoyaltyCard,
   type CheckoutVisitData,
-  type CheckoutLoyaltyCard,
-  type FamilyCardResult,
-  type LoyaltyBenefitApplication,
-  type CardTemplateService,
 } from './actions'
-import { SERVICE_CARD_FIELDS } from '@/lib/loyaltyConfig'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -27,8 +21,6 @@ import { SERVICE_CARD_FIELDS } from '@/lib/loyaltyConfig'
 
 type Props = {
   visitData: CheckoutVisitData
-  loyaltyCard: CheckoutLoyaltyCard | null
-  cardTemplate: CardTemplateService[]
 }
 
 type PrinterInfo = { type: 'bluetooth' | 'serial'; name: string } | null
@@ -49,11 +41,8 @@ function fmtDate(d: Date | string): string {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }: Props) {
+export default function CheckoutClient({ visitData }: Props) {
   const router = useRouter()
-  const LOYALTY_CARD_PRICE = 500
-
-  const hasPendingRenewal = visitData.pendingLoyaltyCardPurchase && !loyaltyCard
 
   // ── SC/PWD ──────────────────────────────────────────────────────────────
   const profileScId = visitData.scIdNumber ?? ''
@@ -69,94 +58,6 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
     setScPwdType(t)
     setScPwdIdInput(t === 'SC' ? profileScId : profilePwdId)
   }
-
-  // ── Loyalty card purchase ────────────────────────────────────────────────
-  const [purchaseCard, setPurchaseCard] = useState(hasPendingRenewal)
-  const [waiveCardFee, setWaiveCardFee] = useState(false)
-
-  function handlePurchaseCardToggle(val: boolean) {
-    setPurchaseCard(val)
-    if (!val) setWaiveCardFee(false)
-  }
-
-  // Whether to apply the card's benefits (discount) to this transaction
-  const [applyCardBenefits, setApplyCardBenefits] = useState(true)
-
-  // ── Family card ──────────────────────────────────────────────────────────
-  const [familyCardOpen, setFamilyCardOpen] = useState(false)
-  const [familyQuery, setFamilyQuery] = useState('')
-  const [familySearching, setFamilySearching] = useState(false)
-  const [familyResults, setFamilyResults] = useState<FamilyCardResult[]>([])
-  const [familyCard, setFamilyCard] = useState<FamilyCardResult | null>(null)
-  const familyDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (familyDebounce.current) clearTimeout(familyDebounce.current)
-    if (familyQuery.trim().length < 2) { setFamilyResults([]); return }
-    familyDebounce.current = setTimeout(async () => {
-      setFamilySearching(true)
-      try {
-        setFamilyResults(await searchPatientLoyaltyCard(familyQuery, visitData.patientId))
-      } finally {
-        setFamilySearching(false)
-      }
-    }, 350)
-    return () => { if (familyDebounce.current) clearTimeout(familyDebounce.current) }
-  }, [familyQuery, visitData.patientId])
-
-  function selectFamilyCard(r: FamilyCardResult) {
-    setFamilyCard(r)
-    setFamilyResults([])
-    setFamilyQuery('')
-    setFamilyCardOpen(false)
-    setPurchaseCard(false)
-  }
-
-  // The card whose benefits are applied — family card overrides own card.
-  // New card purchase in the same transaction doesn't auto-apply benefits
-  // (patient uses benefits starting from the next visit).
-  const effectiveCard: CheckoutLoyaltyCard | null = familyCard?.card ?? loyaltyCard ?? null
-
-  // ── Auto-apply benefits ──────────────────────────────────────────────────
-  // For each procedure in the visit, find the best available benefit on the
-  // effective card and apply it automatically. No manual chip selection needed.
-  const autoAppliedBenefits = useMemo<LoyaltyBenefitApplication[]>(() => {
-    if (!effectiveCard || !applyCardBenefits) return []
-
-    const procCount = visitData.procedures.length
-
-    return visitData.procedures.flatMap((proc) => {
-      // Use stored per-procedure amount; fall back to equal split of gross
-      const amt = proc.amount ?? visitData.grossAmount / procCount
-      const category = proc.category
-
-      // Free check-up
-      if (category === 'CHECKUP') {
-        return cardTemplate.some((t) => t.isFree)
-          ? [{ benefitKey: 'CHECKUP', category: 'CHECKUP', discountPct: 100, serviceAmount: amt }]
-          : []
-      }
-
-      const fields = SERVICE_CARD_FIELDS[category]
-      if (!fields) return []
-      const svc = cardTemplate.find((t) => t.serviceKey === category)
-      if (!svc) return []
-
-      // Tier 1
-      const t1 = (effectiveCard as unknown as Record<string, number>)[fields.t1Field] ?? 0
-      if (t1 > 0) {
-        return [{ benefitKey: fields.t1Key, category, discountPct: svc.tier1Discount, serviceAmount: amt }]
-      }
-      // Tier 2
-      if (svc.hasTier2 && fields.t2Field && fields.t2Key) {
-        const t2 = (effectiveCard as unknown as Record<string, number>)[fields.t2Field] ?? 0
-        if (t2 > 0) {
-          return [{ benefitKey: fields.t2Key, category, discountPct: svc.tier2Discount, serviceAmount: amt }]
-        }
-      }
-      return []
-    })
-  }, [effectiveCard, applyCardBenefits, cardTemplate, visitData.procedures, visitData.grossAmount])
 
   // ── Payment / UI state ───────────────────────────────────────────────────
   const [notes, setNotes] = useState('')
@@ -211,33 +112,24 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
 
   // ── Price calculations — dental is VAT-exempt ────────────────────────────
   const gross = visitData.grossAmount
-
-  const loyaltyDiscountAmount = useMemo(() =>
-    autoAppliedBenefits.reduce((sum, b) => {
-      const disc = b.discountPct >= 100
-        ? b.serviceAmount
-        : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100
-      return sum + disc
-    }, 0),
-    [autoAppliedBenefits]
-  )
-
+  const loyaltyDiscountAmount = visitData.loyaltyInfo?.totalDiscount ?? 0
   const grossAfterLoyalty = Math.max(0, Math.round((gross - loyaltyDiscountAmount) * 100) / 100)
 
   const scPwdIdValid = applyScPwd && scPwdIdInput.trim().length >= 3
   const scPwdDiscountAmount = scPwdIdValid ? Math.round(gross * 0.20 * 100) / 100 : 0
 
   const discountedGross = Math.max(0, Math.round((grossAfterLoyalty - scPwdDiscountAmount) * 100) / 100)
-  const loyaltyCardTotal = purchaseCard && !waiveCardFee ? LOYALTY_CARD_PRICE : 0
-  const combinedGross = discountedGross + loyaltyCardTotal
 
-  // ── Receipt label ────────────────────────────────────────────────────────
+  const cardPrice = visitData.clinic.loyaltyCardPrice
+  const purchaseNewCard = visitData.loyaltyInfo?.purchaseNewCard ?? false
+  const waiveCardFee = visitData.loyaltyInfo?.waiveCardFee ?? false
+  const loyaltyCardTotal = purchaseNewCard && !waiveCardFee ? cardPrice : 0
+
+  const combinedGross = Math.round((discountedGross + loyaltyCardTotal) * 100) / 100
+
+  // ── Receipt discount label ───────────────────────────────────────────────
   function buildReceiptDiscountLabel(): string {
-    const parts = autoAppliedBenefits.map((b) => {
-      const svc = cardTemplate.find((t) => t.serviceKey === b.category)
-      const lbl = svc?.label ?? b.category
-      return b.discountPct >= 100 ? `Free ${lbl}` : `${b.discountPct}% off ${lbl}`
-    })
+    const parts = (visitData.loyaltyInfo?.discountLines ?? []).map((l) => l.label)
     if (scPwdIdValid) parts.push(scPwdType === 'SC' ? 'SC 20% RA 9994' : 'PWD 20% RA 10754')
     return parts.join(' + ')
   }
@@ -251,10 +143,6 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
       const res = await confirmPayment({
         visitId: visitData.id,
         paymentMethod,
-        loyaltyCardId: familyCard?.card.id ?? loyaltyCard?.id ?? null,
-        loyaltyBenefits: autoAppliedBenefits,
-        purchaseNewLoyaltyCard: purchaseCard,
-        waiveCardFee: purchaseCard ? waiveCardFee : undefined,
         applyScPwdDiscount: scPwdIdValid,
         scPwdType: scPwdIdValid ? scPwdType : null,
         scPwdIdNumber: scPwdIdValid ? scPwdIdInput.trim() : null,
@@ -431,142 +319,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         </CardContent>
       </Card>
 
-      {/* ── 2. Loyalty Card ──────────────────────────────────── */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Loyalty Card</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-
-          {hasPendingRenewal && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
-              Loyalty card renewal pending for this patient.
-            </div>
-          )}
-
-          {/* Active family card banner */}
-          {familyCard && (
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 flex items-start justify-between gap-2">
-              <div className="text-sm">
-                <p className="font-semibold text-blue-900">Using {familyCard.holderName}&apos;s card</p>
-                <p className="text-blue-700 text-xs mt-0.5">
-                  #{familyCard.card.cardNumber} · expires {fmtDate(familyCard.card.expiryDate)}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setFamilyCard(null)}
-                className="text-xs text-blue-500 underline shrink-0 mt-0.5"
-              >
-                Remove
-              </button>
-            </div>
-          )}
-
-          {/* Own active card */}
-          {!familyCard && loyaltyCard && (
-            <div className="rounded-xl bg-green-50 border border-green-200 p-3 text-sm">
-              <p className="font-semibold text-green-900">Card #{loyaltyCard.cardNumber}</p>
-              <p className="text-green-700 text-xs mt-0.5">Expires {fmtDate(loyaltyCard.expiryDate)}</p>
-            </div>
-          )}
-
-          {/* Apply discount toggle — shown when a card is active (own or family) */}
-          {effectiveCard && (
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="applyBenefits" className="flex-1 cursor-pointer text-sm">
-                Apply card discount
-              </Label>
-              <Switch
-                id="applyBenefits"
-                checked={applyCardBenefits}
-                onCheckedChange={setApplyCardBenefits}
-                className="shrink-0"
-              />
-            </div>
-          )}
-
-          {/* No card — buy option */}
-          {!loyaltyCard && !familyCard && (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">This patient does not have a loyalty card.</p>
-              <div className="flex items-center justify-between gap-3">
-                <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
-                  Purchase loyalty card — ₱{fmt(LOYALTY_CARD_PRICE)}
-                </Label>
-                <Switch
-                  id="purchaseCard"
-                  checked={purchaseCard}
-                  onCheckedChange={handlePurchaseCardToggle}
-                  className="shrink-0"
-                />
-              </div>
-              {purchaseCard && (
-                <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
-                  <div className="flex-1">
-                    <Label htmlFor="waiveCardFee" className="cursor-pointer text-sm text-muted-foreground">
-                      Waive card fee
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Card issued free — ₱0 added to total
-                    </p>
-                  </div>
-                  <Switch
-                    id="waiveCardFee"
-                    checked={waiveCardFee}
-                    onCheckedChange={setWaiveCardFee}
-                    className="shrink-0"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Family card search */}
-          <div className="pt-1 border-t">
-            {!familyCard && (
-              <button
-                type="button"
-                onClick={() => { setFamilyCardOpen((v) => !v); setFamilyQuery(''); setFamilyResults([]) }}
-                className="text-sm text-primary underline underline-offset-2"
-              >
-                {familyCardOpen ? 'Cancel' : "Use a family member's card"}
-              </button>
-            )}
-            {familyCardOpen && !familyCard && (
-              <div className="mt-3 space-y-2">
-                <Input
-                  autoFocus
-                  placeholder="Search by name or phone…"
-                  value={familyQuery}
-                  onChange={(e) => setFamilyQuery(e.target.value)}
-                  className="min-h-[48px]"
-                />
-                {familySearching && <p className="text-xs text-muted-foreground px-1">Searching…</p>}
-                {!familySearching && familyQuery.trim().length >= 2 && familyResults.length === 0 && (
-                  <p className="text-xs text-muted-foreground px-1">No patients with an active loyalty card found.</p>
-                )}
-                {familyResults.map((r) => (
-                  <button
-                    key={r.patientId}
-                    type="button"
-                    onClick={() => selectFamilyCard(r)}
-                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-left hover:bg-muted transition-colors"
-                  >
-                    <p className="font-semibold text-sm">{r.holderName}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Card #{r.card.cardNumber} · expires {fmtDate(r.card.expiryDate)}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-        </CardContent>
-      </Card>
-
-      {/* ── 3. SC/PWD Discount ───────────────────────────────── */}
+      {/* ── 2. SC/PWD Discount ───────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Gov&apos;t Discount</CardTitle>
@@ -627,14 +380,14 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         </CardContent>
       </Card>
 
-      {/* ── 4. Breakdown ─────────────────────────────────────── */}
+      {/* ── 3. Breakdown ─────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Breakdown</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1 text-sm">
 
-          {/* Itemized procedure lines (multi-proc with stored amounts) or single line */}
+          {/* Itemized procedure lines */}
           {visitData.procedures.length > 1 && visitData.procedures.some((p) => p.amount != null) ? (
             visitData.procedures.map((p, i) => (
               <div key={i} className="flex justify-between text-muted-foreground">
@@ -649,23 +402,15 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
             </div>
           )}
 
-          {/* Auto-applied loyalty discounts */}
-          {autoAppliedBenefits.map((b, i) => {
-            const disc = b.discountPct >= 100
-              ? b.serviceAmount
-              : Math.round(b.serviceAmount * (b.discountPct / 100) * 100) / 100
-            if (disc <= 0) return null
-            const svc = cardTemplate.find((t) => t.serviceKey === b.category)
-            const label = b.discountPct >= 100
-              ? `Free ${svc?.label ?? b.category}`
-              : `${b.discountPct}% off ${svc?.label ?? b.category}`
-            return (
+          {/* Pre-applied loyalty discounts (set at visit-recording time) */}
+          {(visitData.loyaltyInfo?.discountLines ?? []).map((line, i) => (
+            line.discountAmount > 0 ? (
               <div key={i} className="flex justify-between text-red-600">
-                <span>{label}</span>
-                <span>-₱{fmt(disc)}</span>
+                <span>{line.label}</span>
+                <span>-₱{fmt(line.discountAmount)}</span>
               </div>
-            )
-          })}
+            ) : null
+          ))}
 
           {/* SC/PWD */}
           {scPwdIdValid && (
@@ -675,13 +420,13 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
             </div>
           )}
 
-          {/* Loyalty card purchase */}
-          {purchaseCard && (
+          {/* Loyalty card purchase (decided at visit time) */}
+          {purchaseNewCard && (
             <div className="flex justify-between text-muted-foreground">
               <span>Loyalty card</span>
               {waiveCardFee
                 ? <span className="text-emerald-600 font-medium">Waived</span>
-                : <span>₱{fmt(LOYALTY_CARD_PRICE)}</span>
+                : <span>₱{fmt(cardPrice)}</span>
               }
             </div>
           )}
@@ -697,7 +442,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         </CardContent>
       </Card>
 
-      {/* ── 5. Notes ─────────────────────────────────────────── */}
+      {/* ── 4. Notes ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Notes (optional)</CardTitle>
@@ -713,7 +458,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         </CardContent>
       </Card>
 
-      {/* ── 6. Payment Method ─────────────────────────────────── */}
+      {/* ── 5. Payment Method ─────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Payment Method</CardTitle>
@@ -739,7 +484,7 @@ export default function CheckoutClient({ visitData, loyaltyCard, cardTemplate }:
         </CardContent>
       </Card>
 
-      {/* ── 7. Confirm ───────────────────────────────────────── */}
+      {/* ── 6. Confirm ───────────────────────────────────────── */}
       <Button
         className="w-full min-h-[56px] text-base font-semibold"
         disabled={!paymentMethod || loading}

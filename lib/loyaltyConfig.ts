@@ -15,6 +15,14 @@ export type CardTemplateService = {
   tier2Discount: number   // 0 if no tier2
 }
 
+/** One benefit applied from a loyalty card — stored on Visit.loyaltyBenefits */
+export type LoyaltyBenefitApplication = {
+  benefitKey: string    // e.g. CLEANING_50, EXTRACTION
+  category: string      // e.g. CLEANING, EXTRACTION
+  discountPct: number   // 0–100; 100 = free (CHECKUP)
+  serviceAmount: number // the price of this individual procedure
+}
+
 /** Maps serviceKey → field names on LoyaltyCard and benefit keys used at checkout */
 export const SERVICE_CARD_FIELDS: Record<string, {
   t1Field: string

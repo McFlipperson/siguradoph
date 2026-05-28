@@ -28,11 +28,7 @@ export default async function PaymentsPage({
         <h1 className="text-xl font-bold">Checkout</h1>
         <p className="text-sm text-muted-foreground">{data.visitData.patientName}</p>
       </div>
-      <CheckoutClient
-        visitData={data.visitData}
-        loyaltyCard={data.loyaltyCard}
-        cardTemplate={data.cardTemplate}
-      />
+      <CheckoutClient visitData={data.visitData} />
     </div>
   )
 }
