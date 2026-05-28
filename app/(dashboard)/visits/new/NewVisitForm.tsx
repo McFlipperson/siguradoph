@@ -397,9 +397,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
 
       {/* One card per procedure */}
       {procedures.map((proc, i) => {
-        const benefitOptions = getAvailableOptions(proc)
-        const selectedKey = selectedBenefitKeys[proc.uid] ?? null
-
         return (
           <Card key={proc.uid} className="border-primary/40">
             <CardHeader className="pb-2">
@@ -464,43 +461,6 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 </div>
               )}
 
-              {/* ── Loyalty card discount selector ── */}
-              {effectiveCard && benefitOptions.length > 0 && (
-                <div className="flex flex-col gap-2 pt-1 border-t">
-                  <Label className="text-xs text-muted-foreground">Card Discount</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {/* None button */}
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: null }))}
-                      className={[
-                        'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
-                        !selectedKey
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border bg-background text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      None
-                    </button>
-                    {/* Discount option buttons */}
-                    {benefitOptions.map((opt) => (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: opt.key }))}
-                        className={[
-                          'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
-                          selectedKey === opt.key
-                            ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
-                            : 'border-border bg-background text-foreground hover:bg-muted',
-                        ].join(' ')}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )
@@ -581,7 +541,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 {purchaseCard && (
                   <>
                     <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-900">
-                      New card benefits apply to this visit — select discounts on each procedure above.
+                      New card benefits apply to this visit — choose discounts below.
                     </div>
                     <div className="flex items-center justify-between gap-3 pl-1 pt-2 border-t">
                       <div className="flex-1">
@@ -601,6 +561,55 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                 )}
               </div>
             )}
+
+            {/* ── Discount selector — shown whenever a card is active ── */}
+            {effectiveCard && (() => {
+              const eligibleProcs = procedures.filter((p) => getAvailableOptions(p).length > 0)
+              if (eligibleProcs.length === 0) return null
+              return (
+                <div className="pt-3 border-t space-y-3">
+                  <p className="text-sm font-semibold">Apply Card Discounts</p>
+                  {eligibleProcs.map((proc) => {
+                    const opts = getAvailableOptions(proc)
+                    const selectedKey = selectedBenefitKeys[proc.uid] ?? null
+                    return (
+                      <div key={proc.uid} className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground font-medium">{proc.serviceName}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: null }))}
+                            className={[
+                              'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
+                              !selectedKey
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-border bg-background text-muted-foreground',
+                            ].join(' ')}
+                          >
+                            None
+                          </button>
+                          {opts.map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => setSelectedBenefitKeys((prev) => ({ ...prev, [proc.uid]: opt.key }))}
+                              className={[
+                                'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors min-h-[36px]',
+                                selectedKey === opt.key
+                                  ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                                  : 'border-border bg-background text-foreground hover:bg-muted',
+                              ].join(' ')}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
 
             {/* Family card search */}
             <div className="pt-1 border-t">
