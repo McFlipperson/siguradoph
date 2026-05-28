@@ -316,12 +316,77 @@ export async function voidVisit(visitId: string): Promise<void> {
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
   if (visit.status === 'VOID') throw new Error('Already voided')
 
+  // Field map for restoring loyalty card uses (benefit key → card field name)
+  const benefitFieldMap: Record<string, string> = {
+    CLEANING_50: 'cleaningUses50', CLEANING_25: 'cleaningUses25',
+    FILLING_50:  'fillingUses50',  FILLING_25:  'fillingUses25',
+    RCT:         'rctUses',        DENTURES:    'dentureUses',
+    BRACES:      'bracesUses',     EXTRACTION:  'extractionUses',
+    WISDOM_TOOTH:'wisdomToothUses',
+  }
+
+  const loyaltyBenefits = Array.isArray(visit.loyaltyBenefits)
+    ? (visit.loyaltyBenefits as LoyaltyBenefitApplication[])
+    : []
+
   await prisma.$transaction(async (tx) => {
     await tx.visit.update({ where: { id: visitId }, data: { status: 'VOID' } })
     if (visit.invoice && visit.invoice.status !== 'VOID') {
       await tx.invoice.update({ where: { id: visit.invoice.id }, data: { status: 'VOID' } })
     }
+
+    // Reverse loyalty card changes only when payment was already confirmed (invoice exists)
+    if (visit.invoice) {
+      // Find usage records to get the card ID and clean them up
+      const usageRecords = await tx.loyaltyCardUsage.findMany({
+        where: { invoiceId: visit.invoice.id },
+      })
+
+      // Determine which card was affected
+      const cardId = usageRecords[0]?.loyaltyCardId ?? visit.appliedLoyaltyCardId ?? null
+
+      // Restore decremented use counts using the benefits stored on the visit
+      if (cardId && loyaltyBenefits.length > 0) {
+        for (const benefit of loyaltyBenefits) {
+          const field = benefit.category !== 'CHECKUP' ? benefitFieldMap[benefit.benefitKey] : null
+          if (field) {
+            await tx.loyaltyCard.update({
+              where: { id: cardId },
+              data: { [field]: { increment: 1 } },
+            })
+          }
+        }
+      }
+
+      // Delete usage history records for this invoice
+      if (usageRecords.length > 0) {
+        await tx.loyaltyCardUsage.deleteMany({ where: { invoiceId: visit.invoice.id } })
+      }
+
+      // If this visit included a new card purchase, deactivate that card
+      if (visit.purchaseNewLoyaltyCard) {
+        const targetCardId = cardId ?? (
+          // No usage records (no discounts applied) — fall back to patient's most recent card
+          (await tx.loyaltyCard.findFirst({
+            where: { patientId: visit.patientId, clinicId, isActive: true },
+            orderBy: { purchaseDate: 'desc' },
+            select: { id: true },
+          }))?.id ?? null
+        )
+        if (targetCardId) {
+          await tx.loyaltyCard.update({
+            where: { id: targetCardId },
+            data: { isActive: false },
+          })
+        }
+      }
+    }
   })
+
+  const cardNote = visit.purchaseNewLoyaltyCard && visit.invoice ? ' (loyalty card voided)' : ''
+  const benefitNote = !visit.purchaseNewLoyaltyCard && loyaltyBenefits.length > 0 && visit.invoice
+    ? ' (card uses restored)'
+    : ''
 
   await writeAudit({
     clinicId,
@@ -329,9 +394,10 @@ export async function voidVisit(visitId: string): Promise<void> {
     action: 'VOID_INVOICE',
     resourceType: 'VISIT',
     resourceId: visitId,
-    detail: `Voided visit${visit.invoice ? ` and OR #${visit.invoice.orNumber}` : ''}: ${visit.treatment}`,
+    detail: `Voided visit${visit.invoice ? ` and OR #${visit.invoice.orNumber}` : ''}${cardNote}${benefitNote}: ${visit.treatment}`,
   })
 
   revalidatePath(`/patients/${visit.patientId}`)
+  revalidatePath('/loyalty')
   revalidatePath('/invoices')
 }
