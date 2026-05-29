@@ -68,6 +68,7 @@ model Clinic {
   email                    String
   facebookPageUrl          String?
   messengerPageId          String?
+  messengerToken           String?
   tin                      String
   rdoCode                  String
   corNumber                String

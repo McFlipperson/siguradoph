@@ -12,7 +12,12 @@ export default async function RemindersPage() {
   const [clinic, reminders, channelCounts, unlinkedMessages] = await Promise.all([
     prisma.clinic.findUnique({
       where: { id: user.clinicId },
-      select: { name: true, facebookPageUrl: true, messengerPageId: true },
+      select: {
+        name: true,
+        facebookPageUrl: true,
+        messengerPageId: true,
+        messengerToken: true,   // presence only — value never sent to client
+      },
     }),
     prisma.scheduledReminder.findMany({
       where: { clinicId: user.clinicId },
@@ -30,14 +35,7 @@ export default async function RemindersPage() {
     }),
   ])
 
-  const messengerConfigured = Boolean(process.env.FACEBOOK_PAGE_ACCESS_TOKEN)
-
-  const channelStats = {
-    MESSENGER: 0,
-    EMAIL: 0,
-    SMS: 0,
-    NONE: 0,
-  }
+  const channelStats = { MESSENGER: 0, EMAIL: 0, SMS: 0, NONE: 0 }
   for (const row of channelCounts) {
     const ch = row.reminderChannel as keyof typeof channelStats
     if (ch in channelStats) channelStats[ch] = row._count
@@ -47,9 +45,11 @@ export default async function RemindersPage() {
     <RemindersClient
       clinic={{
         name: clinic?.name ?? '',
-        facebookPageUrl: clinic?.facebookPageUrl ?? null,
-        messengerPageId: clinic?.messengerPageId ?? null,
-        messengerConfigured,
+        facebookPageUrl: clinic?.facebookPageUrl ?? '',
+        messengerPageId: clinic?.messengerPageId ?? '',
+        hasMessengerToken: Boolean(clinic?.messengerToken),
+        // env-var fallback still counts as configured
+        messengerConfigured: Boolean(clinic?.messengerToken ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN),
       }}
       reminders={reminders.map((r) => ({
         id: r.id,

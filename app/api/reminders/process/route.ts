@@ -3,8 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
 import { sendReminderEmail } from '@/lib/email'
 
-const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN
-
 // ─── Message builders ─────────────────────────────────────────────────────────
 
 function buildText(type: string, firstName: string, clinicName: string): string {
@@ -30,14 +28,13 @@ function buildEmailSubject(type: string, clinicName: string): string {
 }
 
 // ─── Messenger send ───────────────────────────────────────────────────────────
-async function sendViaMessenger(psid: string, text: string): Promise<boolean> {
-  if (!PAGE_ACCESS_TOKEN) return false
+async function sendViaMessenger(psid: string, text: string, token: string): Promise<boolean> {
   try {
     const res = await fetch('https://graph.facebook.com/v19.0/me/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${PAGE_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ recipient: { id: psid }, message: { text } }),
     })
@@ -94,7 +91,7 @@ export async function POST(req: NextRequest) {
           bracesComplete: true,
         },
       },
-      clinic: { select: { name: true } },
+      clinic: { select: { name: true, messengerToken: true } },
     },
   })
 
@@ -109,10 +106,13 @@ export async function POST(req: NextRequest) {
     const text = buildText(reminder.reminderType, firstName, clinicName)
     let success = false
 
+    // Resolve Messenger token: clinic DB value takes priority, env var as fallback
+    const messengerToken = clinic.messengerToken ?? process.env.FACEBOOK_PAGE_ACCESS_TOKEN ?? ''
+
     switch (channel) {
       case 'MESSENGER': {
         const psid = patient.messengerPsid
-        if (!psid) {
+        if (!psid || !messengerToken) {
           await prisma.scheduledReminder.update({
             where: { id: reminder.id },
             data: { status: 'FAILED' },
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
           failed++
           continue
         }
-        success = await sendViaMessenger(psid, text)
+        success = await sendViaMessenger(psid, text, messengerToken)
         break
       }
 
