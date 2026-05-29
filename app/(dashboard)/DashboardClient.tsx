@@ -162,7 +162,7 @@ export default function DashboardClient({ data }: Props) {
           style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}
         >
           <span className="text-xl leading-none">＋</span>
-          <span>Patient</span>
+          <span>Visit</span>
         </button>
         <button
           onClick={() => router.push('/visits/new')}
@@ -170,7 +170,7 @@ export default function DashboardClient({ data }: Props) {
           style={{ background: 'linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%)' }}
         >
           <span className="text-xl leading-none">＋</span>
-          <span>Visit</span>
+          <span>Patient</span>
         </button>
         <button
           onClick={() => router.push('/scheduling')}
