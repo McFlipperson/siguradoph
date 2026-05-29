@@ -155,15 +155,7 @@ export default function DashboardClient({ data }: Props) {
       </div>
 
       {/* ── Quick Actions ───────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => router.push('/patients/intake')}
-          className="min-h-[64px] rounded-2xl text-white font-bold text-sm active:opacity-80 transition-opacity flex flex-col items-center justify-center gap-1 shadow-sm shadow-blue-200"
-          style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)' }}
-        >
-          <span className="text-xl leading-none">＋</span>
-          <span>Visit</span>
-        </button>
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => router.push('/visits/new')}
           className="min-h-[64px] rounded-2xl text-white font-bold text-sm active:opacity-80 transition-opacity flex flex-col items-center justify-center gap-1 shadow-sm shadow-sky-200"
