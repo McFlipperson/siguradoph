@@ -39,7 +39,7 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
           <p className="font-medium text-foreground">1. Roles and Responsibilities</p>
           <p>
             Your clinic is the <strong>Personal Information Controller (PIC)</strong> under Section 3(h)
-            of RA 10173. You determine the purpose and means of processing your patients' personal data.
+            of RA 10173. You determine the purpose and means of processing your patients&apos; personal data.
             Sigurado (AI Matters) is the <strong>Personal Information Processor (PIP)</strong> under
             Section 3(i). We process patient data only on your documented instructions.
           </p>
@@ -59,7 +59,7 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
           <p className="font-medium text-foreground">3. Security Measures</p>
           <p>
             We implement: TLS encryption in transit; encryption at rest; multi-tenant Row-Level Security
-            ensuring your clinic's data is isolated from all other clinics at the database layer;
+            ensuring your clinic&apos;s data is isolated from all other clinics at the database layer;
             audit logging of all significant data operations; and role-based access control so staff
             access only what their role requires.
           </p>
@@ -72,6 +72,7 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
             AWS ap-south-1 Mumbai); Vercel (application compute, US); Meta Platforms (Messenger
             reminders, US — only if your patients opt in); Resend (email delivery, US). We do not sell
             or share patient data with any party for advertising or commercial purposes.
+
           </p>
         </section>
 
@@ -79,7 +80,7 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
           <p className="font-medium text-foreground">5. Your Obligations as PIC</p>
           <p>
             You are responsible for: obtaining valid consent or having a lawful basis for processing
-            each patient's personal data; posting a privacy notice in your clinic; registering with the
+            each patient&apos;s personal data; posting a privacy notice in your clinic; registering with the
             National Privacy Commission (NPC) if you process Sensitive Personal Information of 1,000 or
             more individuals; responding to data subject requests within 15 business days; and reporting
             any breach to the NPC within 72 hours of discovery.
@@ -90,7 +91,7 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
           <p className="font-medium text-foreground">6. Breach Notification</p>
           <p>
             We will notify you without undue delay upon becoming aware of a personal data breach
-            involving your clinic's data, providing sufficient detail for you to meet your 72-hour
+            involving your clinic&apos;s data, providing sufficient detail for you to meet your 72-hour
             NPC notification obligation under NPC Circular 2016-03.
           </p>
         </section>

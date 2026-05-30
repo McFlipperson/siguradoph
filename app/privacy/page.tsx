@@ -327,7 +327,7 @@ export default function PrivacyPage() {
         {/* Changes */}
         <Section title="Changes to this policy">
           <p className="text-sm text-gray-600">
-            We will post any updates to this page and update the "Last updated" date at the top.
+            We will post any updates to this page and update the &ldquo;Last updated&rdquo; date at the top.
             Material changes — particularly any that expand data sharing or change the stated purpose
             of processing — will be communicated to clinic administrators by email before taking effect.
           </p>

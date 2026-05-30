@@ -27,7 +27,7 @@ export function DPAAcceptanceBanner() {
           <div>
             <p className="font-bold text-white text-base">Action Required: Data Agreement</p>
             <p className="text-emerald-100 text-sm mt-0.5">
-              We've updated our legal setup. Please accept the Data Processing Agreement to continue.
+              We&apos;ve updated our legal setup. Please accept the Data Processing Agreement to continue.
             </p>
           </div>
         </div>
@@ -48,8 +48,8 @@ export function DPAAcceptanceBanner() {
               <div className="px-4 pb-4 pt-1 space-y-2.5 text-sm text-muted-foreground border-t bg-muted/20">
                 <p>
                   Under the Philippine Data Privacy Act (RA 10173), Sigurado is a{' '}
-                  <strong>Personal Information Processor (PIP)</strong> — we process your patients'
-                  health records on your clinic's instructions.
+                  <strong>Personal Information Processor (PIP)</strong> — we process your patients&apos;
+                  health records on your clinic&apos;s instructions.
                 </p>
                 <p>
                   This agreement formalizes that relationship. It confirms we only process data for the
