@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 // GET — fetch all reminders for the clinic (for client-side refresh)
 export async function GET() {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const clinicId = user.clinicId as string
 
-  const reminders = await prisma.scheduledReminder.findMany({
-    where: { clinicId: user.clinicId },
-    include: { patient: { select: { firstName: true, lastName: true } } },
-    orderBy: { scheduledFor: 'asc' },
-  })
+  const reminders = await withClinicDb(clinicId, (tx) =>
+    tx.scheduledReminder.findMany({
+      where: { clinicId },
+      include: { patient: { select: { firstName: true, lastName: true } } },
+      orderBy: { scheduledFor: 'asc' },
+    })
+  )
 
   return NextResponse.json(
     reminders.map((r) => ({

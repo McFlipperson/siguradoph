@@ -4,23 +4,13 @@ import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { startOfYear, endOfYear } from 'date-fns'
-
-async function getClinicId() {
-  const supabase = createServerClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email! },
-    include: { clinic: true },
-  })
-  if (!user?.clinic) redirect('/onboarding')
-  return { clinicId: user.clinic.id, clinic: user.clinic }
-}
+import { getActorDb } from '@/lib/auth'
 
 export async function getDashboardData() {
-  const { clinicId, clinic } = await getClinicId()
+  const { clinicId, db } = await getActorDb()
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId } })
+  if (!clinic) redirect('/onboarding')
+
   const now = new Date()
   // Use PHT (UTC+8) to define "today" — Vercel servers run UTC, so
   // startOfDay(now) would be UTC midnight, not Philippine midnight.
@@ -41,66 +31,66 @@ export async function getDashboardData() {
     recentInvoices,
     monthlyRevenue,
   ] = await Promise.all([
-    prisma.visit.count({
+    db((tx) => tx.visit.count({
       where: { clinicId, createdAt: { gte: todayStart, lte: todayEnd } },
-    }),
-    prisma.invoice.aggregate({
+    })),
+    db((tx) => tx.invoice.aggregate({
       where: {
         clinicId,
         status: 'ISSUED',
         transactionDate: { gte: todayStart, lte: todayEnd },
       },
       _sum: { grossAmount: true },
-    }),
-    prisma.appointment.count({
+    })),
+    db((tx) => tx.appointment.count({
       where: {
         clinicId,
         scheduledAt: { gte: todayStart, lte: todayEnd },
         status: { in: ['SCHEDULED', 'CONFIRMED'] },
       },
-    }),
-    prisma.patient.findMany({
+    })),
+    db((tx) => tx.patient.findMany({
       where: {
         clinicId,
         enrolledAt: { gte: todayStart, lte: todayEnd },
         visits: { none: { visitDate: { gte: todayStart, lte: todayEnd } } },
       },
-    }),
-    prisma.appointment.findMany({
+    })),
+    db((tx) => tx.appointment.findMany({
       where: {
         clinicId,
         scheduledAt: { gte: todayStart, lte: todayEnd },
       },
       include: { patient: true },
       orderBy: { scheduledAt: 'asc' },
-    }),
-    prisma.invoice.findMany({
+    })),
+    db((tx) => tx.invoice.findMany({
       where: { clinicId, status: 'ISSUED' },
       orderBy: { transactionDate: 'desc' },
       take: 5,
       include: { visit: { include: { patient: true } } },
-    }),
-    prisma.invoice.findMany({
+    })),
+    db((tx) => tx.invoice.findMany({
       where: {
         clinicId,
         status: 'ISSUED',
         transactionDate: { gte: yearStart, lte: yearEnd },
       },
       select: { transactionDate: true, grossAmount: true },
-    }),
+    })),
   ])
 
   // All visits created today. Using createdAt (wall-clock server time) instead
   // of visitDate (a date string stored as UTC midnight) avoids timezone
   // mismatch between how the date is saved and how todayStart/todayEnd are computed.
-  const walkIns = await prisma.visit.findMany({
+  const walkIns = await db((tx) => tx.visit.findMany({
     where: {
       clinicId,
       createdAt: { gte: todayStart, lte: todayEnd },
     },
     include: { patient: true },
     orderBy: { createdAt: 'asc' },
-  })
+  }))
 
   const byMonth: number[] = Array(12).fill(0)
   for (const inv of monthlyRevenue) {

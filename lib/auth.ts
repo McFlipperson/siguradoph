@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb, type TxClient } from '@/lib/clinic-db'
 
 export async function getSessionUser() {
   const supabase = createServerClient()
@@ -26,4 +27,24 @@ export async function getActor(): Promise<{ clinicId: string; userEmail: string 
   })
   if (!user?.clinicId) throw new Error('No clinic')
   return { clinicId: user.clinicId, userEmail: authUser.email }
+}
+
+/**
+ * Like getActor() but also returns `db` — a function that runs queries
+ * inside a transaction with app.clinic_id set (required by RLS policies).
+ *
+ * @example
+ * const { clinicId, userEmail, db } = await getActorDb()
+ * const patients = await db((tx) => tx.patient.findMany())
+ */
+export async function getActorDb(): Promise<{
+  clinicId: string
+  userEmail: string
+  db: <T>(fn: (tx: TxClient) => Promise<T>) => Promise<T>
+}> {
+  const actor = await getActor()
+  return {
+    ...actor,
+    db: <T>(fn: (tx: TxClient) => Promise<T>) => withClinicDb(actor.clinicId, fn),
+  }
 }

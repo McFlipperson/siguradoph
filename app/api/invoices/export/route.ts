@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 function escapeCsv(value: string | null | undefined): string {
@@ -15,11 +15,12 @@ function fmtDate(d: Date | null): string {
 export async function GET() {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const clinicId = user.clinicId as string
 
-  const invoices = await prisma.invoice.findMany({
-    where: { clinicId: user.clinicId },
+  const invoices = await withClinicDb(clinicId, (tx) => tx.invoice.findMany({
+    where: { clinicId },
     orderBy: { transactionDate: 'desc' },
-  })
+  }))
 
   const header = [
     'OR Number', 'Date', 'Patient', 'Service Description',

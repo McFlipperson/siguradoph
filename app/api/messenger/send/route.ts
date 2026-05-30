@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -12,13 +13,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'patientId and message are required' }, { status: 400 })
   }
 
+  const clinicId = user.clinicId as string
   const [patient, clinic] = await Promise.all([
-    prisma.patient.findFirst({
-      where: { id: patientId, clinicId: user.clinicId },
-      select: { messengerPsid: true },
-    }),
+    withClinicDb(clinicId, (tx) =>
+      tx.patient.findFirst({
+        where: { id: patientId, clinicId },
+        select: { messengerPsid: true },
+      })
+    ),
     prisma.clinic.findUnique({
-      where: { id: user.clinicId },
+      where: { id: clinicId },
       select: { messengerToken: true },
     }),
   ])

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 
 async function getClinicId() {
@@ -32,11 +33,13 @@ export async function GET(req: NextRequest) {
   if (category) where.category = category
   if (supplierId) where.supplierId = supplierId
 
-  const expenses = await prisma.expense.findMany({
-    where,
-    include: { supplier: { select: { id: true, name: true } } },
-    orderBy: { date: 'desc' },
-  })
+  const expenses = await withClinicDb(clinicId, (tx) =>
+    tx.expense.findMany({
+      where,
+      include: { supplier: { select: { id: true, name: true } } },
+      orderBy: { date: 'desc' },
+    })
+  )
 
   return NextResponse.json(
     expenses.map((e) => ({
@@ -73,7 +76,9 @@ export async function POST(req: NextRequest) {
 
   // Validate supplier belongs to clinic if provided
   if (supplierId) {
-    const supplier = await prisma.supplier.findFirst({ where: { id: supplierId, clinicId } })
+    const supplier = await withClinicDb(clinicId, (tx) =>
+      tx.supplier.findFirst({ where: { id: supplierId, clinicId } })
+    )
     if (!supplier) return NextResponse.json({ error: 'Supplier not found' }, { status: 404 })
   }
 
@@ -82,21 +87,23 @@ export async function POST(req: NextRequest) {
   // netAmount: gross minus the input VAT (what the expense costs ex-VAT)
   const net = vatAmt > 0 ? gross - vatAmt : gross
 
-  const expense = await prisma.expense.create({
-    data: {
-      clinicId,
-      category,
-      description,
-      grossAmount: gross,
-      inputVatAmount: vatAmt,
-      netAmount: net,
-      supplierId: supplierId || null,
-      receiptNumber: receiptNumber || null,
-      date: new Date(date),
-      paymentMethod: paymentMethod ?? 'CASH',
-      notes: notes || null,
-    },
-  })
+  const expense = await withClinicDb(clinicId, (tx) =>
+    tx.expense.create({
+      data: {
+        clinicId,
+        category,
+        description,
+        grossAmount: gross,
+        inputVatAmount: vatAmt,
+        netAmount: net,
+        supplierId: supplierId || null,
+        receiptNumber: receiptNumber || null,
+        date: new Date(date),
+        paymentMethod: paymentMethod ?? 'CASH',
+        notes: notes || null,
+      },
+    })
+  )
 
   return NextResponse.json({ id: expense.id }, { status: 201 })
 }

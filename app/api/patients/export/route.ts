@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 function escapeCsv(value: string | null | undefined): string {
@@ -16,22 +16,25 @@ export async function GET() {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const patients = await prisma.patient.findMany({
-    where: { clinicId: user.clinicId },
-    orderBy: { lastName: 'asc' },
-    include: {
-      visits: {
-        orderBy: { visitDate: 'desc' },
-        take: 1,
-        select: { visitDate: true },
+  const clinicId = user.clinicId as string
+  const patients = await withClinicDb(clinicId, (tx) =>
+    tx.patient.findMany({
+      where: { clinicId },
+      orderBy: { lastName: 'asc' },
+      include: {
+        visits: {
+          orderBy: { visitDate: 'desc' },
+          take: 1,
+          select: { visitDate: true },
+        },
+        consentRecords: {
+          orderBy: { consentDate: 'desc' },
+          take: 1,
+          select: { consentDate: true, consentMethod: true, isMinor: true, guardianName: true },
+        },
       },
-      consentRecords: {
-        orderBy: { consentDate: 'desc' },
-        take: 1,
-        select: { consentDate: true, consentMethod: true, isMinor: true, guardianName: true },
-      },
-    },
-  })
+    })
+  )
 
   const header = [
     'Last Name', 'First Name', 'Date of Birth', 'Phone', 'Email', 'Address',

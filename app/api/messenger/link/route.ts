@@ -1,37 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 // POST — link an UnlinkedMessenger PSID to a patient (manual path B)
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const clinicId = user.clinicId as string
 
   const { unlinkedId, patientId } = await req.json() as { unlinkedId: string; patientId: string }
 
-  const unlinked = await prisma.unlinkedMessenger.findFirst({
-    where: { id: unlinkedId, clinicId: user.clinicId, isLinked: false },
-    select: { id: true, psid: true },
-  })
-  if (!unlinked) return NextResponse.json({ error: 'Unlinked record not found' }, { status: 404 })
+  const result = await withClinicDb(clinicId, async (tx) => {
+    const unlinked = await tx.unlinkedMessenger.findFirst({
+      where: { id: unlinkedId, clinicId, isLinked: false },
+      select: { id: true, psid: true },
+    })
+    if (!unlinked) return { error: 'Unlinked record not found' }
 
-  const patient = await prisma.patient.findFirst({
-    where: { id: patientId, clinicId: user.clinicId },
-    select: { id: true, firstName: true, lastName: true },
-  })
-  if (!patient) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
+    const patient = await tx.patient.findFirst({
+      where: { id: patientId, clinicId },
+      select: { id: true, firstName: true, lastName: true },
+    })
+    if (!patient) return { error: 'Patient not found' }
 
-  const [updatedPatient] = await prisma.$transaction([
-    prisma.patient.update({
+    const updatedPatient = await tx.patient.update({
       where: { id: patientId },
       data: { messengerPsid: unlinked.psid, reminderChannel: 'MESSENGER' },
       select: { id: true, firstName: true, lastName: true },
-    }),
-    prisma.unlinkedMessenger.update({
+    })
+    await tx.unlinkedMessenger.update({
       where: { id: unlinkedId },
       data: { isLinked: true },
-    }),
-  ])
+    })
 
-  return NextResponse.json({ ok: true, patient: updatedPatient })
+    return { ok: true, patient: updatedPatient }
+  })
+
+  if ('error' in result) {
+    return NextResponse.json({ error: result.error }, { status: 404 })
+  }
+  return NextResponse.json(result)
 }

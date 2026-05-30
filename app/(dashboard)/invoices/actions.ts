@@ -1,26 +1,12 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase'
-import { prisma } from '@/lib/prisma'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { getActor } from '@/lib/auth'
+import { getActorDb } from '@/lib/auth'
 import { writeAudit } from '@/lib/audit'
 
-async function getClinicId() {
-  const supabase = createServerClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
-  const user = await prisma.user.findUnique({ where: { email: authUser.email! } })
-  if (!user?.clinicId) redirect('/onboarding')
-  return user.clinicId
-}
-
 export async function getInvoices() {
-  const clinicId = await getClinicId()
-  const invoices = await prisma.invoice.findMany({
+  const { clinicId, db } = await getActorDb()
+  const invoices = await db((tx) => tx.invoice.findMany({
     where: { clinicId },
     orderBy: { transactionDate: 'desc' },
     include: {
@@ -28,7 +14,7 @@ export async function getInvoices() {
         include: { patient: true },
       },
     },
-  })
+  }))
   return invoices.map((inv) => ({
     id: inv.id,
     orNumber: inv.orNumber,
@@ -44,21 +30,21 @@ export async function getInvoices() {
 }
 
 export async function getInvoice(id: string) {
-  const clinicId = await getClinicId()
-  const inv = await prisma.invoice.findFirst({
+  const { clinicId, db } = await getActorDb()
+  const inv = await db((tx) => tx.invoice.findFirst({
     where: { id, clinicId },
     include: {
       visit: { include: { patient: true } },
       clinic: true,
     },
-  })
+  }))
   if (!inv) return null
 
   const usage = inv.loyaltyCardId
-    ? await prisma.loyaltyCardUsage.findFirst({
+    ? await db((tx) => tx.loyaltyCardUsage.findFirst({
         where: { invoiceId: id },
         include: { loyaltyCard: true },
-      })
+      }))
     : null
 
   return {
@@ -109,11 +95,11 @@ export async function getInvoice(id: string) {
 }
 
 export async function voidInvoice(id: string) {
-  const { clinicId, userEmail } = await getActor()
-  const inv = await prisma.invoice.findFirst({ where: { id, clinicId } })
+  const { clinicId, userEmail, db } = await getActorDb()
+  const inv = await db((tx) => tx.invoice.findFirst({ where: { id, clinicId } }))
   if (!inv) throw new Error('Invoice not found')
   if (inv.status === 'VOID') throw new Error('Already voided')
-  await prisma.invoice.update({ where: { id }, data: { status: 'VOID' } })
+  await db((tx) => tx.invoice.update({ where: { id }, data: { status: 'VOID' } }))
 
   await writeAudit({
     clinicId,

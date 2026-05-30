@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { addDays, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns'
@@ -31,15 +32,17 @@ export async function GET() {
     TZ
   )
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      clinicId,
-      scheduledAt: { gte: startOfToday, lte: endOfToday },
-      status: { not: 'CANCELLED' },
-    },
-    include: { patient: { select: { id: true, firstName: true, lastName: true } } },
-    orderBy: { scheduledAt: 'asc' },
-  })
+  const appointments = await withClinicDb(clinicId, (tx) =>
+    tx.appointment.findMany({
+      where: {
+        clinicId,
+        scheduledAt: { gte: startOfToday, lte: endOfToday },
+        status: { not: 'CANCELLED' },
+      },
+      include: { patient: { select: { id: true, firstName: true, lastName: true } } },
+      orderBy: { scheduledAt: 'asc' },
+    })
+  )
 
   return NextResponse.json(
     appointments.map((a) => ({
@@ -63,7 +66,9 @@ export async function POST(req: NextRequest) {
   const { patientId, scheduledAt, type, notes } = body
 
   // Validate patient belongs to clinic
-  const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } })
+  const patient = await withClinicDb(clinicId, (tx) =>
+    tx.patient.findFirst({ where: { id: patientId, clinicId } })
+  )
   if (!patient) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
 
   const apptDate = new Date(scheduledAt)
@@ -74,19 +79,20 @@ export async function POST(req: NextRequest) {
   const reminderManila = setMilliseconds(setSeconds(setMinutes(setHours(dayBefore, 9), 0), 0), 0)
   const reminderUtc = fromZonedTime(reminderManila, TZ)
 
-  const [appointment] = await prisma.$transaction([
-    prisma.appointment.create({
+  const appointment = await withClinicDb(clinicId, async (tx) => {
+    const appt = await tx.appointment.create({
       data: { clinicId, patientId, scheduledAt: apptDate, type, notes, status: 'SCHEDULED' },
-    }),
-    prisma.scheduledReminder.create({
+    })
+    await tx.scheduledReminder.create({
       data: {
         clinicId,
         patientId,
         reminderType: 'APPOINTMENT',
         scheduledFor: reminderUtc,
       },
-    }),
-  ])
+    })
+    return appt
+  })
 
   return NextResponse.json({
     id: appointment.id,

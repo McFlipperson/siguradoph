@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 
 async function getClinicId() {
@@ -14,7 +15,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const appointment = await prisma.appointment.findFirst({ where: { id: params.id, clinicId } })
+  const appointment = await withClinicDb(clinicId, (tx) =>
+    tx.appointment.findFirst({ where: { id: params.id, clinicId } })
+  )
   if (!appointment) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   const body = await req.json()
@@ -25,13 +28,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
-  const updated = await prisma.appointment.update({
-    where: { id: params.id },
-    data: {
-      ...(status ? { status } : {}),
-      ...(notes !== undefined ? { notes } : {}),
-    },
-  })
+  const updated = await withClinicDb(clinicId, (tx) =>
+    tx.appointment.update({
+      where: { id: params.id },
+      data: {
+        ...(status ? { status } : {}),
+        ...(notes !== undefined ? { notes } : {}),
+      },
+    })
+  )
 
   return NextResponse.json({
     id: updated.id,
@@ -44,10 +49,14 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const appointment = await prisma.appointment.findFirst({ where: { id: params.id, clinicId } })
+  const appointment = await withClinicDb(clinicId, (tx) =>
+    tx.appointment.findFirst({ where: { id: params.id, clinicId } })
+  )
   if (!appointment) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  await prisma.appointment.update({ where: { id: params.id }, data: { status: 'CANCELLED' } })
+  await withClinicDb(clinicId, (tx) =>
+    tx.appointment.update({ where: { id: params.id }, data: { status: 'CANCELLED' } })
+  )
 
   return NextResponse.json({ ok: true })
 }

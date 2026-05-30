@@ -1,20 +1,8 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-
-async function getClinicId(): Promise<string> {
-  const supabase = createServerClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser?.email) throw new Error('Not authenticated')
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email },
-    select: { clinicId: true },
-  })
-  if (!user?.clinicId) throw new Error('No clinic')
-  return user.clinicId
-}
+import { getActorDb } from '@/lib/auth'
 
 export type ReminderChannel = 'MESSENGER' | 'EMAIL' | 'SMS' | 'NONE'
 
@@ -41,7 +29,7 @@ export type IntakeStep1Result =
 // ── STEP 1: Save patient + consent (called on "Continue →") ──────────────────
 export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeStep1Result> {
   try {
-    const clinicId = await getClinicId()
+    const { clinicId, db } = await getActorDb()
 
     const clinic = await prisma.clinic.findUnique({
       where: { id: clinicId },
@@ -56,40 +44,44 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
     enrollmentDate.setHours(0, 0, 0, 0)
     if (today < enrollmentDate) return { success: false, error: 'day_one' }
 
-    const patient = await prisma.patient.create({
-      data: {
-        clinicId,
-        firstName: data.firstName.trim(),
-        middleName: data.middleName?.trim() || null,
-        lastName: data.lastName.trim(),
-        dateOfBirth: new Date(data.dateOfBirth),
-        address: data.address.trim(),
-        phone: data.phone.trim(),
-        email: data.email?.trim() || null,
-        medicalHistory: data.medicalHistory.trim(),
-        medications: data.medications.trim(),
-        allergies: data.allergies.trim(),
-        enrolledAt: new Date(),
-        reminderChannel: 'NONE', // updated in step 2
-      },
-    })
+    const { patientId, firstName } = await db(async (tx) => {
+      const patient = await tx.patient.create({
+        data: {
+          clinicId,
+          firstName: data.firstName.trim(),
+          middleName: data.middleName?.trim() || null,
+          lastName: data.lastName.trim(),
+          dateOfBirth: new Date(data.dateOfBirth),
+          address: data.address.trim(),
+          phone: data.phone.trim(),
+          email: data.email?.trim() || null,
+          medicalHistory: data.medicalHistory.trim(),
+          medications: data.medications.trim(),
+          allergies: data.allergies.trim(),
+          enrolledAt: new Date(),
+          reminderChannel: 'NONE', // updated in step 2
+        },
+      })
 
-    await prisma.consentRecord.create({
-      data: {
-        patientId: patient.id,
-        clinicId,
-        npcConsentGiven: true,
-        truthfulnessDeclaration: true,
-        surgicalConsentGiven: false,
-        isMinor: data.isMinor,
-        guardianName: data.isMinor ? data.guardianName?.trim() || null : null,
-        guardianRelationship: data.isMinor ? data.guardianRelationship?.trim() || null : null,
-        consentMethod: 'digital',
-      },
+      await tx.consentRecord.create({
+        data: {
+          patientId: patient.id,
+          clinicId,
+          npcConsentGiven: true,
+          truthfulnessDeclaration: true,
+          surgicalConsentGiven: false,
+          isMinor: data.isMinor,
+          guardianName: data.isMinor ? data.guardianName?.trim() || null : null,
+          guardianRelationship: data.isMinor ? data.guardianRelationship?.trim() || null : null,
+          consentMethod: 'digital',
+        },
+      })
+
+      return { patientId: patient.id, firstName: data.firstName }
     })
 
     revalidatePath('/patients')
-    return { success: true, patientId: patient.id, firstName: data.firstName }
+    return { success: true, patientId, firstName }
   } catch {
     return { success: false, error: 'server_error' }
   }
@@ -105,18 +97,18 @@ export async function submitIntakeStep2(
   reminderChannel: ReminderChannel
 ): Promise<IntakeStep2Result> {
   try {
-    const clinicId = await getClinicId()
+    const { clinicId, db } = await getActorDb()
 
-    const patient = await prisma.patient.findFirst({
+    const patient = await db((tx) => tx.patient.findFirst({
       where: { id: patientId, clinicId },
       select: { id: true },
-    })
+    }))
     if (!patient) return { success: false, error: 'patient_not_found' }
 
-    await prisma.patient.update({
+    await db((tx) => tx.patient.update({
       where: { id: patientId },
       data: { reminderChannel },
-    })
+    }))
 
     revalidatePath(`/patients/${patientId}`)
     return { success: true }

@@ -1,34 +1,22 @@
 'use server'
 
-import { createServerClient } from '@/lib/supabase'
-import { prisma } from '@/lib/prisma'
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/prisma'
+import { getActorDb } from '@/lib/auth'
 import { type CardTemplateService, SERVICE_LABELS, DEFAULT_TEMPLATE_ROWS, resolveServiceKey } from '@/lib/loyaltyConfig'
 
 export type { CardTemplateService }
 
-async function getClinicId() {
-  const supabase = createServerClient()
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
-  const user = await prisma.user.findUnique({ where: { email: authUser.email! } })
-  if (!user?.clinicId) redirect('/onboarding')
-  return user.clinicId
-}
-
 export async function getLoyaltyCards() {
-  const clinicId = await getClinicId()
-  const cards = await prisma.loyaltyCard.findMany({
+  const { clinicId, db } = await getActorDb()
+  const cards = await db((tx) => tx.loyaltyCard.findMany({
     where: { clinicId },
     include: {
       patient: true,
       usageHistory: true,
     },
     orderBy: { purchaseDate: 'desc' },
-  })
+  }))
 
   const now = new Date()
 
@@ -95,13 +83,13 @@ export async function getLoyaltyCards() {
 }
 
 export async function setPendingLoyaltyCard(patientId: string) {
-  const clinicId = await getClinicId()
-  const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } })
+  const { clinicId, db } = await getActorDb()
+  const patient = await db((tx) => tx.patient.findFirst({ where: { id: patientId, clinicId } }))
   if (!patient) throw new Error('Patient not found')
-  await prisma.patient.update({
+  await db((tx) => tx.patient.update({
     where: { id: patientId },
     data: { pendingLoyaltyCardPurchase: true },
-  })
+  }))
   revalidatePath('/loyalty')
 }
 
@@ -110,7 +98,7 @@ export async function setPendingLoyaltyCard(patientId: string) {
 // ---------------------------------------------------------------------------
 
 export async function getClinicLoyaltySettings() {
-  const clinicId = await getClinicId()
+  const { clinicId } = await getActorDb()
   const clinic = await prisma.clinic.findUnique({
     where: { id: clinicId },
     select: {
@@ -132,7 +120,7 @@ export async function updateClinicLoyaltySettings(data: {
   loyaltyValidityMonths: number
   loyaltyCardEnabled: boolean
 }) {
-  const clinicId = await getClinicId()
+  const { clinicId } = await getActorDb()
   await prisma.clinic.update({
     where: { id: clinicId },
     data: {
@@ -163,13 +151,13 @@ export async function updateLoyaltyCard(
     expiryDate: string
   }
 ) {
-  const clinicId = await getClinicId()
-  const card = await prisma.loyaltyCard.findFirst({
+  const { clinicId, db } = await getActorDb()
+  const card = await db((tx) => tx.loyaltyCard.findFirst({
     where: { id: cardId, clinicId },
-  })
+  }))
   if (!card) throw new Error('Card not found')
 
-  await prisma.loyaltyCard.update({
+  await db((tx) => tx.loyaltyCard.update({
     where: { id: cardId },
     data: {
       cleaningUses50: Math.max(0, data.cleaningUses50),
@@ -183,7 +171,7 @@ export async function updateLoyaltyCard(
       extractionUses: Math.max(0, data.extractionUses),
       expiryDate: new Date(data.expiryDate),
     },
-  })
+  }))
   revalidatePath('/loyalty')
 }
 
@@ -191,22 +179,22 @@ export async function updateLoyaltyCard(
 // Loyalty card template (benefit configuration per clinic)
 // ---------------------------------------------------------------------------
 
-async function seedTemplateIfEmpty(clinicId: string) {
-  const count = await prisma.loyaltyCardTemplate.count({ where: { clinicId } })
+async function seedTemplateIfEmpty(clinicId: string, db: <T>(fn: (tx: import('@/lib/clinic-db').TxClient) => Promise<T>) => Promise<T>) {
+  const count = await db((tx) => tx.loyaltyCardTemplate.count({ where: { clinicId } }))
   if (count > 0) return
-  await prisma.loyaltyCardTemplate.createMany({
+  await db((tx) => tx.loyaltyCardTemplate.createMany({
     data: DEFAULT_TEMPLATE_ROWS.map((r) => ({ ...r, clinicId })),
-  })
+  }))
 }
 
 export async function getLoyaltyCardTemplate(): Promise<CardTemplateService[]> {
-  const clinicId = await getClinicId()
-  await seedTemplateIfEmpty(clinicId)
+  const { clinicId, db } = await getActorDb()
+  await seedTemplateIfEmpty(clinicId, db)
 
-  const rows = await prisma.loyaltyCardTemplate.findMany({
+  const rows = await db((tx) => tx.loyaltyCardTemplate.findMany({
     where: { clinicId, isActive: true },
     orderBy: { sortOrder: 'asc' },
-  })
+  }))
 
   return rows.map((r) => {
     const serviceKey = resolveServiceKey(r.serviceName)
@@ -233,11 +221,11 @@ export async function updateLoyaltyCardTemplate(
     tier2Discount: number | null
   }>
 ): Promise<void> {
-  const clinicId = await getClinicId()
+  const { clinicId, db } = await getActorDb()
 
   await Promise.all(
     rows.map((r) =>
-      prisma.loyaltyCardTemplate.updateMany({
+      db((tx) => tx.loyaltyCardTemplate.updateMany({
         where: { id: r.id, clinicId },
         data: {
           tier1Uses: Math.max(0, r.tier1Uses),
@@ -245,7 +233,7 @@ export async function updateLoyaltyCardTemplate(
           tier2Uses: r.tier2Uses !== null ? Math.max(0, r.tier2Uses) : null,
           tier2Discount: r.tier2Discount !== null ? Math.min(100, Math.max(0, r.tier2Discount)) : null,
         },
-      })
+      }))
     )
   )
   revalidatePath('/loyalty')

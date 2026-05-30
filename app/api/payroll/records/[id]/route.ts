@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const clinicId = user.clinicId as string
 
-  const record = await prisma.payrollRecord.findFirst({
-    where: { id: params.id, clinicId: user.clinicId },
+  const record = await withClinicDb(clinicId, (tx) => tx.payrollRecord.findFirst({
+    where: { id: params.id, clinicId },
     include: { employee: true },
-  })
+  }))
   if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.json({
@@ -40,10 +41,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const clinicId2 = user.clinicId as string
 
-  const record = await prisma.payrollRecord.findFirst({ where: { id: params.id, clinicId: user.clinicId } })
-  if (!record) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-  await prisma.payrollRecord.delete({ where: { id: params.id } })
+  await withClinicDb(clinicId2, async (tx) => {
+    const record = await tx.payrollRecord.findFirst({ where: { id: params.id, clinicId: clinicId2 } })
+    if (!record) return
+    await tx.payrollRecord.delete({ where: { id: params.id } })
+  })
   return NextResponse.json({ ok: true, note: 'Payroll record deleted. This action is permanent.' })
 }

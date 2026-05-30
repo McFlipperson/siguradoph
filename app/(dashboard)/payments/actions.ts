@@ -1,9 +1,7 @@
 'use server'
 
-import { prisma } from '@/lib/prisma'
-import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-import { getActor } from '@/lib/auth'
+import { getActorDb } from '@/lib/auth'
 import { writeAudit } from '@/lib/audit'
 import {
   type LoyaltyBenefitApplication,
@@ -13,18 +11,6 @@ import {
 } from '@/lib/loyaltyConfig'
 
 export type { LoyaltyBenefitApplication }
-
-async function getClinicId(): Promise<string> {
-  const supabase = createServerClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser?.email) throw new Error('Not authenticated')
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email },
-    select: { clinicId: true },
-  })
-  if (!user?.clinicId) throw new Error('No clinic')
-  return user.clinicId
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -100,9 +86,9 @@ export type CheckoutData = {
 // ---------------------------------------------------------------------------
 
 export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
-  const clinicId = await getClinicId()
+  const { clinicId, db } = await getActorDb()
 
-  const visit = await prisma.visit.findUnique({
+  const visit = await db((tx) => tx.visit.findUnique({
     where: { id: visitId },
     include: {
       patient: {
@@ -127,16 +113,16 @@ export async function getCheckoutData(visitId: string): Promise<CheckoutData> {
       },
       invoice: true,
     },
-  })
+  }))
 
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
 
   // Parse procedures
   const procedureNames = visit.treatment.split(',').map((s) => s.trim()).filter(Boolean)
-  const catalogEntries = await prisma.serviceCatalog.findMany({
+  const catalogEntries = await db((tx) => tx.serviceCatalog.findMany({
     where: { clinicId, name: { in: procedureNames } },
     select: { name: true, category: true },
-  })
+  }))
   const categoryByName = Object.fromEntries(catalogEntries.map((e) => [e.name, e.category]))
   type StoredProcAmount = { name: string; amount: number }
   const storedAmounts = Array.isArray(visit.procedureAmounts)
@@ -221,9 +207,9 @@ export async function searchPatientLoyaltyCard(
   excludePatientId: string
 ): Promise<FamilyCardResult[]> {
   if (!query || query.trim().length < 2) return []
-  const clinicId = await getClinicId()
+  const { clinicId, db } = await getActorDb()
 
-  const patients = await prisma.patient.findMany({
+  const patients = await db((tx) => tx.patient.findMany({
     where: {
       clinicId,
       id: { not: excludePatientId },
@@ -245,7 +231,7 @@ export async function searchPatientLoyaltyCard(
       },
     },
     take: 5,
-  })
+  }))
 
   return patients
     .filter((p) => p.loyaltyCards.length > 0)
@@ -294,9 +280,9 @@ export type ConfirmPaymentResult = {
 }
 
 export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmPaymentResult> {
-  const { clinicId, userEmail } = await getActor()
+  const { clinicId, userEmail, db } = await getActorDb()
 
-  const visit = await prisma.visit.findUnique({
+  const visit = await db((tx) => tx.visit.findUnique({
     where: { id: data.visitId },
     include: {
       patient: {
@@ -315,10 +301,10 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
         },
       },
     },
-  })
+  }))
 
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
-  const existing = await prisma.invoice.findUnique({ where: { visitId: data.visitId } })
+  const existing = await db((tx) => tx.invoice.findUnique({ where: { visitId: data.visitId } }))
   if (existing) throw new Error('Invoice already exists for this visit')
 
   // Read loyalty data stored at visit-recording time
@@ -358,7 +344,7 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
 
   let newLoyaltyCardId: string | undefined
 
-  await prisma.$transaction(async (tx) => {
+  await db(async (tx) => {
     await tx.clinic.update({
       where: { id: clinicId },
       data: { orSeriesCurrentNumber: { increment: 1 } },
@@ -462,7 +448,8 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
     }
   })
 
-  const invoiceId = (await prisma.invoice.findUnique({ where: { visitId: data.visitId } }))!.id
+  const invoiceRecord = await db((tx) => tx.invoice.findUnique({ where: { visitId: data.visitId } }))
+  const invoiceId = invoiceRecord!.id
 
   await writeAudit({
     clinicId,

@@ -1,9 +1,8 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { createServerClient } from '@/lib/supabase'
 import { revalidatePath } from 'next/cache'
-import { getActor } from '@/lib/auth'
+import { getActorDb } from '@/lib/auth'
 import { writeAudit } from '@/lib/audit'
 import {
   type CardTemplateService,
@@ -14,18 +13,6 @@ import {
 } from '@/lib/loyaltyConfig'
 
 export type { LoyaltyBenefitApplication }
-
-async function getClinicId(): Promise<string> {
-  const supabase = createServerClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser?.email) throw new Error('Not authenticated')
-  const user = await prisma.user.findUnique({
-    where: { email: authUser.email },
-    select: { clinicId: true },
-  })
-  if (!user?.clinicId) throw new Error('No clinic')
-  return user.clinicId
-}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,10 +56,10 @@ export type VisitSetup = {
 // ── getVisitSetup ─────────────────────────────────────────────────────────────
 
 export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
-  const clinicId = await getClinicId()
+  const { clinicId, db } = await getActorDb()
 
   const [patient, clinic, services] = await Promise.all([
-    prisma.patient.findUnique({
+    db((tx) => tx.patient.findUnique({
       where: { id: patientId },
       select: {
         id: true, firstName: true, lastName: true, phone: true,
@@ -83,26 +70,26 @@ export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
           take: 1,
         },
       },
-    }),
+    })),
     prisma.clinic.findUnique({
       where: { id: clinicId },
       select: { enrollmentDate: true, loyaltyCardPrice: true },
     }),
-    prisma.serviceCatalog.findMany({
+    db((tx) => tx.serviceCatalog.findMany({
       where: { clinicId, isActive: true },
       orderBy: { sortOrder: 'asc' },
       select: { id: true, name: true, category: true, sortOrder: true },
-    }),
+    })),
   ])
 
   if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
   if (!clinic) throw new Error('Clinic not found')
 
   // Deactivate any expired cards for this patient
-  await prisma.loyaltyCard.updateMany({
+  await db((tx) => tx.loyaltyCard.updateMany({
     where: { patientId, isActive: true, expiryDate: { lt: new Date() } },
     data: { isActive: false },
-  })
+  }))
 
   const rawCard = patient.loyaltyCards[0] ?? null
   const loyaltyCard: VisitLoyaltyCard | null = rawCard
@@ -123,18 +110,18 @@ export async function getVisitSetup(patientId: string): Promise<VisitSetup> {
     : null
 
   // Seed and load clinic's card template
-  let templateRows = await prisma.loyaltyCardTemplate.findMany({
+  let templateRows = await db((tx) => tx.loyaltyCardTemplate.findMany({
     where: { clinicId, isActive: true },
     orderBy: { sortOrder: 'asc' },
-  })
+  }))
   if (templateRows.length === 0) {
-    await prisma.loyaltyCardTemplate.createMany({
+    await db((tx) => tx.loyaltyCardTemplate.createMany({
       data: DEFAULT_TEMPLATE_ROWS.map((r) => ({ ...r, clinicId })),
-    })
-    templateRows = await prisma.loyaltyCardTemplate.findMany({
+    }))
+    templateRows = await db((tx) => tx.loyaltyCardTemplate.findMany({
       where: { clinicId, isActive: true },
       orderBy: { sortOrder: 'asc' },
-    })
+    }))
   }
   const cardTemplate: CardTemplateService[] = templateRows.map((r) => {
     const serviceKey = resolveServiceKey(r.serviceName)
@@ -189,66 +176,70 @@ export type SaveVisitData = {
 }
 
 export async function saveVisit(data: SaveVisitData): Promise<string> {
-  const { clinicId, userEmail } = await getActor()
+  const { clinicId, userEmail, db } = await getActorDb()
 
   const gross = data.grossAmount
   const visitDate = new Date(data.visitDate + ':00+08:00')
 
-  const visit = await prisma.visit.create({
-    data: {
-      clinicId,
-      patientId: data.patientId,
-      visitDate,
-      diagnosis: data.diagnosis,
-      toothNumber: data.toothNumber || null,
-      treatment: data.treatment,
-      notes: data.notes,
-      grossAmount: gross,
-      netAmount: gross, // dental VAT-exempt
-      vatAmount: 0,
-      procedureAmounts: data.procedureAmounts ?? undefined,
-      appliedLoyaltyCardId: data.appliedLoyaltyCardId ?? null,
-      purchaseNewLoyaltyCard: data.purchaseNewLoyaltyCard ?? false,
-      waiveCardFee: data.waiveCardFee ?? false,
-      loyaltyBenefits: data.loyaltyBenefits ?? undefined,
-      intervalWeeks: data.reminderWeeks ?? null,
-    },
+  const visitId = await db(async (tx) => {
+    const visit = await tx.visit.create({
+      data: {
+        clinicId,
+        patientId: data.patientId,
+        visitDate,
+        diagnosis: data.diagnosis,
+        toothNumber: data.toothNumber || null,
+        treatment: data.treatment,
+        notes: data.notes,
+        grossAmount: gross,
+        netAmount: gross, // dental VAT-exempt
+        vatAmount: 0,
+        procedureAmounts: data.procedureAmounts ?? undefined,
+        appliedLoyaltyCardId: data.appliedLoyaltyCardId ?? null,
+        purchaseNewLoyaltyCard: data.purchaseNewLoyaltyCard ?? false,
+        waiveCardFee: data.waiveCardFee ?? false,
+        loyaltyBenefits: data.loyaltyBenefits ?? undefined,
+        intervalWeeks: data.reminderWeeks ?? null,
+      },
+    })
+
+    if (data.isBracesReminder && data.reminderWeeks) {
+      const scheduledFor = new Date(data.visitDate)
+      scheduledFor.setDate(scheduledFor.getDate() + data.reminderWeeks * 7)
+      await tx.scheduledReminder.create({
+        data: { clinicId, patientId: data.patientId, visitId: visit.id, reminderType: 'BRACES_ALIGNMENT', scheduledFor },
+      })
+    }
+
+    if (data.isCleaningService) {
+      const scheduledFor = new Date(data.visitDate)
+      scheduledFor.setMonth(scheduledFor.getMonth() + 6)
+      await tx.scheduledReminder.create({
+        data: { clinicId, patientId: data.patientId, visitId: visit.id, reminderType: 'CLEANING_RECALL', scheduledFor },
+      })
+    }
+
+    if (data.appointmentId) {
+      await tx.appointment.update({
+        where: { id: data.appointmentId },
+        data: { status: 'COMPLETED' },
+      })
+    }
+
+    return visit.id
   })
-
-  if (data.isBracesReminder && data.reminderWeeks) {
-    const scheduledFor = new Date(data.visitDate)
-    scheduledFor.setDate(scheduledFor.getDate() + data.reminderWeeks * 7)
-    await prisma.scheduledReminder.create({
-      data: { clinicId, patientId: data.patientId, visitId: visit.id, reminderType: 'BRACES_ALIGNMENT', scheduledFor },
-    })
-  }
-
-  if (data.isCleaningService) {
-    const scheduledFor = new Date(data.visitDate)
-    scheduledFor.setMonth(scheduledFor.getMonth() + 6)
-    await prisma.scheduledReminder.create({
-      data: { clinicId, patientId: data.patientId, visitId: visit.id, reminderType: 'CLEANING_RECALL', scheduledFor },
-    })
-  }
-
-  if (data.appointmentId) {
-    await prisma.appointment.update({
-      where: { id: data.appointmentId },
-      data: { status: 'COMPLETED' },
-    })
-  }
 
   await writeAudit({
     clinicId,
     userEmail,
     action: 'CREATE_VISIT',
     resourceType: 'VISIT',
-    resourceId: visit.id,
+    resourceId: visitId,
     detail: `Recorded visit for patient ${data.patientId}: ${data.treatment}`,
   })
 
   revalidatePath(`/patients/${data.patientId}`)
-  return visit.id
+  return visitId
 }
 
 // ── updateVisit ───────────────────────────────────────────────────────────────
@@ -264,12 +255,12 @@ export type UpdateVisitData = {
 }
 
 export async function updateVisit(data: UpdateVisitData): Promise<void> {
-  const { clinicId, userEmail } = await getActor()
+  const { clinicId, userEmail, db } = await getActorDb()
 
-  const visit = await prisma.visit.findUnique({
+  const visit = await db((tx) => tx.visit.findUnique({
     where: { id: data.visitId },
     include: { invoice: { select: { id: true } } },
-  })
+  }))
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
   if (visit.status === 'VOID') throw new Error('Cannot edit a voided visit')
 
@@ -290,7 +281,7 @@ export async function updateVisit(data: UpdateVisitData): Promise<void> {
     if (data.visitDate) updateData.visitDate = new Date(data.visitDate + ':00+08:00')
   }
 
-  await prisma.visit.update({ where: { id: data.visitId }, data: updateData })
+  await db((tx) => tx.visit.update({ where: { id: data.visitId }, data: updateData }))
 
   await writeAudit({
     clinicId,
@@ -307,12 +298,12 @@ export async function updateVisit(data: UpdateVisitData): Promise<void> {
 // ── voidVisit ─────────────────────────────────────────────────────────────────
 
 export async function voidVisit(visitId: string): Promise<void> {
-  const { clinicId, userEmail } = await getActor()
+  const { clinicId, userEmail, db } = await getActorDb()
 
-  const visit = await prisma.visit.findUnique({
+  const visit = await db((tx) => tx.visit.findUnique({
     where: { id: visitId },
     include: { invoice: { select: { id: true, orNumber: true, status: true } } },
-  })
+  }))
   if (!visit || visit.clinicId !== clinicId) throw new Error('Visit not found')
   if (visit.status === 'VOID') throw new Error('Already voided')
 
@@ -329,7 +320,7 @@ export async function voidVisit(visitId: string): Promise<void> {
     ? (visit.loyaltyBenefits as LoyaltyBenefitApplication[])
     : []
 
-  await prisma.$transaction(async (tx) => {
+  await db(async (tx) => {
     await tx.visit.update({ where: { id: visitId }, data: { status: 'VOID' } })
     if (visit.invoice && visit.invoice.status !== 'VOID') {
       await tx.invoice.update({ where: { id: visit.invoice.id }, data: { status: 'VOID' } })

@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { getActor } from '@/lib/auth'
+import { getActorDb } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 export async function saveMessengerConfig(data: {
@@ -9,7 +9,7 @@ export async function saveMessengerConfig(data: {
   messengerPageId: string
   facebookPageUrl: string
 }) {
-  const { clinicId } = await getActor()
+  const { clinicId } = await getActorDb()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: Record<string, any> = {
