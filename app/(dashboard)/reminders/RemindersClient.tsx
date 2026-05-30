@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { toast } from 'sonner'
 import { saveMessengerConfig } from './actions'
 
@@ -251,6 +251,19 @@ export default function RemindersClient({
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showMessengerSetup, setShowMessengerSetup] = useState(false)
 
+  // Show toast based on OAuth redirect result
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const m = params.get('messenger')
+    if (!m) return
+    window.history.replaceState({}, '', '/reminders')
+    if (m === 'connected')      toast.success('Facebook Page connected! Messenger reminders are ready.')
+    else if (m === 'error')     toast.error('Could not connect Facebook Page. Please try again.')
+    else if (m === 'nopage')    toast.error('No Facebook Pages found on your account. Make sure your Page is linked to your Facebook profile.')
+    else if (m === 'cancelled') toast('Connection cancelled.')
+    else if (m === 'misconfigured') toast.error('Messenger is not configured on this server yet.')
+  }, [])
+
   const pending = reminders.filter((r) => r.status === 'PENDING')
   const history = reminders.filter((r) => r.status !== 'PENDING')
 
@@ -288,8 +301,8 @@ export default function RemindersClient({
       label: 'Messenger',
       count: channelStats.MESSENGER,
       active: clinic.messengerConfigured,
-      actionLabel: clinic.messengerConfigured ? 'Edit setup' : 'Set up →',
-      onAction: () => setShowMessengerSetup((v) => !v),
+      actionLabel: null as string | null, // handled with custom button below
+      onAction: null as (() => void) | null,
     },
     {
       key: 'EMAIL',
@@ -368,16 +381,36 @@ export default function RemindersClient({
                 )}
               </div>
 
-              {/* Inline Messenger setup form */}
-              {ch.key === 'MESSENGER' && showMessengerSetup && (
-                <div className="mt-4 pt-4 border-t">
-                  <MessengerSetupForm
-                    clinic={clinic}
-                    onSaved={() => {
-                      setShowMessengerSetup(false)
-                      setClinic((prev) => ({ ...prev, hasMessengerToken: true, messengerConfigured: true }))
-                    }}
-                  />
+              {/* Messenger connect / reconnect section */}
+              {ch.key === 'MESSENGER' && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {/* Primary: Facebook OAuth button */}
+                  <a
+                    href="/api/auth/facebook"
+                    className="flex items-center justify-center gap-2 w-full min-h-[48px] rounded-xl text-sm font-semibold transition-colors"
+                    style={{ background: '#1877F2', color: '#fff' }}
+                  >
+                    <span className="font-bold text-base leading-none">f</span>
+                    {clinic.messengerConfigured ? 'Reconnect Facebook Page' : 'Connect with Facebook'}
+                  </a>
+                  {/* Secondary: manual token entry toggle */}
+                  <button
+                    onClick={() => setShowMessengerSetup((v) => !v)}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline min-h-[36px]"
+                  >
+                    {showMessengerSetup ? 'Hide manual setup' : 'Set up manually with token'}
+                  </button>
+                  {showMessengerSetup && (
+                    <div className="pt-2 border-t">
+                      <MessengerSetupForm
+                        clinic={clinic}
+                        onSaved={() => {
+                          setShowMessengerSetup(false)
+                          setClinic((prev) => ({ ...prev, hasMessengerToken: true, messengerConfigured: true }))
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
