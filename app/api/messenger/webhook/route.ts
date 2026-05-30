@@ -7,7 +7,10 @@ export async function GET(req: NextRequest) {
   const token     = req.nextUrl.searchParams.get('hub.verify_token')
   const challenge = req.nextUrl.searchParams.get('hub.challenge')
 
-  if (mode === 'subscribe' && token === process.env.FACEBOOK_VERIFY_TOKEN) {
+  const expected = process.env.FACEBOOK_VERIFY_TOKEN
+  console.log('[webhook-verify] mode=%s token_match=%s env_set=%s', mode, token === expected, Boolean(expected))
+
+  if (mode === 'subscribe' && token === expected) {
     return new NextResponse(challenge, { status: 200 })
   }
   return new NextResponse('Forbidden', { status: 403 })
