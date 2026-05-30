@@ -15,6 +15,7 @@ import {
   ChevronRight,
   CreditCard,
   Bell,
+  Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 
@@ -70,6 +71,7 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Account',
     items: [
+      { label: 'Compliance',   href: '/compliance', icon: Shield,    color: 'bg-emerald-600'},
       { label: 'Settings',    href: '/settings',  icon: Settings,  color: 'bg-slate-500'  },
     ],
   },

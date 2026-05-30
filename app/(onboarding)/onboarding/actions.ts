@@ -126,7 +126,7 @@ export async function getClinicForCurrentUser() {
   }
 }
 
-export async function saveStep1(data: Step1Data): Promise<string> {
+export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<string> {
   const supabase = createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser?.email) throw new Error('Not authenticated')
@@ -180,6 +180,7 @@ export async function saveStep1(data: Step1Data): Promise<string> {
         facebookPageUrl: data.facebookPageUrl || null,
         accountantEmail: data.accountantEmail || null,
         enrollmentDate: new Date(data.enrollmentDate),
+        tosAcceptedAt: tosAcceptedAt ?? new Date(),
         // 30-day free trial starts the moment the clinic is created
         trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         // Required fields with defaults until step 2

@@ -3,15 +3,16 @@
 import { Progress, ProgressTrack, ProgressIndicator } from '@/components/ui/progress'
 
 const STEP_NAMES: Record<number, string> = {
-  1: 'Clinic Info',
-  2: 'BIR (Tax) Details',
-  3: 'Employees',
-  4: 'Monthly Expenses',
-  5: 'Equipment',
-  6: 'Suppliers',
-  7: 'Services Offered',
-  8: 'Loyalty Cards',
-  9: 'Review & Finish',
+  1:  'Data Agreement',
+  2:  'Clinic Info',
+  3:  'BIR (Tax) Details',
+  4:  'Employees',
+  5:  'Monthly Expenses',
+  6:  'Equipment',
+  7:  'Suppliers',
+  8:  'Services Offered',
+  9:  'Loyalty Cards',
+  10: 'Review & Finish',
 }
 
 interface WizardProgressProps {

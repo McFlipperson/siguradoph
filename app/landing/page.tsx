@@ -413,15 +413,24 @@ export default function LandingPage() {
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
         </p>
-        <a
-          href="https://m.me/sigurado"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs underline"
-          style={{ color: 'rgba(255,255,255,0.35)' }}
-        >
-          Contact us on Messenger
-        </a>
+        <div className="flex gap-4">
+          <a
+            href="https://m.me/sigurado"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs underline"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
+          >
+            Contact us on Messenger
+          </a>
+          <Link
+            href="/privacy"
+            className="text-xs underline"
+            style={{ color: 'rgba(255,255,255,0.35)' }}
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
 
     </div>

@@ -88,6 +88,7 @@ model Clinic {
   loyaltyCardPrice         Decimal      @default(500)
   loyaltyValidityMonths    Int          @default(24)
   accountantEmail          String?
+  tosAcceptedAt            DateTime?    // timestamp when DPA/ToS was accepted during onboarding
   trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt

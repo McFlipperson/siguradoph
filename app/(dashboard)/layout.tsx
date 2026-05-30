@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import BottomNav from './BottomNav'
+import { DPAAcceptanceBanner } from '@/components/DPAAcceptanceBanner'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient()
@@ -24,8 +25,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect('/trial-expired')
   }
 
+  const needsDPA = !user.clinic.tosAcceptedAt
+
   return (
     <div className="min-h-screen bg-background pb-20">
+      {needsDPA && <DPAAcceptanceBanner />}
       <main className="max-w-screen-sm mx-auto px-4 py-6">{children}</main>
       <BottomNav />
     </div>

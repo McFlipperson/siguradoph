@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
+import { Step1DPA } from '@/components/onboarding/Step1DPA'
 import { Step1Identity } from '@/components/onboarding/Step1Identity'
 import { Step2BIR } from '@/components/onboarding/Step2BIR'
 import { Step3Employees } from '@/components/onboarding/Step3Employees'
@@ -36,6 +37,7 @@ import type {
 } from './actions'
 
 export type WizardState = {
+  tosAcceptedAt: Date | null
   step1: Partial<Step1Data>
   step2: Partial<Step2Data>
   step3: Step3Data
@@ -46,9 +48,10 @@ export type WizardState = {
   step8: Step8Data
 }
 
-const TOTAL_STEPS = 9
+const TOTAL_STEPS = 10
 
 const initialState: WizardState = {
+  tosAcceptedAt: null,
   step1: {},
   step2: {},
   step3: { hasEmployees: false, employees: [] },
@@ -76,6 +79,7 @@ export default function OnboardingPage() {
 
           // Populate state from clinic
           const s: WizardState = {
+            tosAcceptedAt: null, // already accepted — skip DPA step on resume
             step1: {
               slug: clinic.slug ?? '',
               logoUrl: clinic.logoUrl ?? null,
@@ -164,15 +168,15 @@ export default function OnboardingPage() {
           }
           setAllData(s)
 
-          // Determine furthest step
-          let resumeStep = 1
-          if (clinic.tin) resumeStep = 2
-          if (clinic.tin && (clinic.hasEmployees !== undefined)) resumeStep = 3
-          if (clinic.recurringExpenses.length > 0) resumeStep = 4
-          if (clinic.equipment.length > 0) resumeStep = 5
-          if (clinic.suppliers.length > 0) resumeStep = 6
-          if (clinic.serviceCatalog.length > 0) resumeStep = 7
-          // step8 & 9 always reachable after step7
+          // Determine furthest step (clinic exists → skip DPA step 1, start at 2+)
+          let resumeStep = 2
+          if (clinic.tin) resumeStep = 3
+          if (clinic.tin && (clinic.hasEmployees !== undefined)) resumeStep = 4
+          if (clinic.recurringExpenses.length > 0) resumeStep = 5
+          if (clinic.equipment.length > 0) resumeStep = 6
+          if (clinic.suppliers.length > 0) resumeStep = 7
+          if (clinic.serviceCatalog.length > 0) resumeStep = 8
+          // step9 & 10 always reachable after step8
           setCurrentStep(Math.min(resumeStep, TOTAL_STEPS))
         }
       } catch {
@@ -188,19 +192,26 @@ export default function OnboardingPage() {
     setCurrentStep(prev => Math.max(1, prev - 1))
   }
 
+  // DPA acceptance
+  function handleAcceptDPA() {
+    const ts = new Date()
+    setAllData(prev => ({ ...prev, tosAcceptedAt: ts }))
+    setCurrentStep(2)
+  }
+
   function handleJumpToStep(step: number) {
     setCurrentStep(step)
   }
 
-  // Step 1
+  // Step 2 — Clinic Identity (creates clinic, records DPA timestamp)
   function handleSaveStep1(data: Step1Data): Promise<string> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
-          const id = await saveStep1(data)
+          const id = await saveStep1(data, allData.tosAcceptedAt ?? undefined)
           setClinicId(id)
           setAllData(prev => ({ ...prev, step1: data }))
-          setCurrentStep(2)
+          setCurrentStep(3)
           resolve(id)
         } catch (err) {
           reject(err)
@@ -209,7 +220,7 @@ export default function OnboardingPage() {
     })
   }
 
-  // Step 2
+  // Step 3
   function handleSaveStep2(data: Step2Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
@@ -217,23 +228,6 @@ export default function OnboardingPage() {
           if (!clinicId) throw new Error('No clinic ID')
           await saveStep2(clinicId, data)
           setAllData(prev => ({ ...prev, step2: data }))
-          setCurrentStep(3)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 3
-  function handleSaveStep3(data: Step3Data): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep3(clinicId, data)
-          setAllData(prev => ({ ...prev, step3: data }))
           setCurrentStep(4)
           resolve()
         } catch (err) {
@@ -244,13 +238,13 @@ export default function OnboardingPage() {
   }
 
   // Step 4
-  function handleSaveStep4(data: RecurringExpenseData[]): Promise<void> {
+  function handleSaveStep3(data: Step3Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
-          await saveStep4(clinicId, data)
-          setAllData(prev => ({ ...prev, step4: data }))
+          await saveStep3(clinicId, data)
+          setAllData(prev => ({ ...prev, step3: data }))
           setCurrentStep(5)
           resolve()
         } catch (err) {
@@ -261,13 +255,13 @@ export default function OnboardingPage() {
   }
 
   // Step 5
-  function handleSaveStep5(data: EquipmentData[]): Promise<void> {
+  function handleSaveStep4(data: RecurringExpenseData[]): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
-          await saveStep5(clinicId, data)
-          setAllData(prev => ({ ...prev, step5: data }))
+          await saveStep4(clinicId, data)
+          setAllData(prev => ({ ...prev, step4: data }))
           setCurrentStep(6)
           resolve()
         } catch (err) {
@@ -278,13 +272,13 @@ export default function OnboardingPage() {
   }
 
   // Step 6
-  function handleSaveStep6(data: SupplierData[]): Promise<void> {
+  function handleSaveStep5(data: EquipmentData[]): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
-          await saveStep6(clinicId, data)
-          setAllData(prev => ({ ...prev, step6: data }))
+          await saveStep5(clinicId, data)
+          setAllData(prev => ({ ...prev, step5: data }))
           setCurrentStep(7)
           resolve()
         } catch (err) {
@@ -295,13 +289,13 @@ export default function OnboardingPage() {
   }
 
   // Step 7
-  function handleSaveStep7(data: ServiceData[]): Promise<void> {
+  function handleSaveStep6(data: SupplierData[]): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
-          await saveStep7(clinicId, data)
-          setAllData(prev => ({ ...prev, step7: data }))
+          await saveStep6(clinicId, data)
+          setAllData(prev => ({ ...prev, step6: data }))
           setCurrentStep(8)
           resolve()
         } catch (err) {
@@ -312,6 +306,23 @@ export default function OnboardingPage() {
   }
 
   // Step 8
+  function handleSaveStep7(data: ServiceData[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      startSaving(async () => {
+        try {
+          if (!clinicId) throw new Error('No clinic ID')
+          await saveStep7(clinicId, data)
+          setAllData(prev => ({ ...prev, step7: data }))
+          setCurrentStep(9)
+          resolve()
+        } catch (err) {
+          reject(err)
+        }
+      })
+    })
+  }
+
+  // Step 9
   function handleSaveStep8(data: Step8Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
@@ -319,7 +330,7 @@ export default function OnboardingPage() {
           if (!clinicId) throw new Error('No clinic ID')
           await saveStep8(clinicId, data)
           setAllData(prev => ({ ...prev, step8: data }))
-          setCurrentStep(9)
+          setCurrentStep(10)
           resolve()
         } catch (err) {
           reject(err)
@@ -370,6 +381,13 @@ export default function OnboardingPage() {
       <WizardProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
       {currentStep === 1 && (
+        <Step1DPA
+          onAccept={handleAcceptDPA}
+          isSaving={isSaving}
+        />
+      )}
+
+      {currentStep === 2 && (
         <Step1Identity
           initialData={allData.step1}
           onSave={handleSaveStep1}
@@ -377,7 +395,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 2 && clinicId && (
+      {currentStep === 3 && clinicId && (
         <Step2BIR
           clinicId={clinicId}
           initialData={allData.step2}
@@ -387,7 +405,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 3 && clinicId && (
+      {currentStep === 4 && clinicId && (
         <Step3Employees
           initialData={allData.step3}
           onSave={handleSaveStep3}
@@ -396,7 +414,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 4 && clinicId && (
+      {currentStep === 5 && clinicId && (
         <Step4Expenses
           clinicId={clinicId}
           initialData={allData.step4}
@@ -406,7 +424,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 5 && clinicId && (
+      {currentStep === 6 && clinicId && (
         <Step5Equipment
           clinicId={clinicId}
           initialData={allData.step5}
@@ -416,7 +434,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 6 && clinicId && (
+      {currentStep === 7 && clinicId && (
         <Step6Suppliers
           clinicId={clinicId}
           initialData={allData.step6}
@@ -426,7 +444,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 7 && clinicId && (
+      {currentStep === 8 && clinicId && (
         <Step7Services
           clinicId={clinicId}
           initialData={allData.step7}
@@ -436,7 +454,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 8 && clinicId && (
+      {currentStep === 9 && clinicId && (
         <Step8Loyalty
           initialData={allData.step8}
           onSave={handleSaveStep8}
@@ -445,7 +463,7 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 9 && clinicId && (
+      {currentStep === 10 && clinicId && (
         <Step9Review
           clinicId={clinicId}
           allData={allData}

@@ -147,3 +147,18 @@ export async function getDashboardData() {
     currentMonth: now.getMonth(),
   }
 }
+
+export async function acceptDPA(): Promise<void> {
+  const supabase = createServerClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!authUser) redirect('/login')
+  const user = await prisma.user.findUnique({
+    where: { email: authUser.email! },
+    select: { clinicId: true },
+  })
+  if (!user?.clinicId) return
+  await prisma.clinic.update({
+    where: { id: user.clinicId },
+    data: { tosAcceptedAt: new Date() },
+  })
+}
