@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
   const appId     = process.env.FACEBOOK_APP_ID!
   const appSecret = process.env.FACEBOOK_APP_SECRET!
-  const origin    = new URL(req.url).origin
+  const origin    = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin
   const redirectUri = `${origin}/api/auth/facebook/callback`
 
   // ── Step 1: exchange code → short-lived user access token ─────────────────

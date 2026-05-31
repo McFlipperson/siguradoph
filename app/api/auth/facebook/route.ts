@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/reminders?messenger=misconfigured', req.url))
   }
 
-  // Use request origin so this works on both sigurado.xyz and Vercel preview URLs
-  const origin = new URL(req.url).origin
+  // Use canonical app URL so the redirect URI is stable regardless of www redirect
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin
   const redirectUri = `${origin}/api/auth/facebook/callback`
 
   // State = base64url-encoded clinicId — doubles as CSRF token
