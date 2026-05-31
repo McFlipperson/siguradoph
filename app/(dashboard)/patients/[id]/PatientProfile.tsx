@@ -725,7 +725,7 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
-function LinkMessengerSection({ patient }: { patient: FullPatient }) {
+function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
   const router = useRouter()
   const [state, setState] = useState<'idle' | 'waiting' | 'linked' | 'expired'>('idle')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -775,6 +775,10 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
   }
 
   const fullName = `${patient.firstName} ${patient.lastName}`
+  // Opens the clinic's Page inbox in Meta Business Suite (where Page messages live)
+  const messengerInboxUrl = messengerPageId
+    ? `https://business.facebook.com/latest/inbox/all/?asset_id=${messengerPageId}`
+    : 'https://business.facebook.com/latest/inbox/'
 
   return (
     <Card>
@@ -805,7 +809,9 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
 
             {/* Open Messenger button */}
             <a
-              href="fb-messenger://"
+              href={messengerInboxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#0084FF] text-white font-semibold text-base active:opacity-80"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -1050,7 +1056,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   )
 }
 
-export default function PatientProfile({ patient }: { patient: FullPatient }) {
+export default function PatientProfile({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
@@ -1111,7 +1117,7 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
       </div>
 
       {/* Messenger linking */}
-      <LinkMessengerSection patient={patient} />
+      <LinkMessengerSection patient={patient} messengerPageId={messengerPageId} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />
