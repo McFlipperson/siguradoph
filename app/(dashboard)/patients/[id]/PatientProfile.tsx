@@ -725,7 +725,7 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
-function LinkMessengerSection({ patient }: { patient: FullPatient }) {
+function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
   const router = useRouter()
   const [state, setState] = useState<'idle' | 'waiting' | 'linked' | 'expired'>('idle')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -775,6 +775,9 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
   }
 
   const fullName = `${patient.firstName} ${patient.lastName}`
+  const pageInboxUrl = messengerPageId
+    ? `https://www.facebook.com/${messengerPageId}/messages/`
+    : 'https://www.facebook.com/messages/'
 
   return (
     <Card>
@@ -803,19 +806,32 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
               <p className="text-3xl font-bold text-blue-900">{fullName}</p>
             </div>
 
+            {/* Open Page inbox — web link, already logged in */}
+            <a
+              href={pageInboxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#1877F2] text-white font-semibold text-base active:opacity-80"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              Open Page Messages
+            </a>
+
             {/* Instructions */}
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2.5">
               <div className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">1</span>
-                <p className="text-sm">Open Messenger on this device — switch to the clinic&apos;s Page inbox</p>
+                <p className="text-sm">Tap above — search <strong>{fullName}</strong> and send a 👍</p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
-                <p className="text-sm">Search <strong>{fullName}</strong>, open the chat and send a 👍</p>
+                <p className="text-sm">Hand the device to the patient — ask them to <strong>reply from their own phone</strong></p>
               </div>
               <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
-                <p className="text-sm">Ask them to <strong>reply from their own phone</strong> — this screen updates automatically</p>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-300 text-gray-700 text-xs flex items-center justify-center font-bold">✓</span>
+                <p className="text-sm text-muted-foreground">This screen updates automatically when linked</p>
               </div>
             </div>
 
@@ -1039,7 +1055,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   )
 }
 
-export default function PatientProfile({ patient }: { patient: FullPatient }) {
+export default function PatientProfile({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
@@ -1100,7 +1116,7 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
       </div>
 
       {/* Messenger linking */}
-      <LinkMessengerSection patient={patient} />
+      <LinkMessengerSection patient={patient} messengerPageId={messengerPageId} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />
