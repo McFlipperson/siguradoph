@@ -775,10 +775,8 @@ function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatie
   }
 
   const fullName = `${patient.firstName} ${patient.lastName}`
-  // Opens the clinic's Facebook Page inbox directly
-  const messengerInboxUrl = messengerPageId
-    ? `https://www.facebook.com/${messengerPageId}/inbox/`
-    : 'https://www.facebook.com/'
+  // Opens the native Messenger app directly
+  const messengerInboxUrl = 'fb-messenger://'
 
   return (
     <Card>
