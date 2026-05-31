@@ -109,6 +109,26 @@ export async function GET(req: NextRequest) {
     },
   })
 
+  // ── Subscribe Page to webhook (messages + messaging_referrals) ────────────
+  // This is idempotent — safe to call every time.
+  try {
+    await fetch(
+      `https://graph.facebook.com/v19.0/${page.id}/subscribed_apps`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          subscribed_fields: 'messages,messaging_referrals',
+          access_token: finalToken,
+        }),
+        cache: 'no-store',
+      }
+    )
+  } catch (err) {
+    console.error('[fb-callback] webhook subscription failed', err)
+    // Non-fatal — proceed with success redirect
+  }
+
   // Clear CSRF cookie and redirect to reminders with success flag
   const res = NextResponse.redirect(remindersUrl('connected'))
   res.cookies.delete('fb_oauth_state')

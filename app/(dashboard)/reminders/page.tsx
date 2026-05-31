@@ -7,6 +7,27 @@ import type { RecallRuleRow } from './actions'
 
 export const dynamic = 'force-dynamic'
 
+// Silently ensures the clinic's Page is subscribed to the webhook.
+// Idempotent — safe to call on every page load.
+async function ensureWebhookSubscription(pageId: string, token: string) {
+  try {
+    await fetch(
+      `https://graph.facebook.com/v19.0/${pageId}/subscribed_apps`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          subscribed_fields: 'messages,messaging_referrals',
+          access_token: token,
+        }),
+        cache: 'no-store',
+      }
+    )
+  } catch {
+    // Non-fatal — don't block page load
+  }
+}
+
 export default async function RemindersPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
@@ -48,6 +69,11 @@ export default async function RemindersPage() {
       })
     ),
   ])
+
+  // Silently fix webhook subscription for already-connected clinics (e.g. Doc Omega)
+  if (clinic?.messengerPageId && clinic?.messengerToken) {
+    void ensureWebhookSubscription(clinic.messengerPageId, clinic.messengerToken)
+  }
 
   const channelStats = { MESSENGER: 0, EMAIL: 0, SMS: 0, NONE: 0 }
   for (const row of channelCounts) {
