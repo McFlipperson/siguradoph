@@ -726,7 +726,17 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
-function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
+// Extract page username/id from a Facebook URL like https://www.facebook.com/DocOmegaDentist
+function fbPageHandle(url: string): string | null {
+  try {
+    const path = new URL(url).pathname.replace(/^\//, '').replace(/\/$/, '')
+    return path || null
+  } catch {
+    return null
+  }
+}
+
+function LinkMessengerSection({ patient, facebookPageUrl }: { patient: FullPatient; facebookPageUrl: string | null }) {
   const router = useRouter()
   const [waiting, setWaiting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -766,23 +776,24 @@ function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatie
     )
   }
 
-  // No Page connected yet
-  if (!messengerPageId) {
+  // No Page URL set yet
+  const pageHandle = facebookPageUrl ? fbPageHandle(facebookPageUrl) : null
+  if (!pageHandle) {
     return (
       <Card>
         <CardContent className="py-3 flex items-center gap-3">
           <span className="text-2xl">💬</span>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Messenger not set up</p>
-            <p className="text-xs text-muted-foreground">Connect your Facebook Page in Reminders first.</p>
+            <p className="text-sm font-medium text-muted-foreground">Facebook Page not set up</p>
+            <p className="text-xs text-muted-foreground">Add your Facebook Page URL in clinic settings first.</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  // m.me link with patient ref — webhook auto-links when they scan and send
-  const mmLink = `https://m.me/${messengerPageId}?ref=patient_${patient.id}`
+  // m.me link using the clinic's own Facebook Page — patient messages the clinic directly
+  const mmLink = `https://m.me/${pageHandle}?ref=patient_${patient.id}`
 
   return (
     <Card>
@@ -1012,7 +1023,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   )
 }
 
-export default function PatientProfile({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
+export default function PatientProfile({ patient, facebookPageUrl }: { patient: FullPatient; facebookPageUrl: string | null }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
@@ -1073,7 +1084,7 @@ export default function PatientProfile({ patient, messengerPageId }: { patient: 
       </div>
 
       {/* Messenger linking */}
-      <LinkMessengerSection patient={patient} messengerPageId={messengerPageId} />
+      <LinkMessengerSection patient={patient} facebookPageUrl={facebookPageUrl} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />

@@ -16,9 +16,9 @@ export default async function PatientProfilePage({
     getPatient(params.id),
     prisma.clinic.findUnique({
       where: { id: user.clinicId },
-      select: { messengerPageId: true },
+      select: { facebookPageUrl: true },
     }),
   ])
 
-  return <PatientProfile patient={patient} messengerPageId={clinic?.messengerPageId ?? null} />
+  return <PatientProfile patient={patient} facebookPageUrl={clinic?.facebookPageUrl ?? null} />
 }
