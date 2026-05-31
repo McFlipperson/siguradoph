@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition, useRef } from 'react'
+import QRCode from 'react-qr-code'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -727,39 +728,30 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
 
 function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
   const router = useRouter()
-  const [state, setState] = useState<'idle' | 'waiting' | 'linked' | 'expired'>('idle')
+  const [waiting, setWaiting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   function stopPolling() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current)
-      pollRef.current = null
-    }
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
 
-  async function handleStart() {
+  async function handleShow() {
     await startMessengerLink(patient.id)
-    setState('waiting')
+    setWaiting(true)
     pollRef.current = setInterval(async () => {
       const result = await checkMessengerLink(patient.id)
-      if (result.linked) {
-        stopPolling()
-        setState('linked')
-        router.refresh()
-      } else if (result.expired) {
-        stopPolling()
-        setState('expired')
-      }
+      if (result.linked) { stopPolling(); router.refresh() }
+      else if (result.expired) { stopPolling(); setWaiting(false) }
     }, 3000)
   }
 
   async function handleCancel() {
     stopPolling()
     await cancelMessengerLink()
-    setState('idle')
+    setWaiting(false)
   }
 
-  // already linked — show status only
+  // Already linked
   if (patient.messengerPsid) {
     return (
       <Card>
@@ -774,90 +766,55 @@ function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatie
     )
   }
 
-  const fullName = `${patient.firstName} ${patient.lastName}`
-  const pageInboxUrl = messengerPageId
-    ? `https://www.facebook.com/${messengerPageId}/messages/`
-    : 'https://www.facebook.com/messages/'
+  // No Page connected yet
+  if (!messengerPageId) {
+    return (
+      <Card>
+        <CardContent className="py-3 flex items-center gap-3">
+          <span className="text-2xl">💬</span>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">Messenger not set up</p>
+            <p className="text-xs text-muted-foreground">Connect your Facebook Page in Reminders first.</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // m.me link with patient ref — webhook auto-links when they scan and send
+  const mmLink = `https://m.me/${messengerPageId}?ref=patient_${patient.id}`
 
   return (
     <Card>
-      <CardContent className="py-3 flex flex-col gap-3">
+      <CardContent className="py-4 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">💬</span>
+          <div>
+            <p className="text-sm font-medium">Link Messenger</p>
+            <p className="text-xs text-muted-foreground">
+              {waiting ? 'Waiting for patient to scan and send…' : 'Patient scans this QR with their phone to connect.'}
+            </p>
+          </div>
+        </div>
 
-        {state === 'idle' && (
-          <>
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">💬</span>
-              <div>
-                <p className="text-sm font-medium">Link Messenger</p>
-                <p className="text-xs text-muted-foreground">Connect this patient to receive reminders via Facebook Messenger.</p>
-              </div>
+        {!waiting ? (
+          <Button onClick={handleShow} className="w-full min-h-[48px]">
+            Show QR Code
+          </Button>
+        ) : (
+          <div className="flex flex-col items-center gap-4">
+            {/* QR code — white background so it scans cleanly */}
+            <div className="bg-white p-4 rounded-xl border border-border">
+              <QRCode value={mmLink} size={200} />
             </div>
-            <Button onClick={handleStart} className="w-full min-h-[48px]">
-              Start Messenger Link
-            </Button>
-          </>
-        )}
-
-        {state === 'waiting' && (
-          <div className="flex flex-col gap-3">
-            {/* Patient name — big so staff knows who to search */}
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-5 text-center">
-              <p className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-2">Search this name in Messenger</p>
-              <p className="text-3xl font-bold text-blue-900">{fullName}</p>
-            </div>
-
-            {/* Open Page inbox — web link, already logged in */}
-            <a
-              href={pageInboxUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#1877F2] text-white font-semibold text-base active:opacity-80"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-              </svg>
-              Open Page Messages
-            </a>
-
-            {/* Instructions */}
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2.5">
-              <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">1</span>
-                <p className="text-sm">Tap above — search <strong>{fullName}</strong> and send a 👍</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
-                <p className="text-sm">Hand the device to the patient — ask them to <strong>reply from their own phone</strong></p>
-              </div>
-              <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-300 text-gray-700 text-xs flex items-center justify-center font-bold">✓</span>
-                <p className="text-sm text-muted-foreground">This screen updates automatically when linked</p>
-              </div>
-            </div>
-
+            <p className="text-xs text-center text-muted-foreground">
+              Patient points their phone camera at this → opens Messenger → taps Send → done
+            </p>
             <Button variant="outline" onClick={handleCancel} className="w-full min-h-[48px]">
               Cancel
             </Button>
           </div>
         )}
-
-        {state === 'linked' && (
-          <div className="flex flex-col items-center gap-2 py-2">
-            <span className="text-4xl">✅</span>
-            <p className="text-sm font-semibold text-emerald-700">Linked successfully!</p>
-            <p className="text-xs text-muted-foreground text-center">{fullName} will now receive reminders on Messenger</p>
-          </div>
-        )}
-
-        {state === 'expired' && (
-          <div className="flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground text-center">No reply received — timed out.</p>
-            <Button onClick={handleStart} className="w-full min-h-[48px]">
-              Try Again
-            </Button>
-          </div>
-        )}
-
       </CardContent>
     </Card>
   )
