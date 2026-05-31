@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const params = new URLSearchParams({
     client_id: appId,
     redirect_uri: redirectUri,
-    scope: 'pages_messaging,pages_show_list,pages_read_engagement',
+    scope: 'pages_messaging,pages_show_list',
     state,
     response_type: 'code',
   })
