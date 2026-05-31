@@ -2,7 +2,8 @@
 
 import { useState, useTransition, useEffect } from 'react'
 import { toast } from 'sonner'
-import { saveMessengerConfig } from './actions'
+import { saveMessengerConfig, saveRecallRules } from './actions'
+import type { RecallRuleRow } from './actions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,17 +36,90 @@ const TYPE_LABELS: Record<string, string> = {
   APPOINTMENT:      'Appointment',
   CLEANING_RECALL:  'Cleaning Recall',
   BRACES_ALIGNMENT: 'Braces Alignment',
+  SERVICE_RECALL:   'Care Follow-up',
 }
 const TYPE_COLORS: Record<string, string> = {
   APPOINTMENT:      'bg-blue-100 text-blue-700',
   CLEANING_RECALL:  'bg-green-100 text-green-700',
   BRACES_ALIGNMENT: 'bg-purple-100 text-purple-700',
+  SERVICE_RECALL:   'bg-teal-100 text-teal-700',
 }
 const STATUS_COLORS: Record<string, string> = {
   PENDING: 'bg-yellow-100 text-yellow-700',
   SENT:    'bg-green-100 text-green-700',
   FAILED:  'bg-red-100 text-red-700',
 }
+
+// Human-readable category labels
+const CATEGORY_LABELS: Record<string, string> = {
+  EXTRACTION: 'Tooth Extractions',
+  RCT:        'Root Canal',
+  CLEANING:   'Cleaning',
+  FILLING:    'Fillings',
+  CROWN:      'Crowns',
+  BRIDGE:     'Bridges',
+  DENTURES:   'Dentures',
+  BRACES:     'Braces',
+  RETAINER:   'Retainers',
+  CHECKUP:    'Check-ups',
+  OTHER:      'Other Procedures',
+}
+
+// Preset templates per category
+const PRESET_TEMPLATES: Record<string, [string, string]> = {
+  EXTRACTION: [
+    "Hi [Name]! Just checking in after your extraction. How are you feeling? We hope it's healing well 🙏 Let us know if you have any concerns!",
+    "Hi [Name]! It's been a little while since your tooth removal. Just making sure there's no discomfort or swelling. We're always here if you need us 😊",
+  ],
+  RCT: [
+    "Hi [Name]! Checking in after your root canal. Any sensitivity should be easing up — how are you doing? Don't hesitate to reach out if something feels off!",
+    "Hi [Name]! Just a quick follow-up after your RCT. We hope you're feeling much better! Let us know if you need anything 😊",
+  ],
+  CLEANING: [
+    "Hi [Name]! It's been a while since your last cleaning with us. Time for your next check-up! We'd love to see you again 😊",
+    "Hi [Name]! Hope you've been keeping up with flossing 😄 It might be time to book your next cleaning!",
+  ],
+  FILLING: [
+    "Hi [Name]! Just checking in after your filling. Is the bite feeling normal? Let us know if anything feels off!",
+    "Hi [Name]! How's the filling? If you're experiencing any sensitivity, just message us anytime 😊",
+  ],
+  CROWN: [
+    "Hi [Name]! Just following up after your recent dental work. How is everything feeling? Let us know if you have any questions 😊",
+    "Hi [Name]! Checking in to see how you're adjusting. We want to make sure you're comfortable!",
+  ],
+  BRIDGE: [
+    "Hi [Name]! Just following up after your recent dental work. How is everything feeling? Let us know if you have any questions 😊",
+    "Hi [Name]! Checking in to see how you're adjusting. We want to make sure you're comfortable!",
+  ],
+  DENTURES: [
+    "Hi [Name]! Just following up after your recent dental work. How is everything feeling? Let us know if you have any questions 😊",
+    "Hi [Name]! Checking in to see how you're adjusting. We want to make sure you're comfortable!",
+  ],
+  BRACES: [
+    "Hi [Name]! Time for a check-in on your braces progress 😊 How are things feeling? Ready for your next adjustment?",
+    "Hi [Name]! Don't forget to wear your retainer consistently! Let us know if you need to book your next appointment.",
+  ],
+  RETAINER: [
+    "Hi [Name]! Time for a check-in on your braces progress 😊 How are things feeling? Ready for your next adjustment?",
+    "Hi [Name]! Don't forget to wear your retainer consistently! Let us know if you need to book your next appointment.",
+  ],
+  CHECKUP: [
+    "Hi [Name]! Thanks for visiting us recently 😊 Hope everything is going well. Remember — regular check-ups every 6 months keep your smile healthy!",
+    "Hi [Name]! Great seeing you at the clinic! How are you feeling? Let us know if you need anything 😊",
+  ],
+  OTHER: [
+    "Hi [Name]! Thanks for visiting us recently 😊 Hope everything is going well. Remember — regular check-ups every 6 months keep your smile healthy!",
+    "Hi [Name]! Great seeing you at the clinic! How are you feeling? Let us know if you need anything 😊",
+  ],
+}
+
+const DAY_OPTIONS = [1, 2, 3, 5, 7, 14, 30, 60, 90, 180, 365]
+
+function getPresets(category: string): [string, string] {
+  return PRESET_TEMPLATES[category] ?? PRESET_TEMPLATES['OTHER']
+}
+
+// ─── Formatting helpers ───────────────────────────────────────────────────────
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -230,6 +304,187 @@ function UnlinkedCard({ msg, onLinked }: { msg: UnlinkedMessage; onLinked: (id: 
   )
 }
 
+// ─── Recall Rule Card ─────────────────────────────────────────────────────────
+
+type RecallCardState = {
+  daysAfter: number
+  messageMode: 'preset1' | 'preset2' | 'custom'
+  customMessage: string
+  isActive: boolean
+}
+
+function RecallRuleCard({
+  category,
+  existingRule,
+  onSaved,
+}: {
+  category: string
+  existingRule: RecallRuleRow | undefined
+  onSaved: (rule: RecallRuleRow) => void
+}) {
+  const presets = getPresets(category)
+  const label = CATEGORY_LABELS[category] ?? category
+
+  function detectMode(template: string): 'preset1' | 'preset2' | 'custom' {
+    if (template === presets[0]) return 'preset1'
+    if (template === presets[1]) return 'preset2'
+    return 'custom'
+  }
+
+  const [state, setState] = useState<RecallCardState>(() => {
+    if (existingRule) {
+      return {
+        daysAfter: existingRule.daysAfter,
+        messageMode: detectMode(existingRule.messageTemplate),
+        customMessage: detectMode(existingRule.messageTemplate) === 'custom' ? existingRule.messageTemplate : '',
+        isActive: existingRule.isActive,
+      }
+    }
+    return {
+      daysAfter: 7,
+      messageMode: 'preset1',
+      customMessage: '',
+      isActive: false,
+    }
+  })
+
+  const [isPending, startTransition] = useTransition()
+
+  function getTemplate(): string {
+    if (state.messageMode === 'preset1') return presets[0]
+    if (state.messageMode === 'preset2') return presets[1]
+    return state.customMessage
+  }
+
+  function handleSave() {
+    const template = getTemplate()
+    if (!template.trim()) {
+      toast.error('Please enter a message template')
+      return
+    }
+    startTransition(async () => {
+      try {
+        await saveRecallRules([{
+          id: existingRule?.id,
+          serviceName: label,
+          serviceCategory: category,
+          daysAfter: state.daysAfter,
+          messageTemplate: template,
+          isActive: state.isActive,
+        }])
+        toast.success(`${label} follow-up saved`)
+        onSaved({
+          id: existingRule?.id ?? '',
+          serviceName: label,
+          serviceCategory: category,
+          daysAfter: state.daysAfter,
+          messageTemplate: template,
+          isActive: state.isActive,
+        })
+      } catch {
+        toast.error('Failed to save')
+      }
+    })
+  }
+
+  return (
+    <div className="rounded-xl border bg-background p-4 space-y-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold text-sm">{label}</p>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Active</span>
+          <button
+            type="button"
+            onClick={() => setState((s) => ({ ...s, isActive: !s.isActive }))}
+            className={[
+              'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors',
+              state.isActive ? 'bg-primary' : 'bg-input',
+            ].join(' ')}
+            role="switch"
+            aria-checked={state.isActive}
+          >
+            <span
+              className={[
+                'pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform',
+                state.isActive ? 'translate-x-5' : 'translate-x-0',
+              ].join(' ')}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Days after chips */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-2">Send follow-up after</p>
+        <div className="flex flex-wrap gap-2">
+          {DAY_OPTIONS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setState((s) => ({ ...s, daysAfter: d }))}
+              className={[
+                'rounded-full border px-3 py-1.5 text-xs font-medium min-h-[36px] transition-colors',
+                state.daysAfter === d
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background border-border text-muted-foreground',
+              ].join(' ')}
+            >
+              {d === 1 ? '1 day' : d < 30 ? `${d} days` : d === 30 ? '1 mo' : d === 60 ? '2 mo' : d === 90 ? '3 mo' : d === 180 ? '6 mo' : '1 yr'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Message presets */}
+      <div>
+        <p className="text-xs text-muted-foreground mb-2">Message</p>
+        <div className="space-y-2">
+          {(['preset1', 'preset2', 'custom'] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setState((s) => ({ ...s, messageMode: mode }))}
+              className={[
+                'w-full text-left rounded-lg border px-3 py-2.5 text-xs min-h-[44px] transition-colors',
+                state.messageMode === mode
+                  ? 'border-primary bg-primary/5 text-foreground'
+                  : 'border-border bg-background text-muted-foreground',
+              ].join(' ')}
+            >
+              {mode === 'preset1' && presets[0]}
+              {mode === 'preset2' && presets[1]}
+              {mode === 'custom' && 'Custom message…'}
+            </button>
+          ))}
+        </div>
+
+        {state.messageMode === 'custom' && (
+          <div className="mt-2">
+            <textarea
+              className="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-ring resize-none"
+              rows={3}
+              placeholder="Hi [Name]! Your message here…"
+              value={state.customMessage}
+              onChange={(e) => setState((s) => ({ ...s, customMessage: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Use [Name] to insert the patient&apos;s first name.</p>
+          </div>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isPending}
+        className="w-full min-h-[48px] rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40"
+      >
+        {isPending ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+  )
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function RemindersClient({
@@ -237,19 +492,25 @@ export default function RemindersClient({
   reminders: initialReminders,
   channelStats,
   unlinkedMessages: initialUnlinked,
+  recallRules: initialRecallRules,
+  catalogServices,
 }: {
   clinic: ClinicConfig
   reminders: ReminderRow[]
   channelStats: ChannelStats
   unlinkedMessages: UnlinkedMessage[]
+  recallRules: RecallRuleRow[]
+  catalogServices: Array<{ name: string; category: string }>
 }) {
   const [reminders, setReminders] = useState(initialReminders)
   const [unlinked, setUnlinked] = useState(initialUnlinked)
   const [clinic, setClinic] = useState(initialClinic)
+  const [recallRules, setRecallRules] = useState(initialRecallRules)
   const [processing, setProcessing] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showMessengerSetup, setShowMessengerSetup] = useState(false)
+  const [showFollowUps, setShowFollowUps] = useState(false)
 
   // Show toast based on OAuth redirect result
   useEffect(() => {
@@ -290,6 +551,25 @@ export default function RemindersClient({
     } finally {
       setProcessing(false)
     }
+  }
+
+  // Unique service categories present in the active catalog
+  const catalogCategories = Array.from(new Set(catalogServices.map((s) => s.category)))
+
+  function ruleForCategory(category: string): RecallRuleRow | undefined {
+    return recallRules.find((r) => r.serviceCategory === category)
+  }
+
+  function handleRuleSaved(updated: RecallRuleRow) {
+    setRecallRules((prev) => {
+      const idx = prev.findIndex((r) => r.serviceCategory === updated.serviceCategory)
+      if (idx >= 0) {
+        const next = [...prev]
+        next[idx] = updated
+        return next
+      }
+      return [...prev, updated]
+    })
   }
 
   // ── Channel status cards ──────────────────────────────────────────────────
@@ -418,7 +698,40 @@ export default function RemindersClient({
         </div>
       </section>
 
-      {/* ── 2. UPCOMING REMINDERS ── */}
+      {/* ── 2. CARE FOLLOW-UPS ── */}
+      <section>
+        <button
+          onClick={() => setShowFollowUps((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 rounded-xl border bg-background px-4 py-3.5 text-sm font-medium"
+        >
+          <span>Care Follow-ups</span>
+          <span className="text-muted-foreground text-xs">{showFollowUps ? '▾' : '▸'}</span>
+        </button>
+
+        {showFollowUps && (
+          <div className="mt-2 space-y-3">
+            <p className="text-xs text-muted-foreground px-1">
+              Automatically send a warm check-in message to patients after specific procedures. Configure per service category.
+            </p>
+            {catalogCategories.length === 0 ? (
+              <div className="rounded-xl border bg-background p-5 text-center text-sm text-muted-foreground">
+                No active services in your catalog yet.
+              </div>
+            ) : (
+              catalogCategories.map((cat) => (
+                <RecallRuleCard
+                  key={cat}
+                  category={cat}
+                  existingRule={ruleForCategory(cat)}
+                  onSaved={handleRuleSaved}
+                />
+              ))
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* ── 3. UPCOMING REMINDERS ── */}
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -492,7 +805,7 @@ export default function RemindersClient({
         )}
       </section>
 
-      {/* ── 3. ADVANCED (collapsed) ── */}
+      {/* ── 4. ADVANCED (collapsed) ── */}
       <section>
         <button
           onClick={() => setShowAdvanced((v) => !v)}

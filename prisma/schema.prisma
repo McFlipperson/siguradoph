@@ -111,6 +111,7 @@ model Clinic {
   unlinkedMessengers    UnlinkedMessenger[]
   quarterlyReportLogs        QuarterlyReportLog[]
   thirteenthMonthRecords     ThirteenthMonthRecord[]
+  recallRules                RecallRule[]
 }
 
 model UnlinkedMessenger {
@@ -466,8 +467,9 @@ model ScheduledReminder {
   patient        Patient   @relation(fields: [patientId], references: [id])
   visitId        String?
   appointmentId  String?
-  reminderType   String    // APPOINTMENT | CLEANING_RECALL | BRACES_ALIGNMENT
+  reminderType   String    // APPOINTMENT | CLEANING_RECALL | BRACES_ALIGNMENT | SERVICE_RECALL
   scheduledFor   DateTime
+  customMessage  String?
   status         String    @default("PENDING")  // PENDING | SENT | FAILED
   sentAt         DateTime?
   createdAt      DateTime  @default(now())
@@ -513,6 +515,19 @@ model AuditLog {
 
   @@index([clinicId, createdAt])
   @@index([resourceId])
+}
+
+model RecallRule {
+  id              String   @id @default(cuid())
+  clinicId        String
+  clinic          Clinic   @relation(fields: [clinicId], references: [id])
+  serviceName     String
+  serviceCategory String
+  daysAfter       Int
+  messageTemplate String   @db.Text
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // Immutable audit trail for every SC/PWD discount applied (RA 9994 / RA 10754 compliance)

@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 import { redirect } from 'next/navigation'
 import RemindersClient from './RemindersClient'
+import type { RecallRuleRow } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +11,11 @@ export default async function RemindersPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
 
-  const [clinic, reminders, channelCounts, unlinkedMessages] = await Promise.all([
+  const clinicId = user.clinicId
+
+  const [clinic, reminders, channelCounts, unlinkedMessages, recallRules, catalogServices] = await Promise.all([
     prisma.clinic.findUnique({
-      where: { id: user.clinicId },
+      where: { id: clinicId },
       select: {
         name: true,
         facebookPageUrl: true,
@@ -20,19 +24,29 @@ export default async function RemindersPage() {
       },
     }),
     prisma.scheduledReminder.findMany({
-      where: { clinicId: user.clinicId },
+      where: { clinicId },
       include: { patient: { select: { firstName: true, lastName: true } } },
       orderBy: { scheduledFor: 'asc' },
     }),
     prisma.patient.groupBy({
       by: ['reminderChannel'],
-      where: { clinicId: user.clinicId },
+      where: { clinicId },
       _count: true,
     }),
     prisma.unlinkedMessenger.findMany({
-      where: { clinicId: user.clinicId, isLinked: false },
+      where: { clinicId, isLinked: false },
       orderBy: { receivedAt: 'desc' },
     }),
+    withClinicDb(clinicId, (tx) =>
+      tx.recallRule.findMany({ orderBy: { serviceCategory: 'asc' } })
+    ),
+    withClinicDb(clinicId, (tx) =>
+      tx.serviceCatalog.findMany({
+        where: { isActive: true },
+        select: { name: true, category: true },
+        orderBy: { sortOrder: 'asc' },
+      })
+    ),
   ])
 
   const channelStats = { MESSENGER: 0, EMAIL: 0, SMS: 0, NONE: 0 }
@@ -40,6 +54,15 @@ export default async function RemindersPage() {
     const ch = row.reminderChannel as keyof typeof channelStats
     if (ch in channelStats) channelStats[ch] = row._count
   }
+
+  const recallRuleRows: RecallRuleRow[] = recallRules.map((r) => ({
+    id: r.id,
+    serviceName: r.serviceName,
+    serviceCategory: r.serviceCategory,
+    daysAfter: r.daysAfter,
+    messageTemplate: r.messageTemplate,
+    isActive: r.isActive,
+  }))
 
   return (
     <RemindersClient
@@ -65,6 +88,8 @@ export default async function RemindersPage() {
         psid: u.psid,
         createdAt: u.receivedAt.toISOString(),
       }))}
+      recallRules={recallRuleRows}
+      catalogServices={catalogServices.map((s) => ({ name: s.name, category: s.category }))}
     />
   )
 }

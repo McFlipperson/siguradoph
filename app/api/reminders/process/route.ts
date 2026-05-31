@@ -103,7 +103,10 @@ export async function POST(req: NextRequest) {
     const channel    = patient.reminderChannel
     const firstName  = patient.firstName
     const clinicName = clinic.name
-    const text = buildText(reminder.reminderType, firstName, clinicName)
+    // Use customMessage if set (e.g. SERVICE_RECALL), otherwise build from type
+    const text = (reminder.customMessage)
+      ? reminder.customMessage
+      : buildText(reminder.reminderType, firstName, clinicName)
     let success = false
 
     // Resolve Messenger token: clinic DB value takes priority, env var as fallback

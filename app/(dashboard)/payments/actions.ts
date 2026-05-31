@@ -451,6 +451,57 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
   const invoiceRecord = await db((tx) => tx.invoice.findUnique({ where: { visitId: data.visitId } }))
   const invoiceId = invoiceRecord!.id
 
+  // ── Auto-create SERVICE_RECALL reminders based on clinic RecallRules ─────────
+  try {
+    type StoredProcAmount = { name: string; amount: number }
+    const storedAmounts = Array.isArray(visit.procedureAmounts)
+      ? (visit.procedureAmounts as StoredProcAmount[])
+      : []
+
+    const [recallRules, catalogEntries] = await Promise.all([
+      db((tx) => tx.recallRule.findMany({ where: { isActive: true } })),
+      db((tx) => tx.serviceCatalog.findMany({
+        where: { name: { in: storedAmounts.map(p => p.name) } },
+        select: { name: true, category: true },
+      })),
+    ])
+
+    if (recallRules.length > 0) {
+      const nameToCategory = Object.fromEntries(catalogEntries.map(e => [e.name, e.category]))
+      const seen = new Set<string>()
+      const reminders: Array<{ clinicId: string; patientId: string; visitId: string; reminderType: string; scheduledFor: Date; customMessage: string }> = []
+
+      for (const proc of storedAmounts) {
+        const category = nameToCategory[proc.name]
+        if (!category) continue
+        const rule = recallRules.find(r => r.serviceCategory === category)
+        if (!rule) continue
+
+        const key = `${visit.patient.id}-${category}`
+        if (seen.has(key)) continue
+        seen.add(key)
+
+        const scheduledFor = new Date(visit.visitDate)
+        scheduledFor.setDate(scheduledFor.getDate() + rule.daysAfter)
+
+        reminders.push({
+          clinicId,
+          patientId: visit.patient.id,
+          visitId: data.visitId,
+          reminderType: 'SERVICE_RECALL',
+          scheduledFor,
+          customMessage: rule.messageTemplate.replace('[Name]', visit.patient.firstName),
+        })
+      }
+
+      if (reminders.length > 0) {
+        await db((tx) => tx.scheduledReminder.createMany({ data: reminders }))
+      }
+    }
+  } catch (err) {
+    console.error('[recall-reminders] failed:', err)
+  }
+
   await writeAudit({
     clinicId,
     userEmail,

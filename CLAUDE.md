@@ -8,9 +8,48 @@ is handled invisibly in the background. The clinic uses it
 daily. The CPA handles taxes from the data it generates.
 
 ## Stack
-Next.js 14 App Router, Supabase (Postgres + Auth + RLS),
-Prisma ORM, Tailwind CSS, shadcn/ui, React-PDF,
+Next.js 14 App Router, Supabase (Postgres + Auth), Prisma ORM,
+Tailwind CSS, shadcn/ui, React-PDF, Resend (email),
 Meta Messenger API for patient reminders
+
+## Security architecture — critical to understand before touching DB queries
+
+### Two-layer multi-tenant isolation
+1. **Database layer (Postgres RLS):** All 22 patient/clinic data tables have
+   `ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`. FORCE means it
+   applies even to the postgres superuser Prisma uses. Policy on every table:
+   `"clinicId" = current_setting('app.clinic_id', TRUE)`. If not set → 0 rows.
+   Migration: `supabase/migrations/20260530000000_rls_clinic_isolation.sql`
+
+2. **Application layer:** Every query to a tenant table MUST go through
+   `withClinicDb(clinicId, fn)` from `lib/clinic-db.ts`. This wraps the query
+   in a Prisma transaction that runs `SELECT set_config('app.clinic_id', ?, TRUE)`
+   first (TRUE = transaction-local, safe with connection pooling).
+
+### The two helpers — always use these in server actions and API routes
+```typescript
+// In server actions — gets actor AND scoped db in one call
+import { getActorDb } from '@/lib/auth'
+const { clinicId, userEmail, db } = await getActorDb()
+const patients = await db((tx) => tx.patient.findMany())
+
+// In API routes — use withClinicDb directly
+import { withClinicDb } from '@/lib/clinic-db'
+const clinicId = user.clinicId as string   // narrow from string|null after guard
+const patients = await withClinicDb(clinicId, (tx) => tx.patient.findMany())
+```
+
+### What bypasses RLS (plain `prisma` is fine for these)
+- `prisma.user.findUnique()` — auth lookups
+- `prisma.clinic.findUnique/update()` — clinic settings
+- `prisma.cpaClinicAssignment.*` — CPA assignments
+These tables hold no patient SPI and have no RLS policies.
+
+### NEVER do this — will return empty results or error at DB level
+```typescript
+// Wrong — no clinic context set, RLS rejects it
+const patients = await prisma.patient.findMany({ where: { clinicId } })
+```
 
 ## Design rules — never break these
 - Every screen must work on a 390px wide phone
@@ -29,8 +68,9 @@ Meta Messenger API for patient reminders
 - Loyalty card discounts applied before VAT calculation
 - All patient data is Sensitive Personal Information 
   under Philippine RA 10173 — handle accordingly
-- Multi-tenant: clinics never see each other's data.
-  Enforce via Supabase RLS on every table using clinic_id.
+- Multi-tenant: clinics never see each other's data. Enforced at BOTH
+  application layer (withClinicDb) AND database layer (Postgres FORCE ROW
+  LEVEL SECURITY). See "Security architecture" section above.
 - Prices are NOT fixed per service. Secretary selects 
   the procedure name then inputs the price for that 
   specific patient at checkout.
