@@ -775,10 +775,10 @@ function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatie
   }
 
   const fullName = `${patient.firstName} ${patient.lastName}`
-  // Opens the clinic's Page inbox in Meta Business Suite (where Page messages live)
+  // Opens the clinic's Facebook Page inbox directly
   const messengerInboxUrl = messengerPageId
-    ? `https://business.facebook.com/latest/inbox/all/?asset_id=${messengerPageId}`
-    : 'https://business.facebook.com/latest/inbox/'
+    ? `https://www.facebook.com/${messengerPageId}/inbox/`
+    : 'https://www.facebook.com/'
 
   return (
     <Card>
