@@ -43,5 +43,17 @@ export async function GET(req: NextRequest) {
     path: '/',
   })
 
+  // If ?return=onboarding, remember where to send them after OAuth
+  const returnTo = req.nextUrl.searchParams.get('return')
+  if (returnTo === 'onboarding') {
+    res.cookies.set('fb_oauth_return', 'onboarding', {
+      httpOnly: true,
+      secure: true,
+      maxAge: 600,
+      sameSite: 'lax',
+      path: '/',
+    })
+  }
+
   return res
 }

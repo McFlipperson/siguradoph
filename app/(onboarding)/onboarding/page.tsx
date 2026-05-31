@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
 import { Step1DPA } from '@/components/onboarding/Step1DPA'
@@ -12,6 +13,7 @@ import { Step5Equipment } from '@/components/onboarding/Step5Equipment'
 import { Step6Suppliers } from '@/components/onboarding/Step6Suppliers'
 import { Step7Services } from '@/components/onboarding/Step7Services'
 import { Step8Loyalty } from '@/components/onboarding/Step8Loyalty'
+import { Step9Messenger } from '@/components/onboarding/Step9Messenger'
 import { Step9Review } from '@/components/onboarding/Step9Review'
 import {
   getClinicForCurrentUser,
@@ -48,7 +50,7 @@ export type WizardState = {
   step8: Step8Data
 }
 
-const TOTAL_STEPS = 10
+const TOTAL_STEPS = 11
 
 const initialState: WizardState = {
   tosAcceptedAt: null,
@@ -68,6 +70,18 @@ export default function OnboardingPage() {
   const [isSaving, startSaving] = useTransition()
   const [allData, setAllData] = useState<WizardState>(initialState)
   const [loading, setLoading] = useState(true)
+  const [hasMessengerToken, setHasMessengerToken] = useState(false)
+  const searchParams = useSearchParams()
+
+  // If returning from Facebook OAuth, mark messenger as connected and land on step 10
+  useEffect(() => {
+    if (searchParams.get('messenger') === 'connected') {
+      setHasMessengerToken(true)
+      setCurrentStep(10)
+      // Clean the URL param without a full reload
+      window.history.replaceState({}, '', '/onboarding')
+    }
+  }, [searchParams])
 
   // On mount: resume from last completed step
   useEffect(() => {
@@ -76,6 +90,7 @@ export default function OnboardingPage() {
         const clinic = await getClinicForCurrentUser()
         if (clinic) {
           setClinicId(clinic.id)
+          if (clinic.messengerToken) setHasMessengerToken(true)
 
           // Populate state from clinic
           const s: WizardState = {
@@ -176,7 +191,8 @@ export default function OnboardingPage() {
           if (clinic.equipment.length > 0) resumeStep = 6
           if (clinic.suppliers.length > 0) resumeStep = 7
           if (clinic.serviceCatalog.length > 0) resumeStep = 8
-          // step9 & 10 always reachable after step8
+          if (clinic.loyaltyCardTemplates.length > 0) resumeStep = 10
+          if (clinic.messengerToken) resumeStep = 11
           setCurrentStep(Math.min(resumeStep, TOTAL_STEPS))
         }
       } catch {
@@ -464,6 +480,14 @@ export default function OnboardingPage() {
       )}
 
       {currentStep === 10 && clinicId && (
+        <Step9Messenger
+          hasMessengerToken={hasMessengerToken}
+          onNext={() => setCurrentStep(11)}
+          onBack={handleBack}
+        />
+      )}
+
+      {currentStep === 11 && clinicId && (
         <Step9Review
           clinicId={clinicId}
           allData={allData}

@@ -11,11 +11,17 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get('state')
   const error = searchParams.get('error')
 
-  const remindersUrl = (flag: string) => {
-    const u = new URL('/reminders', req.url)
+  const returnTo = req.cookies.get('fb_oauth_return')?.value
+
+  const redirectUrl = (flag: string) => {
+    const path = returnTo === 'onboarding' ? '/onboarding' : '/reminders'
+    const u = new URL(path, req.url)
     u.searchParams.set('messenger', flag)
     return u
   }
+
+  // keep old name as alias so existing references below still work
+  const remindersUrl = redirectUrl
 
   // User cancelled or Facebook returned an error
   if (error) return NextResponse.redirect(remindersUrl('cancelled'))
@@ -129,8 +135,9 @@ export async function GET(req: NextRequest) {
     // Non-fatal — proceed with success redirect
   }
 
-  // Clear CSRF cookie and redirect to reminders with success flag
+  // Clear CSRF + return cookies, redirect to reminders or onboarding
   const res = NextResponse.redirect(remindersUrl('connected'))
   res.cookies.delete('fb_oauth_state')
+  res.cookies.delete('fb_oauth_return')
   return res
 }
