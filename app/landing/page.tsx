@@ -9,33 +9,31 @@ export const metadata: Metadata = {
 }
 
 const FREE_FEATURES = [
+  'Up to 30 patients',
   'Patient records, medical history & visit notes',
-  'OR receipts, invoices & thermal printing',
-  'Scheduling & appointments',
-  'Patient reminders via Messenger & email',
-  'Loyalty cards & Senior Citizen / PWD discounts',
-  'Expense tracking & revenue reports',
-  'Data export — patients, invoices, expenses',
-  'Patient privacy tools — consent records & audit logs',
+  'OR receipts & invoices',
+  'Expense tracking',
   'Messenger support 9am–4pm',
 ]
 
 const BASIC_FEATURES = [
+  'Unlimited patients',
   'Patient records, medical history & visit notes',
   'OR receipts, invoices & thermal printing',
   'Scheduling & appointments',
-  'Patient reminders via Messenger & email',
+  'Automated patient reminders via Messenger & email',
   'Loyalty cards & Senior Citizen / PWD discounts',
   'Expense tracking & revenue reports',
   'Data export — patients, invoices, expenses',
+  'Patient privacy tools — consent records & audit logs',
   'Messenger support 9am–4pm',
 ]
 
 const PRO_EXTRAS = [
   'Employee records & attendance tracking',
+  'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
   'Service Incentive Leave (SIL) tracking',
-  'Patient privacy tools — consent records & audit logs',
-  'Incident logging & breach reporting',
+  'Incident logging & breach reporting (NPC compliance)',
   'Messenger support 9am–4pm',
 ]
 
@@ -101,7 +99,7 @@ export default function LandingPage() {
               className="inline-block font-black text-base px-7 py-4 rounded-2xl"
               style={{ background: '#1A3FD0', color: '#ffffff' }}
             >
-              Start your free month — no credit card needed
+              Start free — no credit card needed
             </Link>
           </div>
 
@@ -264,7 +262,7 @@ export default function LandingPage() {
           >
             Simple, honest pricing.
           </h2>
-          <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Month-to-month. Cancel any time.</p>
+          <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Free forever for small clinics. Upgrade when you&apos;re ready.</p>
         </div>
 
         <div className="px-5 overflow-x-auto pb-6">
@@ -276,10 +274,10 @@ export default function LandingPage() {
               style={{ width: 260, background: '#ffffff', border: '1.5px solid #E0E8F8', flexShrink: 0 }}
             >
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
-                <p className="font-black text-xl mb-0.5" style={{ color: '#0B1627' }}>Free — 1 Month</p>
-                <p className="text-xs mb-1" style={{ color: '#5C6A85' }}>Try everything, no commitment.</p>
-                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>Free</p>
-                <p className="text-xs mt-1" style={{ color: '#9AAABB' }}>No credit card needed. Full access for 30 days.</p>
+                <p className="font-black text-xl mb-0.5" style={{ color: '#0B1627' }}>Free</p>
+                <p className="text-xs mb-1" style={{ color: '#5C6A85' }}>For clinics just getting started.</p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱0</p>
+                <p className="text-xs mt-1" style={{ color: '#9AAABB' }}>No credit card. No time limit. Up to 30 patients.</p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
                 {FREE_FEATURES.map((f) => (
@@ -304,7 +302,7 @@ export default function LandingPage() {
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed #E0E8F8' }}>
                 <p className="font-black text-xl mb-0.5" style={{ color: '#0B1627' }}>Basic</p>
                 <p className="text-xs mb-1" style={{ color: '#5C6A85' }}>Everything your clinic needs to run smoothly.</p>
-                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱999<span className="text-sm font-semibold">/month</span></p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#0B1627', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱499<span className="text-sm font-semibold">/month</span></p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
                 {BASIC_FEATURES.map((f) => (
@@ -331,8 +329,8 @@ export default function LandingPage() {
               </div>
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
                 <p className="font-black text-xl mb-0.5" style={{ color: '#ffffff' }}>Pro</p>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>With Staff & Compliance Tools.</p>
-                <p className="font-black text-3xl mt-3" style={{ color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱1,500<span className="text-sm font-semibold">/month</span></p>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>For clinics with staff.</p>
+                <p className="font-black text-3xl mt-3" style={{ color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱999<span className="text-sm font-semibold">/month</span></p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
                 <p className="text-xs font-bold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Everything in Basic, plus:</p>
@@ -354,7 +352,7 @@ export default function LandingPage() {
         </div>
 
         <p className="px-5 mt-2 text-xs" style={{ color: '#9AAABB' }}>
-          Prices are in Philippine Pesos (₱). Upgrade, downgrade, or cancel any time.
+          Prices are in Philippine Pesos (₱). Month-to-month. Upgrade, downgrade, or cancel any time.
         </p>
       </section>
 
@@ -393,7 +391,7 @@ export default function LandingPage() {
           className="inline-block font-black text-base px-7 py-4 rounded-2xl"
           style={{ background: '#F5C018', color: '#0B1627' }}
         >
-          Start your free month — no credit card needed
+          Start free — no credit card needed
         </Link>
       </section>
 
