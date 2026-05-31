@@ -56,10 +56,10 @@ export default function LandingPage() {
         className="flex items-center justify-between px-5 py-4"
         style={{ background: '#0038A8' }}
       >
-        {/* Logo — drop /public/images/s logo ph.png to activate */}
+        {/* Logo — drop /public/images/S LOGO PH.png to activate */}
         <div className="flex items-center gap-2.5">
           <Image
-            src="/images/s logo ph.png"
+            src="/images/S LOGO PH.png"
             alt="Sigurado S"
             width={36}
             height={36}
@@ -454,10 +454,10 @@ export default function LandingPage() {
           FOOTER
       ══════════════════════════════════════════════════════════ */}
       <footer className="px-5 py-8 flex flex-col gap-3" style={{ background: '#060E1F' }}>
-        {/* Logo — drop /public/images/s logo ph.png to activate */}
+        {/* Logo — drop /public/images/S LOGO PH.png to activate */}
         <div className="flex items-center gap-2">
           <Image
-            src="/images/s logo ph.png"
+            src="/images/S LOGO PH.png"
             alt="Sigurado"
             width={32}
             height={32}
