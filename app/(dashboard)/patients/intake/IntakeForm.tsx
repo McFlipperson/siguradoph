@@ -373,10 +373,13 @@ export function IntakeForm({
         <p className="text-sm text-muted-foreground leading-relaxed">
           In compliance with the <strong>Data Privacy Act of 2012 (RA 10173)</strong>, {clinicName} collects your personal and medical information solely for the purpose of providing dental care. Your data is stored securely, will not be shared with third parties without your consent, and may be retained for up to 10 years as required by law.
         </p>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          If you choose to receive reminders, {clinicName} may contact you via <strong>Facebook Messenger, SMS, or email</strong> for appointment reminders and post-care follow-up messages. You may opt out at any time by informing the clinic.
+        </p>
         <div className="flex items-start gap-3">
           <input id="consent" type="checkbox" checked={consentGiven} onChange={e => setConsentGiven(e.target.checked)} className="h-5 w-5 rounded mt-0.5 shrink-0" />
           <Label htmlFor="consent" className="text-sm leading-relaxed">
-            I have read and understood the above. I consent to {clinicName} collecting and processing my personal and medical information for dental care purposes.
+            I have read and understood the above. I consent to {clinicName} collecting and processing my personal and medical information for dental care purposes, and to being contacted via my chosen reminder channel.
           </Label>
         </div>
       </section>
