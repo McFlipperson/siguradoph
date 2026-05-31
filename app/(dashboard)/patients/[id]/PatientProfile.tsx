@@ -774,39 +774,62 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
     )
   }
 
+  const fullName = `${patient.firstName} ${patient.lastName}`
+
   return (
     <Card>
       <CardContent className="py-3 flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">💬</span>
-          <div>
-            <p className="text-sm font-medium">Link Messenger</p>
-            <p className="text-xs text-muted-foreground">
-              {state === 'idle' && 'Tap to open the intake slot, then hand the tablet to the patient.'}
-              {state === 'waiting' && 'Waiting for patient to reply on Messenger…'}
-              {state === 'linked' && 'Linked! Patient will now receive Messenger reminders.'}
-              {state === 'expired' && 'Timed out — no reply received. Try again.'}
-            </p>
-          </div>
-        </div>
 
         {state === 'idle' && (
-          <Button onClick={handleStart} className="w-full min-h-[48px]">
-            Link Messenger
-          </Button>
+          <>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💬</span>
+              <div>
+                <p className="text-sm font-medium">Link Messenger</p>
+                <p className="text-xs text-muted-foreground">Connect this patient to receive reminders via Facebook Messenger.</p>
+              </div>
+            </div>
+            <Button onClick={handleStart} className="w-full min-h-[48px]">
+              Start Messenger Link
+            </Button>
+          </>
         )}
 
         {state === 'waiting' && (
-          <div className="flex flex-col gap-2">
-            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
-              <p className="font-medium mb-1">Hand the tablet to the patient:</p>
-              <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>Open Facebook Messenger on this device</li>
-                <li>Search for their own name</li>
-                <li>Send a message to themselves from the clinic</li>
-                <li>Have them reply from their own phone</li>
-              </ol>
+          <div className="flex flex-col gap-3">
+            {/* Patient name — big and clear so they know what to search */}
+            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-center">
+              <p className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">Search for yourself in Messenger</p>
+              <p className="text-2xl font-bold text-blue-900">{fullName}</p>
             </div>
+
+            {/* Open Messenger button */}
+            <a
+              href="fb-messenger://"
+              className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#0084FF] text-white font-semibold text-base active:opacity-80"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.378 5.504 3.538 7.247V22l3.33-1.832c.888.247 1.83.381 2.804.381C17.523 20.549 22 16.404 22 11.243 22 6.145 17.523 2 12 2z"/>
+              </svg>
+              Open Messenger
+            </a>
+
+            {/* Step-by-step — simple and clear */}
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2">
+              <div className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">1</span>
+                <p className="text-sm">Search <strong>{fullName}</strong> in Messenger and send a 👍</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
+                <p className="text-sm">Ask them to <strong>reply from their own phone</strong> — any message works</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-300 text-gray-700 text-xs flex items-center justify-center font-bold">✓</span>
+                <p className="text-sm text-muted-foreground">This screen will update automatically when done</p>
+              </div>
+            </div>
+
             <Button variant="outline" onClick={handleCancel} className="w-full min-h-[48px]">
               Cancel
             </Button>
@@ -814,16 +837,22 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
         )}
 
         {state === 'linked' && (
-          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 text-center font-medium">
-            ✓ Linked successfully
+          <div className="flex flex-col items-center gap-2 py-2">
+            <span className="text-4xl">✅</span>
+            <p className="text-sm font-semibold text-emerald-700">Linked successfully!</p>
+            <p className="text-xs text-muted-foreground text-center">{fullName} will now receive reminders on Messenger</p>
           </div>
         )}
 
         {state === 'expired' && (
-          <Button onClick={handleStart} variant="outline" className="w-full min-h-[48px]">
-            Try again
-          </Button>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground text-center">No reply received — timed out.</p>
+            <Button onClick={handleStart} className="w-full min-h-[48px]">
+              Try Again
+            </Button>
+          </div>
         )}
+
       </CardContent>
     </Card>
   )
