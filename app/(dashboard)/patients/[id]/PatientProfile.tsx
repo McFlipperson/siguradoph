@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, updatePatientScPwd, deletePatient } from '../actions'
+import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, updatePatientScPwd, deletePatient, startMessengerLink, cancelMessengerLink, checkMessengerLink } from '../actions'
 import { voidVisit, updateVisit } from '../../visits/actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
@@ -725,6 +725,110 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
+function LinkMessengerSection({ patient }: { patient: FullPatient }) {
+  const router = useRouter()
+  const [state, setState] = useState<'idle' | 'waiting' | 'linked' | 'expired'>('idle')
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current)
+      pollRef.current = null
+    }
+  }
+
+  async function handleStart() {
+    await startMessengerLink(patient.id)
+    setState('waiting')
+    pollRef.current = setInterval(async () => {
+      const result = await checkMessengerLink(patient.id)
+      if (result.linked) {
+        stopPolling()
+        setState('linked')
+        router.refresh()
+      } else if (result.expired) {
+        stopPolling()
+        setState('expired')
+      }
+    }, 3000)
+  }
+
+  async function handleCancel() {
+    stopPolling()
+    await cancelMessengerLink()
+    setState('idle')
+  }
+
+  // already linked — show status only
+  if (patient.messengerPsid) {
+    return (
+      <Card>
+        <CardContent className="py-3 flex items-center gap-3">
+          <span className="text-2xl">💬</span>
+          <div>
+            <p className="text-sm font-medium">Messenger linked</p>
+            <p className="text-xs text-muted-foreground">This patient will receive Messenger reminders</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <Card>
+      <CardContent className="py-3 flex flex-col gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">💬</span>
+          <div>
+            <p className="text-sm font-medium">Link Messenger</p>
+            <p className="text-xs text-muted-foreground">
+              {state === 'idle' && 'Tap to open the intake slot, then hand the tablet to the patient.'}
+              {state === 'waiting' && 'Waiting for patient to reply on Messenger…'}
+              {state === 'linked' && 'Linked! Patient will now receive Messenger reminders.'}
+              {state === 'expired' && 'Timed out — no reply received. Try again.'}
+            </p>
+          </div>
+        </div>
+
+        {state === 'idle' && (
+          <Button onClick={handleStart} className="w-full min-h-[48px]">
+            Link Messenger
+          </Button>
+        )}
+
+        {state === 'waiting' && (
+          <div className="flex flex-col gap-2">
+            <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800">
+              <p className="font-medium mb-1">Hand the tablet to the patient:</p>
+              <ol className="list-decimal list-inside space-y-1 text-xs">
+                <li>Open Facebook Messenger on this device</li>
+                <li>Search for their own name</li>
+                <li>Send a message to themselves from the clinic</li>
+                <li>Have them reply from their own phone</li>
+              </ol>
+            </div>
+            <Button variant="outline" onClick={handleCancel} className="w-full min-h-[48px]">
+              Cancel
+            </Button>
+          </div>
+        )}
+
+        {state === 'linked' && (
+          <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-800 text-center font-medium">
+            ✓ Linked successfully
+          </div>
+        )}
+
+        {state === 'expired' && (
+          <Button onClick={handleStart} variant="outline" className="w-full min-h-[48px]">
+            Try again
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function DeletePatientSection({ patient }: { patient: FullPatient }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -976,6 +1080,9 @@ export default function PatientProfile({ patient }: { patient: FullPatient }) {
           patient.visits.map((v) => <VisitCard key={v.id} visit={v} />)
         )}
       </div>
+
+      {/* Messenger linking */}
+      <LinkMessengerSection patient={patient} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />

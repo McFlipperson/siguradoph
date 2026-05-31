@@ -589,3 +589,50 @@ export async function deletePatient(patientId: string): Promise<void> {
 
   revalidatePath('/patients')
 }
+
+// ─── Messenger intake linking ─────────────────────────────────────────────────
+
+// Opens a 10-minute pending slot for this clinic.
+// Any first-time message received on the clinic Page auto-links to this patient.
+// Only one slot per clinic — replaces any previous pending link.
+export async function startMessengerLink(patientId: string): Promise<void> {
+  const { clinicId } = await getActorDb()
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
+  await prisma.pendingMessengerLink.upsert({
+    where: { clinicId },
+    create: { clinicId, patientId, expiresAt },
+    update: { patientId, expiresAt },
+  })
+}
+
+// Cancels the pending slot (e.g. staff tapped Cancel).
+export async function cancelMessengerLink(): Promise<void> {
+  const { clinicId } = await getActorDb()
+  await prisma.pendingMessengerLink.deleteMany({ where: { clinicId } })
+}
+
+// Polls whether a patient has been linked yet.
+// Returns { linked: true } once the PSID is saved, { linked: false } while waiting,
+// or { linked: false, expired: true } if the slot timed out.
+export async function checkMessengerLink(
+  patientId: string
+): Promise<{ linked: boolean; expired?: boolean }> {
+  const { clinicId, db } = await getActorDb()
+
+  const patient = await db((tx) =>
+    tx.patient.findFirst({
+      where: { id: patientId, clinicId },
+      select: { messengerPsid: true },
+    })
+  )
+  if (patient?.messengerPsid) return { linked: true }
+
+  // Check if the pending slot is still alive
+  const pending = await prisma.pendingMessengerLink.findUnique({
+    where: { clinicId },
+  })
+  if (!pending || pending.patientId !== patientId) return { linked: false, expired: true }
+  if (pending.expiresAt < new Date()) return { linked: false, expired: true }
+
+  return { linked: false }
+}

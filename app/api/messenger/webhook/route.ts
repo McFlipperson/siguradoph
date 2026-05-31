@@ -16,15 +16,20 @@ export async function GET(req: NextRequest) {
 }
 
 // ─── POST — incoming messages ─────────────────────────────────────────────────
-// Two linking paths:
+// Three linking paths:
 //
 // PATH A — QR scan with ref parameter:
 //   m.me/PAGE_ID?ref=patient_<patientId>
 //   Meta passes this as messaging[].referral.ref on the first message event.
 //   We extract the patientId and link directly — no staff action needed.
 //
-// PATH B — Manual message (patient found clinic on Messenger without scanning QR):
-//   No ref param → create UnlinkedMessenger record for staff to link manually.
+// PATH B — Tablet intake flow (staff tapped "Link Messenger" for a patient):
+//   A PendingMessengerLink record exists for this clinic (expires in 10 min).
+//   The first new PSID that messages in auto-links to that patient.
+//   Pending record is deleted immediately — slot opens for the next patient.
+//
+// PATH C — Unrecognised message (patient found clinic on own, no pending link):
+//   Create UnlinkedMessenger record for staff to link manually.
 //
 // TODO: When scaling to multi-clinic, look up clinic by entry.id (the Page ID).
 //   For MVP we fall back to the first clinic if messengerPageId doesn't match.
@@ -98,7 +103,26 @@ export async function POST(req: NextRequest) {
           })
         }
       } else {
-        // ── PATH B: manual link — create UnlinkedMessenger for staff ──────────
+        // ── PATH B: tablet intake — auto-link via pending slot ────────────────
+        const pending = await prisma.pendingMessengerLink.findUnique({
+          where: { clinicId },
+        })
+
+        if (pending && pending.expiresAt > new Date()) {
+          // Link the patient and clear the slot atomically
+          await prisma.$transaction([
+            prisma.patient.update({
+              where: { id: pending.patientId },
+              data: { messengerPsid: psid, reminderChannel: 'MESSENGER' },
+            }),
+            prisma.pendingMessengerLink.delete({
+              where: { clinicId },
+            }),
+          ])
+          continue
+        }
+
+        // ── PATH C: unknown message — queue for manual linking ────────────────
         const existingUnlinked = await prisma.unlinkedMessenger.findFirst({
           where: { clinicId, psid },
           select: { id: true },

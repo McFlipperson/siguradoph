@@ -112,6 +112,7 @@ model Clinic {
   quarterlyReportLogs        QuarterlyReportLog[]
   thirteenthMonthRecords     ThirteenthMonthRecord[]
   recallRules                RecallRule[]
+  pendingMessengerLink       PendingMessengerLink?
 }
 
 model UnlinkedMessenger {
@@ -528,6 +529,16 @@ model RecallRule {
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+// One pending intake link per clinic — cleared the moment a patient replies
+model PendingMessengerLink {
+  id        String   @id @default(cuid())
+  clinicId  String   @unique  // only one pending link per clinic at a time
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  patientId String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 }
 
 // Immutable audit trail for every SC/PWD discount applied (RA 9994 / RA 10754 compliance)
