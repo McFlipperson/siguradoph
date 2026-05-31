@@ -86,12 +86,49 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(remindersUrl('nopage'))
   }
 
-  // MVP: use the first page.
-  // TODO: if the clinic has multiple pages, show a page-picker UI.
+  // ── Multiple pages → show picker so clinic selects the right one ──────────
+  if (pages.length > 1) {
+    const pickData = Buffer.from(
+      JSON.stringify({ pages, clinicId, returnTo: returnTo ?? 'reminders' })
+    ).toString('base64url')
+
+    const pickUrl = new URL('/auth/pick-page', req.url)
+    const res = NextResponse.redirect(pickUrl)
+    res.cookies.set('fb_page_pick', pickData, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 600,
+      sameSite: 'lax',
+      path: '/',
+    })
+    res.cookies.delete('fb_oauth_state')
+    res.cookies.delete('fb_oauth_return')
+    return res
+  }
+
   const page = pages[0]
 
-  // ── Step 3: exchange page short-lived token → long-lived page token ────────
-  // Long-lived page tokens never expire — safe to store permanently.
+  return await connectPage({ page, clinicId, appId, appSecret, returnTo, req })
+}
+
+// ── Shared: long-lived token exchange + save + subscribe ─────────────────────
+export async function connectPage({
+  page, clinicId, appId, appSecret, returnTo, req,
+}: {
+  page: { id: string; name: string; access_token: string }
+  clinicId: string
+  appId: string
+  appSecret: string
+  returnTo?: string | null
+  req: NextRequest
+}): Promise<NextResponse> {
+  const destination = (flag: string) => {
+    const path = returnTo === 'onboarding' ? '/onboarding' : '/reminders'
+    const u = new URL(path, req.url)
+    u.searchParams.set('messenger', flag)
+    return u
+  }
+
   const llRes = await fetch(
     `https://graph.facebook.com/v19.0/oauth/access_token?` +
     new URLSearchParams({
@@ -105,39 +142,24 @@ export async function GET(req: NextRequest) {
   const llData = await llRes.json() as { access_token?: string }
   const finalToken = llData.access_token ?? page.access_token
 
-  // ── Save to clinic ─────────────────────────────────────────────────────────
   await prisma.clinic.update({
     where: { id: clinicId },
-    data: {
-      messengerToken:  finalToken,
-      messengerPageId: page.id,
-      // Keep existing facebookPageUrl if already set
-    },
+    data: { messengerToken: finalToken, messengerPageId: page.id },
   })
 
-  // ── Subscribe Page to webhook (messages + messaging_referrals) ────────────
-  // This is idempotent — safe to call every time.
   try {
-    await fetch(
-      `https://graph.facebook.com/v19.0/${page.id}/subscribed_apps`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-          subscribed_fields: 'messages,messaging_referrals',
-          access_token: finalToken,
-        }),
-        cache: 'no-store',
-      }
-    )
+    await fetch(`https://graph.facebook.com/v19.0/${page.id}/subscribed_apps`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        subscribed_fields: 'messages,messaging_referrals',
+        access_token: finalToken,
+      }),
+      cache: 'no-store',
+    })
   } catch (err) {
-    console.error('[fb-callback] webhook subscription failed', err)
-    // Non-fatal — proceed with success redirect
+    console.error('[fb] webhook subscription failed', err)
   }
 
-  // Clear CSRF + return cookies, redirect to reminders or onboarding
-  const res = NextResponse.redirect(remindersUrl('connected'))
-  res.cookies.delete('fb_oauth_state')
-  res.cookies.delete('fb_oauth_return')
-  return res
+  return NextResponse.redirect(destination('connected'))
 }
