@@ -775,8 +775,6 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
   }
 
   const fullName = `${patient.firstName} ${patient.lastName}`
-  // Opens the native Messenger app directly
-  const messengerInboxUrl = 'fb-messenger://'
 
   return (
     <Card>
@@ -805,18 +803,17 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
               <p className="text-2xl font-bold text-blue-900">{fullName}</p>
             </div>
 
-            {/* Open Messenger button */}
-            <a
-              href={messengerInboxUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* Open Messenger button — use JS so the page doesn't navigate away */}
+            <button
+              type="button"
+              onClick={() => { window.location.href = 'fb-messenger://' }}
               className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#0084FF] text-white font-semibold text-base active:opacity-80"
             >
               <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
                 <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.378 5.504 3.538 7.247V22l3.33-1.832c.888.247 1.83.381 2.804.381C17.523 20.549 22 16.404 22 11.243 22 6.145 17.523 2 12 2z"/>
               </svg>
               Open Messenger
-            </a>
+            </button>
 
             {/* Step-by-step — simple and clear */}
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2">
