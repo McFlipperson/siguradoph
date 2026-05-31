@@ -56,18 +56,17 @@ export default function LandingPage() {
         className="flex items-center justify-between px-5 py-4"
         style={{ background: '#0038A8' }}
       >
-        {/* Logo — drop /public/images/s-logo-ph.png to activate */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <Image
             src="/images/s-logo-ph.png"
             alt="Sigurado S"
-            width={36}
-            height={36}
+            width={48}
+            height={48}
             className="object-contain"
             priority
           />
           <span
-            className="font-black text-lg tracking-tight"
+            className="font-black text-xl tracking-tight"
             style={{ color: '#ffffff' }}
           >
             Sigurado
@@ -105,6 +104,17 @@ export default function LandingPage() {
 
           {/* Text side */}
           <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
+            {/* Hero logo mark — brand first impression */}
+            <div className="mb-6">
+              <Image
+                src="/images/s-logo-ph.png"
+                alt="Sigurado"
+                width={96}
+                height={96}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h1
               className="font-black leading-tight mb-5"
               style={{ fontSize: 'clamp(28px, 7vw, 54px)', color: '#ffffff', letterSpacing: '-0.025em' }}
@@ -276,6 +286,25 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
+          BRAND STRIP — between How It Works and Pricing
+      ══════════════════════════════════════════════════════════ */}
+      <div
+        className="flex items-center justify-center gap-4 px-5 py-5"
+        style={{ background: '#0B1627' }}
+      >
+        <Image
+          src="/images/s-logo-ph.png"
+          alt="Sigurado"
+          width={32}
+          height={32}
+          className="object-contain opacity-90"
+        />
+        <p className="font-black text-sm tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          Sigurado — Dental clinic software built for the Philippines.
+        </p>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════
           SECTION 4 — PRICING
       ══════════════════════════════════════════════════════════ */}
       <section className="py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
@@ -409,6 +438,15 @@ export default function LandingPage() {
           className="w-full h-auto block"
         />
         <div className="px-5 py-12" style={{ background: '#0B1627' }}>
+          <div className="mb-6">
+            <Image
+              src="/images/s-logo-ph.png"
+              alt="Sigurado"
+              width={52}
+              height={52}
+              className="object-contain"
+            />
+          </div>
           <h2
             className="font-black leading-tight mb-4"
             style={{ fontSize: 'clamp(22px, 5vw, 36px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 500 }}
@@ -453,17 +491,16 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           FOOTER
       ══════════════════════════════════════════════════════════ */}
-      <footer className="px-5 py-8 flex flex-col gap-3" style={{ background: '#060E1F' }}>
-        {/* Logo — drop /public/images/s-logo-ph.png to activate */}
-        <div className="flex items-center gap-2">
+      <footer className="px-5 py-10 flex flex-col gap-4" style={{ background: '#060E1F' }}>
+        <div className="flex items-center gap-3">
           <Image
             src="/images/s-logo-ph.png"
             alt="Sigurado"
-            width={32}
-            height={32}
+            width={56}
+            height={56}
             className="object-contain"
           />
-          <span className="font-black text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Sigurado</span>
+          <span className="font-black text-xl" style={{ color: '#ffffff' }}>Sigurado</span>
         </div>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
