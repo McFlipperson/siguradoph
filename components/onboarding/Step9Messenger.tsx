@@ -35,7 +35,7 @@ export function Step9Messenger({ hasMessengerToken, onNext, onBack }: Props) {
                 <p className="text-sm font-medium">What you get</p>
                 <ul className="text-xs text-muted-foreground space-y-1">
                   <li>• Appointment reminders sent automatically via Messenger</li>
-                  <li>• Warm care follow-ups after procedures ("Hope you're healing well 🙏")</li>
+                  <li>• Warm care follow-ups after procedures (&ldquo;Hope you&apos;re healing well 🙏&rdquo;)</li>
                   <li>• Link each patient to their Facebook in seconds during intake</li>
                 </ul>
               </div>

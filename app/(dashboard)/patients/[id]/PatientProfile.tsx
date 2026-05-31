@@ -725,7 +725,7 @@ function VisitCard({ visit }: { visit: FullPatient['visits'][number] }) {
   )
 }
 
-function LinkMessengerSection({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
+function LinkMessengerSection({ patient }: { patient: FullPatient }) {
   const router = useRouter()
   const [state, setState] = useState<'idle' | 'waiting' | 'linked' | 'expired'>('idle')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -1054,7 +1054,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   )
 }
 
-export default function PatientProfile({ patient, messengerPageId }: { patient: FullPatient; messengerPageId: string | null }) {
+export default function PatientProfile({ patient }: { patient: FullPatient }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
@@ -1115,7 +1115,7 @@ export default function PatientProfile({ patient, messengerPageId }: { patient: 
       </div>
 
       {/* Messenger linking */}
-      <LinkMessengerSection patient={patient} messengerPageId={messengerPageId} />
+      <LinkMessengerSection patient={patient} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />
