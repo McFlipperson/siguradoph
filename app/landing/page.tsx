@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     'If you can use a smartphone, Sigurado is for you. Patient records, receipts, reminders, and patient privacy — no tech background needed.',
 }
 
+// ── Brand palette — Philippine flag ────────────────────────────────────────────
+// Primary blue:  #0038A8  (backgrounds, nav, headers)
+// Primary red:   #CE1126  (all CTA buttons)
+// Accent gold:   #FCD116  (badges, scarcity, highlights)
+
 const FREE_FEATURES = [
   'Up to 30 patients',
   'Patient records, medical history & visit notes',
@@ -33,7 +38,7 @@ const PRO_EXTRAS = [
   'Employee records & attendance tracking',
   'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
   'Service Incentive Leave (SIL) tracking',
-  'Incident logging & breach reporting (NPC compliance)',
+  'Incident logging & breach reporting',
   'Messenger support 9am–4pm',
 ]
 
@@ -49,21 +54,38 @@ export default function LandingPage() {
       ══════════════════════════════════════════════════════════ */}
       <nav
         className="flex items-center justify-between px-5 py-4"
-        style={{ borderBottom: '1px solid #EEF0F5', background: '#ffffff' }}
+        style={{ background: '#0038A8' }}
       >
-        <Image src="/logo.png" alt="Sigurado" width={160} height={107} className="object-contain" priority />
+        {/* Logo — drop /public/images/s logo ph.png to activate */}
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/images/s logo ph.png"
+            alt="Sigurado S"
+            width={36}
+            height={36}
+            className="object-contain"
+            priority
+          />
+          <span
+            className="font-black text-lg tracking-tight"
+            style={{ color: '#ffffff' }}
+          >
+            Sigurado
+          </span>
+        </div>
+
         <div className="flex items-center gap-2">
           <Link
             href="/register"
             className="text-sm font-bold px-4 py-2.5 rounded-xl"
-            style={{ background: '#1A3FD0', color: '#ffffff' }}
+            style={{ background: '#CE1126', color: '#ffffff' }}
           >
             Register
           </Link>
           <Link
             href="/login"
             className="text-sm font-semibold px-4 py-2.5 rounded-xl"
-            style={{ background: '#F5F8FF', color: '#1A3FD0', border: '1.5px solid #C7D3F0' }}
+            style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1.5px solid rgba(255,255,255,0.3)' }}
           >
             Sign in
           </Link>
@@ -77,7 +99,7 @@ export default function LandingPage() {
       ══════════════════════════════════════════════════════════ */}
       <section
         className="overflow-hidden"
-        style={{ background: '#F5F8FF' }}
+        style={{ background: '#0038A8' }}
       >
         <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0">
 
@@ -85,19 +107,23 @@ export default function LandingPage() {
           <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
             <h1
               className="font-black leading-tight mb-5"
-              style={{ fontSize: 'clamp(28px, 7vw, 54px)', color: '#0B1627', letterSpacing: '-0.025em' }}
+              style={{ fontSize: 'clamp(28px, 7vw, 54px)', color: '#ffffff', letterSpacing: '-0.025em' }}
             >
               Dental clinic software
               <br />built for the Philippines.
             </h1>
-            <p className="text-base leading-relaxed mb-8" style={{ color: '#5C6A85', maxWidth: 400 }}>
+            <p className="text-base leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 400 }}>
               If you can use a smartphone, Sigurado is for you. Patient records, receipts,
               reminders, and patient privacy — no tech background needed.
+            </p>
+            {/* Trust line — CHANGE 3 */}
+            <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.55)', maxWidth: 400 }}>
+              No credit card. No time limit. Cancel anytime.
             </p>
             <Link
               href="/register"
               className="inline-block font-black text-base px-7 py-4 rounded-2xl"
-              style={{ background: '#1A3FD0', color: '#ffffff' }}
+              style={{ background: '#CE1126', color: '#ffffff' }}
             >
               Start free — no credit card needed
             </Link>
@@ -110,7 +136,7 @@ export default function LandingPage() {
                 width: 200,
                 borderRadius: '20px 20px 0 0',
                 overflow: 'hidden',
-                boxShadow: '0 -6px 32px rgba(26,63,208,0.18), 0 0 0 1.5px rgba(26,63,208,0.12)',
+                boxShadow: '0 -6px 32px rgba(0,0,0,0.3), 0 0 0 1.5px rgba(255,255,255,0.15)',
                 background: '#ffffff',
               }}
             >
@@ -143,8 +169,7 @@ export default function LandingPage() {
           className="w-full h-auto block"
         />
 
-        {/* Gradient overlay — dark from the bottom third only,
-            so the doctor's face (top area) stays clear */}
+        {/* Gradient overlay — dark from the bottom third only */}
         <div
           className="absolute inset-0 flex flex-col justify-end px-5 pb-8 sm:pb-12"
           style={{
@@ -167,7 +192,7 @@ export default function LandingPage() {
             className="font-black"
             style={{
               fontSize: 'clamp(16px, 3.5vw, 22px)',
-              color: '#F5C018',
+              color: '#FCD116',
               textShadow: '0 1px 3px rgba(0,0,0,0.4)',
             }}
           >
@@ -202,7 +227,7 @@ export default function LandingPage() {
               >
                 <div
                   className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-black text-base"
-                  style={{ background: '#1A3FD0', color: '#ffffff' }}
+                  style={{ background: '#0038A8', color: '#ffffff' }}
                 >
                   {step.n}
                 </div>
@@ -219,7 +244,7 @@ export default function LandingPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 p-5 rounded-2xl"
-            style={{ background: '#1A3FD0', textDecoration: 'none' }}
+            style={{ background: '#0038A8', textDecoration: 'none' }}
           >
             <div
               className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl"
@@ -252,10 +277,9 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 4 — PRICING
-          Hover: cards scale up slightly on hover
       ══════════════════════════════════════════════════════════ */}
       <section className="py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
-        <div className="px-5 mb-8">
+        <div className="px-5 mb-6">
           <h2
             className="font-black leading-tight"
             style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
@@ -263,6 +287,18 @@ export default function LandingPage() {
             Simple, honest pricing.
           </h2>
           <p className="text-sm mt-2" style={{ color: '#5C6A85' }}>Free forever for small clinics. Upgrade when you&apos;re ready.</p>
+        </div>
+
+        {/* Scarcity line — CHANGE 4 (above boxes) */}
+        <div className="px-5 mb-6">
+          <div
+            className="rounded-2xl px-5 py-4"
+            style={{ background: '#0038A8' }}
+          >
+            <p className="font-black text-sm leading-snug" style={{ color: '#FCD116' }}>
+              🔒 Founding member pricing — locked in for the first 100 clinics. Price will not increase as long as the subscription is active.
+            </p>
+          </div>
         </div>
 
         <div className="px-5 overflow-x-auto pb-6">
@@ -282,13 +318,13 @@ export default function LandingPage() {
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
                 {FREE_FEATURES.map((f) => (
                   <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: '#3A4A66' }}>
-                    <span className="shrink-0 font-bold" style={{ color: '#1A3FD0' }}>✓</span>
+                    <span className="shrink-0 font-bold" style={{ color: '#0038A8' }}>✓</span>
                     {f}
                   </div>
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#E8EEFB', color: '#1A3FD0' }}>
+                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
                   Start for free
                 </Link>
               </div>
@@ -307,13 +343,13 @@ export default function LandingPage() {
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">
                 {BASIC_FEATURES.map((f) => (
                   <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: '#3A4A66' }}>
-                    <span className="shrink-0 font-bold" style={{ color: '#1A3FD0' }}>✓</span>
+                    <span className="shrink-0 font-bold" style={{ color: '#0038A8' }}>✓</span>
                     {f}
                   </div>
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#0B1627', color: '#ffffff' }}>
+                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
                   Get Basic
                 </Link>
               </div>
@@ -322,9 +358,9 @@ export default function LandingPage() {
             {/* PRO */}
             <div
               className="flex flex-col rounded-2xl overflow-hidden transition-transform duration-200 hover:scale-[1.03] cursor-pointer"
-              style={{ width: 260, background: '#1A3FD0', flexShrink: 0 }}
+              style={{ width: 260, background: '#0038A8', flexShrink: 0 }}
             >
-              <div className="px-4 py-1.5 text-center" style={{ background: '#F5C018' }}>
+              <div className="px-4 py-1.5 text-center" style={{ background: '#FCD116' }}>
                 <p className="text-xs font-black tracking-widest uppercase" style={{ color: '#0B1627' }}>Most Popular</p>
               </div>
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
@@ -336,13 +372,13 @@ export default function LandingPage() {
                 <p className="text-xs font-bold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Everything in Basic, plus:</p>
                 {PRO_EXTRAS.map((f) => (
                   <div key={f} className="flex gap-2 text-xs leading-snug" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                    <span className="shrink-0 font-bold" style={{ color: '#F5C018' }}>✓</span>
+                    <span className="shrink-0 font-bold" style={{ color: '#FCD116' }}>✓</span>
                     {f}
                   </div>
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link href="/register" className="block text-center font-black text-sm py-3.5 rounded-xl" style={{ background: '#F5C018', color: '#0B1627' }}>
+                <Link href="/register" className="block text-center font-black text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
                   Get Pro
                 </Link>
               </div>
@@ -351,14 +387,18 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <p className="px-5 mt-2 text-xs" style={{ color: '#9AAABB' }}>
+        {/* Guarantee line — CHANGE 4 (below boxes) */}
+        <p className="px-5 mt-5 text-sm text-center font-medium" style={{ color: '#5C6A85' }}>
+          Cancel anytime. One click. No contracts. No questions asked.
+        </p>
+        <p className="px-5 mt-1 text-xs text-center" style={{ color: '#9AAABB' }}>
           Prices are in Philippine Pesos (₱). Month-to-month. Upgrade, downgrade, or cancel any time.
         </p>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
-          Full-width image, no text overlay
+          Image + text block below — CHANGE 5
       ══════════════════════════════════════════════════════════ */}
       <section>
         <Image
@@ -368,6 +408,20 @@ export default function LandingPage() {
           height={1024}
           className="w-full h-auto block"
         />
+        <div className="px-5 py-12" style={{ background: '#0B1627' }}>
+          <h2
+            className="font-black leading-tight mb-4"
+            style={{ fontSize: 'clamp(22px, 5vw, 36px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 500 }}
+          >
+            Patient records must be kept private by law.
+          </h2>
+          <p className="text-base leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 500 }}>
+            Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)', maxWidth: 500 }}>
+            Sigurado was built inside a real Philippine dental clinic. We know it works. That&apos;s why the free tier has no time limit — we&apos;re confident enough to let the product speak for itself.
+          </p>
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
@@ -375,7 +429,7 @@ export default function LandingPage() {
       ══════════════════════════════════════════════════════════ */}
       <section
         className="px-5 py-16 flex flex-col items-center text-center"
-        style={{ background: '#1A3FD0' }}
+        style={{ background: '#0038A8' }}
       >
         <h2
           className="font-black leading-tight mb-3"
@@ -383,13 +437,14 @@ export default function LandingPage() {
         >
           Ready to run your clinic the modern way?
         </h2>
-        <p className="text-sm mb-9" style={{ color: 'rgba(255,255,255,0.65)', maxWidth: 340 }}>
-          Join dental clinics across the Philippines already using Sigurado.
+        {/* Subtext — CHANGE 7 */}
+        <p className="text-sm mb-9" style={{ color: 'rgba(255,255,255,0.65)', maxWidth: 380 }}>
+          Join the first dental clinics in the Philippines running on Sigurado. Founding member pricing — locked in forever.
         </p>
         <Link
           href="/register"
           className="inline-block font-black text-base px-7 py-4 rounded-2xl"
-          style={{ background: '#F5C018', color: '#0B1627' }}
+          style={{ background: '#CE1126', color: '#ffffff' }}
         >
           Start free — no credit card needed
         </Link>
@@ -399,7 +454,17 @@ export default function LandingPage() {
           FOOTER
       ══════════════════════════════════════════════════════════ */}
       <footer className="px-5 py-8 flex flex-col gap-3" style={{ background: '#060E1F' }}>
-        <Image src="/logo.png" alt="Sigurado" width={100} height={67} className="object-contain brightness-0 invert opacity-60" />
+        {/* Logo — drop /public/images/s logo ph.png to activate */}
+        <div className="flex items-center gap-2">
+          <Image
+            src="/images/s logo ph.png"
+            alt="Sigurado"
+            width={32}
+            height={32}
+            className="object-contain"
+          />
+          <span className="font-black text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Sigurado</span>
+        </div>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
         </p>
