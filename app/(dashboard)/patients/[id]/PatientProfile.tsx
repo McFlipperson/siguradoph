@@ -797,37 +797,25 @@ function LinkMessengerSection({ patient }: { patient: FullPatient }) {
 
         {state === 'waiting' && (
           <div className="flex flex-col gap-3">
-            {/* Patient name — big and clear so they know what to search */}
-            <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 text-center">
-              <p className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-1">Search for yourself in Messenger</p>
-              <p className="text-2xl font-bold text-blue-900">{fullName}</p>
+            {/* Patient name — big so staff knows who to search */}
+            <div className="rounded-xl bg-blue-50 border border-blue-200 p-5 text-center">
+              <p className="text-xs text-blue-600 font-medium uppercase tracking-wide mb-2">Search this name in Messenger</p>
+              <p className="text-3xl font-bold text-blue-900">{fullName}</p>
             </div>
 
-            {/* Open Messenger button — use JS so the page doesn't navigate away */}
-            <button
-              type="button"
-              onClick={() => { window.location.href = 'fb-messenger://' }}
-              className="flex items-center justify-center gap-2 w-full min-h-[56px] rounded-xl bg-[#0084FF] text-white font-semibold text-base active:opacity-80"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.378 5.504 3.538 7.247V22l3.33-1.832c.888.247 1.83.381 2.804.381C17.523 20.549 22 16.404 22 11.243 22 6.145 17.523 2 12 2z"/>
-              </svg>
-              Open Messenger
-            </button>
-
-            {/* Step-by-step — simple and clear */}
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2">
+            {/* Instructions */}
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-2.5">
               <div className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">1</span>
-                <p className="text-sm">Search <strong>{fullName}</strong> in Messenger and send a 👍</p>
+                <p className="text-sm">Open Messenger on this device — switch to the clinic&apos;s Page inbox</p>
               </div>
               <div className="flex items-start gap-2">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">2</span>
-                <p className="text-sm">Ask them to <strong>reply from their own phone</strong> — any message works</p>
+                <p className="text-sm">Search <strong>{fullName}</strong>, open the chat and send a 👍</p>
               </div>
               <div className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-300 text-gray-700 text-xs flex items-center justify-center font-bold">✓</span>
-                <p className="text-sm text-muted-foreground">This screen will update automatically when done</p>
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center font-bold">3</span>
+                <p className="text-sm">Ask them to <strong>reply from their own phone</strong> — this screen updates automatically</p>
               </div>
             </div>
 
