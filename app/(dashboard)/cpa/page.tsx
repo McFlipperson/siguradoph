@@ -1,9 +1,19 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
+
+// TAX_MODULE disabled — redirect any direct visits back to home.
+// To re-enable: remove this export, uncomment the imports below, and restore
+// the original default export at the bottom of this file.
+export default async function CpaPage() { redirect('/') }
+
+/* ── Original CPA page preserved below — restore when TAX_MODULE is re-enabled ──
+
 import { prisma } from '@/lib/prisma'
 import { createServerClient } from '@/lib/supabase'
-import { redirect } from 'next/navigation'
 import CpaClient from './CpaClient'
+
+async function CpaPage_TAX_MODULE(
 
 function nextSendDate(): { date: string; quarter: number; year: number; label: string } {
   const now = new Date()
@@ -136,3 +146,4 @@ export default async function CpaPage() {
     />
   )
 }
+── End of preserved TAX_MODULE code ── */

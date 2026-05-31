@@ -8,7 +8,6 @@ import {
   FileText,
   Users,
   BarChart2,
-  Calculator,
   Settings,
   LogOut,
   X,
@@ -62,12 +61,7 @@ const MENU_SECTIONS: MenuSection[] = [
       { label: 'Reports',       href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500'},
     ],
   },
-  {
-    title: 'Finance',
-    items: [
-      { label: 'CPA Reports', href: '/cpa',       icon: Calculator,color: 'bg-indigo-500' },
-    ],
-  },
+  /* TAX_MODULE — Finance section hidden; re-enable in lib/features.ts */
   {
     title: 'Account',
     items: [

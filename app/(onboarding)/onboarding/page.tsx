@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
 import { Step1DPA } from '@/components/onboarding/Step1DPA'
 import { Step1Identity } from '@/components/onboarding/Step1Identity'
-import { Step2BIR } from '@/components/onboarding/Step2BIR'
+// Step2BIR hidden — TAX_MODULE disabled. Re-enable in lib/features.ts
+// import { Step2BIR } from '@/components/onboarding/Step2BIR'
 import { Step3Employees } from '@/components/onboarding/Step3Employees'
 import { Step4Expenses } from '@/components/onboarding/Step4Expenses'
 import { Step5Equipment } from '@/components/onboarding/Step5Equipment'
@@ -49,7 +50,9 @@ export type WizardState = {
   step8: Step8Data
 }
 
-const TOTAL_STEPS = 11
+// TAX_MODULE disabled: Step2BIR (step 3) is hidden, so one fewer step.
+// Restore to 11 when TAX_MODULE is re-enabled in lib/features.ts.
+const TOTAL_STEPS = 10
 
 const initialState: WizardState = {
   tosAcceptedAt: null,
@@ -71,12 +74,13 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [hasMessengerToken, setHasMessengerToken] = useState(false)
 
-  // If returning from Facebook OAuth, mark messenger as connected and land on step 10
+  // If returning from Facebook OAuth, mark messenger as connected and land on step 9
+  // (TAX_MODULE disabled reduces total steps by 1; restore to step 10 when re-enabled)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('messenger') === 'connected') {
       setHasMessengerToken(true)
-      setCurrentStep(10)
+      setCurrentStep(9)
       window.history.replaceState({}, '', '/onboarding')
     }
   }, [])
@@ -182,15 +186,17 @@ export default function OnboardingPage() {
           setAllData(s)
 
           // Determine furthest step (clinic exists → skip DPA step 1, start at 2+)
+          // TAX_MODULE disabled: step 3 (BIR) skipped — jump straight to 4 if tin exists.
+          // Restore `if (clinic.tin) resumeStep = 3` when TAX_MODULE is re-enabled.
           let resumeStep = 2
-          if (clinic.tin) resumeStep = 3
+          if (clinic.tin) resumeStep = 4
           if (clinic.tin && (clinic.hasEmployees !== undefined)) resumeStep = 4
           if (clinic.recurringExpenses.length > 0) resumeStep = 5
           if (clinic.equipment.length > 0) resumeStep = 6
           if (clinic.suppliers.length > 0) resumeStep = 7
           if (clinic.serviceCatalog.length > 0) resumeStep = 8
-          if (clinic.loyaltyCardTemplates.length > 0) resumeStep = 10
-          if (clinic.messengerToken) resumeStep = 11
+          if (clinic.loyaltyCardTemplates.length > 0) resumeStep = 9
+          if (clinic.messengerToken) resumeStep = 10
           setCurrentStep(Math.min(resumeStep, TOTAL_STEPS))
         }
       } catch {
@@ -203,7 +209,12 @@ export default function OnboardingPage() {
   }, [])
 
   function handleBack() {
-    setCurrentStep(prev => Math.max(1, prev - 1))
+    setCurrentStep(prev => {
+      // TAX_MODULE disabled: step 3 (BIR) is hidden — skip it in both directions.
+      // Remove the step === 4 check when TAX_MODULE is re-enabled.
+      if (prev === 4) return 2
+      return Math.max(1, prev - 1)
+    })
   }
 
   // DPA acceptance
@@ -225,7 +236,8 @@ export default function OnboardingPage() {
           const id = await saveStep1(data, allData.tosAcceptedAt ?? undefined)
           setClinicId(id)
           setAllData(prev => ({ ...prev, step1: data }))
-          setCurrentStep(3)
+          // TAX_MODULE disabled: skip step 3 (BIR). Restore setCurrentStep(3) when re-enabled.
+          setCurrentStep(4)
           resolve(id)
         } catch (err) {
           reject(err)
@@ -234,7 +246,8 @@ export default function OnboardingPage() {
     })
   }
 
-  // Step 3
+  // Step 3 — BIR (TAX_MODULE hidden; kept for when re-enabled)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleSaveStep2(data: Step2Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
@@ -409,15 +422,11 @@ export default function OnboardingPage() {
         />
       )}
 
+      {/* Step 3 — Step2BIR hidden (TAX_MODULE disabled). Restore when re-enabled:
       {currentStep === 3 && clinicId && (
-        <Step2BIR
-          clinicId={clinicId}
-          initialData={allData.step2}
-          onSave={handleSaveStep2}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
+        <Step2BIR clinicId={clinicId} initialData={allData.step2}
+          onSave={handleSaveStep2} onBack={handleBack} isSaving={isSaving} />
+      )} */}
 
       {currentStep === 4 && clinicId && (
         <Step3Employees
@@ -477,15 +486,15 @@ export default function OnboardingPage() {
         />
       )}
 
-      {currentStep === 10 && clinicId && (
+      {currentStep === 9 && clinicId && (
         <Step9Messenger
           hasMessengerToken={hasMessengerToken}
-          onNext={() => setCurrentStep(11)}
+          onNext={() => setCurrentStep(10)}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === 11 && clinicId && (
+      {currentStep === 10 && clinicId && (
         <Step9Review
           clinicId={clinicId}
           allData={allData}

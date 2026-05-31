@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Sigurado — Dental Clinic Software Built for the Philippines',
   description:
-    'If you can use a smartphone, Sigurado is for you. Patient records, receipts, payroll, and patient privacy — no tech background needed.',
+    'If you can use a smartphone, Sigurado is for you. Patient records, receipts, reminders, and patient privacy — no tech background needed.',
 }
 
 const FREE_FEATURES = [
@@ -16,9 +16,7 @@ const FREE_FEATURES = [
   'Loyalty cards & Senior Citizen / PWD discounts',
   'Expense tracking & revenue reports',
   'Data export — patients, invoices, expenses',
-  'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holidays',
   'Patient privacy tools — consent records & audit logs',
-  'Bookkeeper portal with monthly ready-to-file reports',
   'Messenger support 9am–4pm',
 ]
 
@@ -34,16 +32,10 @@ const BASIC_FEATURES = [
 ]
 
 const PRO_EXTRAS = [
-  'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
-  'Monthly reports delivered to your bookkeeper/Accountant — nothing for you to prepare',
   'Employee records & attendance tracking',
   'Service Incentive Leave (SIL) tracking',
   'Patient privacy tools — consent records & audit logs',
   'Incident logging & breach reporting',
-  'Bookkeeper portal — read-only access to your clinic financials',
-  'Quarterly revenue summary — gross sales, expenses, net payable',
-  'Invoice & expense CSV export in accountant-ready format',
-  'DAT file export for government submission',
   'Messenger support 9am–4pm',
 ]
 
@@ -102,7 +94,7 @@ export default function LandingPage() {
             </h1>
             <p className="text-base leading-relaxed mb-8" style={{ color: '#5C6A85', maxWidth: 400 }}>
               If you can use a smartphone, Sigurado is for you. Patient records, receipts,
-              payroll, and patient privacy — no tech background needed.
+              reminders, and patient privacy — no tech background needed.
             </p>
             <Link
               href="/register"
@@ -339,7 +331,7 @@ export default function LandingPage() {
               </div>
               <div className="px-5 pt-5 pb-4" style={{ borderBottom: '1px dashed rgba(255,255,255,0.2)' }}>
                 <p className="font-black text-xl mb-0.5" style={{ color: '#ffffff' }}>Pro</p>
-                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>With Bookkeeping Support.</p>
+                <p className="text-xs mb-1" style={{ color: 'rgba(255,255,255,0.65)' }}>With Staff & Compliance Tools.</p>
                 <p className="font-black text-3xl mt-3" style={{ color: '#ffffff', fontFamily: 'var(--font-geist-mono, monospace)' }}>₱1,500<span className="text-sm font-semibold">/month</span></p>
               </div>
               <div className="px-5 pt-4 pb-5 flex flex-col gap-2.5 flex-1">

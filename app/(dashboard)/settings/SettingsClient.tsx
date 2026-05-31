@@ -236,17 +236,30 @@ export default function SettingsClient({
   const [facebookPageUrl, setFacebookPageUrl] = useState(clinic.facebookPageUrl)
   const [messengerPageId, setMessengerPageId] = useState(clinic.messengerPageId)
   const [orSeriesStart, setOrSeriesStart] = useState(clinic.orSeriesStart)
+  // TAX_MODULE — kept so values are preserved on save; hidden from UI via lib/features.ts
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [hasEmployees, setHasEmployees] = useState(clinic.hasEmployees)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sssEmployerNumber, setSssEmployerNumber] = useState(clinic.sssEmployerNumber)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [philhealthEmployerNumber, setPhilhealthEmployerNumber] = useState(clinic.philhealthEmployerNumber)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [pagibigEmployerNumber, setPagibigEmployerNumber] = useState(clinic.pagibigEmployerNumber)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [accountantEmail, setAccountantEmail] = useState(clinic.accountantEmail)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [rdoCode, setRdoCode] = useState(clinic.rdoCode)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [corNumber, setCorNumber] = useState(clinic.corNumber)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [entityType, setEntityType] = useState(clinic.entityType)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [vatRegistered, setVatRegistered] = useState(clinic.vatRegistered)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [vatRegistrationDate, setVatRegistrationDate] = useState(clinic.vatRegistrationDate ?? '')
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [filingMethod, setFilingMethod] = useState(clinic.filingMethod)
   const [savingClinic, setSavingClinic] = useState(false)
   const [logoUrl, setLogoUrl] = useState<string | null>(clinic.logoUrl)
@@ -558,22 +571,20 @@ export default function SettingsClient({
               <label className="text-xs font-medium text-muted-foreground">Clinic Email</label>
               <input value={email} onChange={e => setEmail(e.target.value)} type="email" className={`${inputClass} mt-1`} />
             </div>
+            {/* TAX_MODULE — Accountant Email hidden. Re-enable in lib/features.ts.
             <div>
               <label className="text-xs font-medium text-muted-foreground">Accountant Email</label>
-              <input
-                value={accountantEmail}
-                onChange={e => setAccountantEmail(e.target.value)}
-                type="email"
-                placeholder="cpa@youraccountant.com"
-                className={`${inputClass} mt-1`}
-              />
+              <input value={accountantEmail} onChange={e => setAccountantEmail(e.target.value)}
+                type="email" placeholder="cpa@youraccountant.com" className={`${inputClass} mt-1`} />
               <div className="mt-2 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 space-y-1">
                 <p className="text-xs font-semibold text-emerald-800">📊 Quarterly Auto-Report</p>
                 <p className="text-xs text-emerald-700 leading-relaxed">
-                  Once set, your accountant will automatically receive a detailed financial summary by email at the start of every quarter — <strong>January 1, April 1, July 1, and October 1</strong>. Each email includes a revenue + VAT summary and two attached CSV spreadsheets (invoices and expenses) ready for BIR filing. No manual work needed.
+                  Once set, your accountant will automatically receive a detailed financial summary
+                  by email at the start of every quarter. No manual work needed.
                 </p>
               </div>
             </div>
+            */}
           </div>
 
           {/* ── Social & Messenger ── */}
@@ -630,116 +641,36 @@ export default function SettingsClient({
               <label className="text-xs font-medium text-muted-foreground">Official Receipt Series</label>
               <input value={orSeriesStart} onChange={e => setOrSeriesStart(e.target.value)} placeholder="e.g. OR-000001" className={`${inputClass} mt-1`} />
               <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                Every time you issue a receipt to a patient, it gets a unique number — like OR-000001, OR-000002, and so on. This is required by the BIR (Bureau of Internal Revenue). Just type what you want the first receipt to look like, for example <span className="font-mono bg-muted px-1 rounded">OR-000001</span>, and Sigurado will automatically count up from there every time you print a receipt.
+                Every time you issue a receipt to a patient, it gets a unique number — like OR-000001, OR-000002, and so on. Just type what you want the first receipt to look like, for example <span className="font-mono bg-muted px-1 rounded">OR-000001</span>, and Sigurado will automatically count up from there every time you print a receipt.
               </p>
             </div>
           </div>
 
-          {/* ── Payroll & Gov't Numbers ── */}
+          {/* TAX_MODULE — Payroll & Gov't Numbers section hidden. Re-enable in lib/features.ts.
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Payroll</h2>
-            <div className="flex items-center justify-between min-h-[48px] rounded-xl border px-4">
-              <span className="text-sm font-medium">Clinic has employees</span>
-              <button
-                onClick={() => setHasEmployees(v => !v)}
-                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors ${hasEmployees ? 'bg-primary' : 'bg-muted'}`}
-              >
-                <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform ${hasEmployees ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            {hasEmployees && (
-              <>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">SSS Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input value={sssEmployerNumber} onChange={e => setSssEmployerNumber(e.target.value)} placeholder="03-XXXXXXX-X" className={`${inputClass} mt-1`} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">PhilHealth Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input value={philhealthEmployerNumber} onChange={e => setPhilhealthEmployerNumber(e.target.value)} placeholder="XX-000000000-X" className={`${inputClass} mt-1`} />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Pag-IBIG Employer Number <span className="text-muted-foreground font-normal">(optional)</span></label>
-                  <input value={pagibigEmployerNumber} onChange={e => setPagibigEmployerNumber(e.target.value)} placeholder="XXXX-XXXX-XXXX" className={`${inputClass} mt-1`} />
-                </div>
-              </>
-            )}
+            <h2>Payroll</h2>
+            ... Clinic has employees toggle + SSS/PhilHealth/Pag-IBIG employer numbers ...
           </div>
+          */}
 
-          {/* ── BIR & Tax ── */}
+          {/* TAX_MODULE — BIR & Tax section hidden. Re-enable in lib/features.ts.
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">BIR (Bureau of Internal Revenue) & Tax</h2>
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-              <p className="text-xs text-amber-800 leading-relaxed">These should match your BIR COR (Certificate of Registration) exactly. If you made a typo or something has changed — like your VAT (Value Added Tax) status or entity type — correct it here. Changes update your records in Sigurado only and do not notify the BIR.</p>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">TIN (Tax Identification Number)</label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-1">Your 12-digit tax ID — printed on your COR (Certificate of Registration).</p>
-              <input value={tin} onChange={e => setTin(e.target.value)} placeholder="XXX-XXX-XXX-XXX" className={`${inputClass}`} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">RDO (Revenue District Office) Code</label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-1">The BIR branch code for your area — printed on your COR (Certificate of Registration). Example: 044, 083.</p>
-              <input value={rdoCode} onChange={e => setRdoCode(e.target.value)} placeholder="e.g. 083" className={`${inputClass}`} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">COR (Certificate of Registration) Number</label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-1">The reference number at the top of your BIR Certificate of Registration document.</p>
-              <input value={corNumber} onChange={e => setCorNumber(e.target.value)} placeholder="e.g. RC0000123456" className={`${inputClass}`} />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Entity Type</label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-1">How your business is legally structured. Most individual dentists are Sole Proprietor.</p>
-              <select value={entityType} onChange={e => setEntityType(e.target.value)} className={`${inputClass}`}>
-                <option value="SOLE_PROPRIETOR">Sole Proprietor — I own and run it myself</option>
-                <option value="PARTNERSHIP">Partnership — two or more people own it together</option>
-                <option value="CORPORATION">Corporation — registered as a company</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Filing Method</label>
-              <p className="text-xs text-muted-foreground mt-0.5 mb-1">How you submit tax returns to the BIR (Bureau of Internal Revenue). Not sure? Most small clinics use eBIRForms.</p>
-              <select value={filingMethod} onChange={e => setFilingMethod(e.target.value)} className={`${inputClass}`}>
-                <option value="EBIRFORMS">eBIRForms (Electronic BIR Forms) — fill out forms on computer, submit online</option>
-                <option value="EFPS">eFPS (Electronic Filing and Payment System) — for larger businesses</option>
-              </select>
-            </div>
-            <div className="flex items-start justify-between min-h-[48px] gap-4 rounded-xl border px-4 py-3">
-              <div className="flex-1">
-                <p className="text-sm font-medium">VAT (Value Added Tax) Registered</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Turn ON if your clinic is registered for VAT (Value Added Tax) with the BIR (Bureau of Internal Revenue). Mandatory once annual revenue exceeds ₱3 million.</p>
+            <h2>BIR (Bureau of Internal Revenue) & Tax</h2>
+            ... TIN, RDO Code, COR Number, Entity Type, Filing Method, VAT toggle ...
+            ... Next OR number and Enrollment Date info tiles ...
+          </div>
+          */}
+
+          {/* Enrollment Date — shown independently of tax module */}
+          <div className="rounded-xl border divide-y">
+            <div className="flex items-start justify-between gap-3 px-4 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium">Enrollment Date</p>
+                <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date your clinic was registered on Sigurado. No financial records can be entered before this date — this is your Day One.</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setVatRegistered(v => !v)}
-                className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors mt-1 ${vatRegistered ? 'bg-primary' : 'bg-muted'}`}
-              >
-                <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform ${vatRegistered ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            {vatRegistered && (
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">VAT (Value Added Tax) Registration Date</label>
-                <p className="text-xs text-muted-foreground mt-0.5 mb-1">The date you officially became VAT registered — printed on your VAT certificate or COR (Certificate of Registration).</p>
-                <input type="date" value={vatRegistrationDate} onChange={e => setVatRegistrationDate(e.target.value)} className={`${inputClass}`} />
-              </div>
-            )}
-            <div className="rounded-xl border divide-y">
-              <div className="flex items-start justify-between gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Next OR (Official Receipt) Number</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The number that will be printed on the next OR (Official Receipt) you issue to a patient. Sigurado automatically counts this up every time you print a receipt.</p>
-                </div>
-                <span className="text-sm font-medium font-mono shrink-0">{formattedCurrentOr}</span>
-              </div>
-              <div className="flex items-start justify-between gap-3 px-4 py-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">Enrollment Date</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">The date your clinic was registered on Sigurado. No financial records can be entered before this date — this is your Day One.</p>
-                </div>
-                <span className="text-sm font-medium shrink-0">
-                  {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </span>
-              </div>
+              <span className="text-sm font-medium shrink-0">
+                {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </span>
             </div>
           </div>
 
