@@ -736,7 +736,7 @@ function fbPageHandle(url: string): string | null {
   }
 }
 
-function LinkMessengerSection({ patient, facebookPageUrl }: { patient: FullPatient; facebookPageUrl: string | null }) {
+function LinkMessengerSection({ patient, facebookPageUrl, messengerPageId }: { patient: FullPatient; facebookPageUrl: string | null; messengerPageId: string | null }) {
   const router = useRouter()
   const [waiting, setWaiting] = useState(false)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -776,8 +776,8 @@ function LinkMessengerSection({ patient, facebookPageUrl }: { patient: FullPatie
     )
   }
 
-  // No Page URL set yet
-  const pageHandle = facebookPageUrl ? fbPageHandle(facebookPageUrl) : null
+  // Use the manually entered Messenger Page ID first, fall back to extracting from the Page URL
+  const pageHandle = messengerPageId || (facebookPageUrl ? fbPageHandle(facebookPageUrl) : null)
   if (!pageHandle) {
     return (
       <Card>
@@ -785,7 +785,7 @@ function LinkMessengerSection({ patient, facebookPageUrl }: { patient: FullPatie
           <span className="text-2xl">💬</span>
           <div>
             <p className="text-sm font-medium text-muted-foreground">Facebook Page not set up</p>
-            <p className="text-xs text-muted-foreground">Add your Facebook Page URL in clinic settings first.</p>
+            <p className="text-xs text-muted-foreground">Add your Messenger Page ID in Settings first.</p>
           </div>
         </CardContent>
       </Card>
@@ -1023,7 +1023,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   )
 }
 
-export default function PatientProfile({ patient, facebookPageUrl }: { patient: FullPatient; facebookPageUrl: string | null }) {
+export default function PatientProfile({ patient, facebookPageUrl, messengerPageId }: { patient: FullPatient; facebookPageUrl: string | null; messengerPageId: string | null }) {
   const latestConsent = patient.consentRecords[0] ?? null
 
   return (
@@ -1084,7 +1084,7 @@ export default function PatientProfile({ patient, facebookPageUrl }: { patient: 
       </div>
 
       {/* Messenger linking */}
-      <LinkMessengerSection patient={patient} facebookPageUrl={facebookPageUrl} />
+      <LinkMessengerSection patient={patient} facebookPageUrl={facebookPageUrl} messengerPageId={messengerPageId} />
 
       {/* Danger Zone */}
       <DeletePatientSection patient={patient} />
