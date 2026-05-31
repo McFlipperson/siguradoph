@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { WizardProgress } from '@/components/onboarding/WizardProgress'
 import { Step1DPA } from '@/components/onboarding/Step1DPA'
@@ -71,17 +70,16 @@ export default function OnboardingPage() {
   const [allData, setAllData] = useState<WizardState>(initialState)
   const [loading, setLoading] = useState(true)
   const [hasMessengerToken, setHasMessengerToken] = useState(false)
-  const searchParams = useSearchParams()
 
   // If returning from Facebook OAuth, mark messenger as connected and land on step 10
   useEffect(() => {
-    if (searchParams.get('messenger') === 'connected') {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('messenger') === 'connected') {
       setHasMessengerToken(true)
       setCurrentStep(10)
-      // Clean the URL param without a full reload
       window.history.replaceState({}, '', '/onboarding')
     }
-  }, [searchParams])
+  }, [])
 
   // On mount: resume from last completed step
   useEffect(() => {
