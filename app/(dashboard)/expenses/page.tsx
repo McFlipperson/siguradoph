@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import ExpensesClient from './ExpensesClient'
@@ -15,12 +16,13 @@ export default async function ExpensesPage() {
     select: { clinicId: true },
   })
   if (!user?.clinicId) redirect('/onboarding')
+  const clinicId = user.clinicId
 
-  const suppliers = await prisma.supplier.findMany({
-    where: { clinicId: user.clinicId },
+  const suppliers = await withClinicDb(clinicId, (tx) => tx.supplier.findMany({
+    where: { clinicId },
     orderBy: { name: 'asc' },
     select: { id: true, name: true, category: true },
-  })
+  }))
 
   return <ExpensesClient initialSuppliers={suppliers} />
 }

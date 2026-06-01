@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import ComplianceClient from './ComplianceClient'
@@ -9,22 +10,23 @@ export default async function CompliancePage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
 
+  const clinicId = user.clinicId
   const [clinic, logs, patientCount, scPwdLogs] = await Promise.all([
     prisma.clinic.findUnique({
-      where: { id: user.clinicId },
+      where: { id: clinicId },
       select: { name: true, tosAcceptedAt: true, enrollmentDate: true },
     }),
-    prisma.auditLog.findMany({
-      where: { clinicId: user.clinicId },
+    withClinicDb(clinicId, (tx) => tx.auditLog.findMany({
+      where: { clinicId },
       orderBy: { createdAt: 'desc' },
       take: 500,
-    }),
-    prisma.patient.count({ where: { clinicId: user.clinicId } }),
-    prisma.scPwdAuditLog.findMany({
-      where: { clinicId: user.clinicId },
+    })),
+    withClinicDb(clinicId, (tx) => tx.patient.count({ where: { clinicId } })),
+    withClinicDb(clinicId, (tx) => tx.scPwdAuditLog.findMany({
+      where: { clinicId },
       orderBy: { createdAt: 'desc' },
       take: 200,
-    }),
+    })),
   ])
 
   return (

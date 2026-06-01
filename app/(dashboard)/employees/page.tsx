@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 import { redirect } from 'next/navigation'
 import EmployeesClient from './EmployeesClient'
 import { weekDateRange, computeThirteenthMonth, isSilEligible, SIL_DAYS_PER_YEAR } from '@/lib/payroll'
@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic'
 export default async function EmployeesPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
+  const clinicId = user.clinicId
 
   const now          = new Date()
   const currentWeek  = Math.min(Math.ceil(now.getDate() / 7), 4)
@@ -18,39 +19,40 @@ export default async function EmployeesPage() {
 
   const { start: weekStart, end: weekEnd, dates: weekDates } = weekDateRange(currentMonth, currentYear, currentWeek)
 
-  const [employees, payrollRecords, attendanceRecords, payrollTotals, silAttendance] = await Promise.all([
-    prisma.employee.findMany({
-      where: { clinicId: user.clinicId },
+  const [employees, payrollRecords, attendanceRecords, payrollTotals, silAttendance, thirteenthPayments] =
+    await withClinicDb(clinicId, (tx) => Promise.all([
+    tx.employee.findMany({
+      where: { clinicId },
       orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
       include: {
         salaryHistory: { orderBy: { effectiveDate: 'desc' }, take: 10 },
       },
     }),
-    prisma.payrollRecord.findMany({
+    tx.payrollRecord.findMany({
       where: {
-        clinicId: user.clinicId,
+        clinicId,
         periodYear: currentYear,
         periodMonth: currentMonth,
         periodWeek: currentWeek,
       },
       include: { employee: { select: { fullName: true, dailyRate: true } } },
     }),
-    prisma.attendanceRecord.findMany({
+    tx.attendanceRecord.findMany({
       where: {
-        clinicId: user.clinicId,
+        clinicId,
         date: { gte: weekStart, lte: weekEnd },
       },
     }),
     // 13th month: sum basicSalary per employee for current year
-    prisma.payrollRecord.groupBy({
+    tx.payrollRecord.groupBy({
       by: ['employeeId'],
-      where: { clinicId: user.clinicId, periodYear: currentYear },
+      where: { clinicId, periodYear: currentYear },
       _sum: { basicSalary: true },
     }),
     // SIL: count sick/vacation leave days for each employee this year
-    prisma.attendanceRecord.findMany({
+    tx.attendanceRecord.findMany({
       where: {
-        clinicId: user.clinicId,
+        clinicId,
         status: { in: ['SICK_LEAVE', 'VACATION_LEAVE'] },
         date: {
           gte: new Date(currentYear, 0, 1),
@@ -59,12 +61,11 @@ export default async function EmployeesPage() {
       },
       select: { employeeId: true, status: true },
     }),
-  ])
-
-  // Fetch 13th month payment records
-  const thirteenthPayments = await prisma.thirteenthMonthRecord.findMany({
-    where: { clinicId: user.clinicId, year: currentYear },
-  })
+    // 13th month payment records
+    tx.thirteenthMonthRecord.findMany({
+      where: { clinicId, year: currentYear },
+    }),
+  ]))
 
   const weekHolidays = getHolidaysForDates(weekDates)
   const yearHolidays = getHolidaysForYear(currentYear)

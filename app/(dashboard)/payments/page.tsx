@@ -17,9 +17,12 @@ export default async function PaymentsPage({
     redirect('/patients')
   }
 
-  // If visit already has an invoice, redirect to it
-  const { prisma } = await import('@/lib/prisma')
-  const existing = await prisma.invoice.findUnique({ where: { visitId } })
+  // If visit already has an invoice, redirect to it.
+  // getCheckoutData already verified this visit belongs to the caller's clinic.
+  const { withClinicDb } = await import('@/lib/clinic-db')
+  const existing = await withClinicDb(data.visitData.clinic.id, (tx) =>
+    tx.invoice.findUnique({ where: { visitId } })
+  )
   if (existing) redirect(`/invoices/${existing.id}`)
 
   return (

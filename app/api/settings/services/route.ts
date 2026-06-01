@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 
 async function getClinicId() {
@@ -14,10 +15,10 @@ export async function GET() {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const services = await prisma.serviceCatalog.findMany({
+  const services = await withClinicDb(clinicId, (tx) => tx.serviceCatalog.findMany({
     where: { clinicId },
     orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }, { name: 'asc' }],
-  })
+  }))
 
   return NextResponse.json(
     services.map((s) => ({
@@ -37,20 +38,22 @@ export async function POST(req: NextRequest) {
   const { name, category } = await req.json()
   if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
-  // Get max sortOrder
-  const max = await prisma.serviceCatalog.aggregate({
-    where: { clinicId },
-    _max: { sortOrder: true },
-  })
+  const service = await withClinicDb(clinicId, async (tx) => {
+    // Get max sortOrder
+    const max = await tx.serviceCatalog.aggregate({
+      where: { clinicId },
+      _max: { sortOrder: true },
+    })
 
-  const service = await prisma.serviceCatalog.create({
-    data: {
-      clinicId,
-      name,
-      category: category ?? '',
-      isActive: true,
-      sortOrder: (max._max.sortOrder ?? 0) + 1,
-    },
+    return tx.serviceCatalog.create({
+      data: {
+        clinicId,
+        name,
+        category: category ?? '',
+        isActive: true,
+        sortOrder: (max._max.sortOrder ?? 0) + 1,
+      },
+    })
   })
 
   return NextResponse.json(

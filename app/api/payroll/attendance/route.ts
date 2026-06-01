@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 
 async function getClinicId() {
   const user = await getSessionUser()
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'startDate and endDate required' }, { status: 400 })
   }
 
-  const records = await prisma.attendanceRecord.findMany({
+  const records = await withClinicDb(clinicId, (tx) => tx.attendanceRecord.findMany({
     where: {
       clinicId,
       date: { gte: new Date(startDate), lte: new Date(endDate) },
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       coveredBy: { select: { fullName: true } },
     },
     orderBy: [{ date: 'asc' }, { employee: { fullName: 'asc' } }],
-  })
+  }))
 
   return NextResponse.json(records.map((r) => ({
     id: r.id,
@@ -55,21 +55,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const employee = await prisma.employee.findFirst({ where: { id: employeeId, clinicId } })
-  if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
-
-  // Upsert — one record per employee per day
-  const record = await prisma.attendanceRecord.upsert({
-    where: { employeeId_date: { employeeId, date: new Date(date) } },
-    update: { status, coveredById: coveredById || null },
-    create: {
-      clinicId,
-      employeeId,
-      date: new Date(date),
-      status,
-      coveredById: coveredById || null,
-    },
+  const record = await withClinicDb(clinicId, async (tx) => {
+    const employee = await tx.employee.findFirst({ where: { id: employeeId, clinicId } })
+    if (!employee) return null
+    // Upsert — one record per employee per day
+    return tx.attendanceRecord.upsert({
+      where: { employeeId_date: { employeeId, date: new Date(date) } },
+      update: { status, coveredById: coveredById || null },
+      create: {
+        clinicId,
+        employeeId,
+        date: new Date(date),
+        status,
+        coveredById: coveredById || null,
+      },
+    })
   })
+  if (!record) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
   return NextResponse.json({ id: record.id, status: record.status })
 }

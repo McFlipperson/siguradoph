@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 
 async function getClinicId() {
   const user = await getSessionUser()
@@ -11,13 +11,13 @@ export async function GET() {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const employees = await prisma.employee.findMany({
+  const employees = await withClinicDb(clinicId, (tx) => tx.employee.findMany({
     where: { clinicId },
     orderBy: [{ isActive: 'desc' }, { fullName: 'asc' }],
     include: {
       salaryHistory: { orderBy: { effectiveDate: 'desc' }, take: 10 },
     },
-  })
+  }))
 
   return NextResponse.json(employees.map((e) => ({
     id: e.id,
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const employee = await prisma.employee.create({
+  const employee = await withClinicDb(clinicId, (tx) => tx.employee.create({
     data: {
       clinicId,
       fullName,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         },
       },
     },
-  })
+  }))
 
   return NextResponse.json({ id: employee.id }, { status: 201 })
 }

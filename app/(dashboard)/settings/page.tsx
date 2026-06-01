@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import SettingsClient from './SettingsClient'
@@ -17,16 +18,16 @@ export default async function SettingsPage() {
   if (!user?.clinic) redirect('/onboarding')
   const clinic = user.clinic
 
-  const [services, suppliers] = await Promise.all([
-    prisma.serviceCatalog.findMany({
+  const [services, suppliers] = await withClinicDb(clinic.id, (tx) => Promise.all([
+    tx.serviceCatalog.findMany({
       where: { clinicId: clinic.id },
       orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }],
     }),
-    prisma.supplier.findMany({
+    tx.supplier.findMany({
       where: { clinicId: clinic.id },
       orderBy: { name: 'asc' },
     }),
-  ])
+  ]))
 
   return (
     <SettingsClient
@@ -59,6 +60,11 @@ export default async function SettingsPage() {
         philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
         pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
         accountantEmail: clinic.accountantEmail ?? '',
+        dpoName: clinic.dpoName ?? '',
+        dpoEmail: clinic.dpoEmail ?? '',
+        dpoPhone: clinic.dpoPhone ?? '',
+        npcRegistrationNumber: clinic.npcRegistrationNumber ?? '',
+        npcRegistrationDate: clinic.npcRegistrationDate?.toISOString() ?? null,
       }}
       initialServices={services.map(s => ({
         id: s.id,

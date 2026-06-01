@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 
 async function getClinicId() {
   const user = await getSessionUser()
@@ -11,16 +11,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const employee = await prisma.employee.findFirst({ where: { id: params.id, clinicId } })
-  if (!employee) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
   const body = await req.json()
   const { fullName, position, dateHired, dailyRate, rateEffectiveDate, rateNotes, sssNumber, philhealthNumber, pagibigNumber, tin, isActive } = body
 
   const newRate = dailyRate !== undefined ? Number(dailyRate) : null
-  const oldRate = Number(employee.dailyRate)
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await withClinicDb(clinicId, async (tx) => {
+    const employee = await tx.employee.findFirst({ where: { id: params.id, clinicId } })
+    if (!employee) return null
+    const oldRate = Number(employee.dailyRate)
+
     const emp = await tx.employee.update({
       where: { id: params.id },
       data: {
@@ -51,6 +51,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return emp
   })
 
+  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ id: updated.id })
 }
 
@@ -58,14 +59,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const employee = await prisma.employee.findFirst({ where: { id: params.id, clinicId } })
-  if (!employee) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  const result = await withClinicDb(clinicId, async (tx) => {
+    const employee = await tx.employee.findFirst({ where: { id: params.id, clinicId } })
+    if (!employee) return { status: 404 as const, error: 'Not found' }
 
-  const recordCount = await prisma.payrollRecord.count({ where: { employeeId: params.id } })
-  if (recordCount > 0) {
-    return NextResponse.json({ error: `Cannot delete — ${recordCount} payroll record(s) reference this employee. Deactivate instead.` }, { status: 409 })
-  }
+    const recordCount = await tx.payrollRecord.count({ where: { employeeId: params.id } })
+    if (recordCount > 0) {
+      return { status: 409 as const, error: `Cannot delete — ${recordCount} payroll record(s) reference this employee. Deactivate instead.` }
+    }
 
-  await prisma.employee.delete({ where: { id: params.id } })
+    await tx.employee.delete({ where: { id: params.id } })
+    return { status: 200 as const }
+  })
+
+  if (result.status !== 200) return NextResponse.json({ error: result.error }, { status: result.status })
   return NextResponse.json({ ok: true })
 }

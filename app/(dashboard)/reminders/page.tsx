@@ -44,20 +44,20 @@ export default async function RemindersPage() {
         messengerToken: true,   // presence only — value never sent to client
       },
     }),
-    prisma.scheduledReminder.findMany({
+    withClinicDb(clinicId, (tx) => tx.scheduledReminder.findMany({
       where: { clinicId },
       include: { patient: { select: { firstName: true, lastName: true } } },
       orderBy: { scheduledFor: 'asc' },
-    }),
-    prisma.patient.groupBy({
+    })),
+    withClinicDb(clinicId, (tx) => tx.patient.groupBy({
       by: ['reminderChannel'],
       where: { clinicId },
       _count: true,
-    }),
-    prisma.unlinkedMessenger.findMany({
+    })),
+    withClinicDb(clinicId, (tx) => tx.unlinkedMessenger.findMany({
       where: { clinicId, isLinked: false },
       orderBy: { receivedAt: 'desc' },
-    }),
+    })),
     withClinicDb(clinicId, (tx) =>
       tx.recallRule.findMany({ orderBy: { serviceCategory: 'asc' } })
     ),

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 import { computeThirteenthMonth } from '@/lib/payroll'
 
 async function getClinicId() {
@@ -16,22 +16,22 @@ export async function GET(req: NextRequest) {
 
   const year = Number(req.nextUrl.searchParams.get('year') ?? new Date().getFullYear())
 
-  const [employees, payrollTotals, paymentRecords] = await Promise.all([
-    prisma.employee.findMany({
+  const [employees, payrollTotals, paymentRecords] = await withClinicDb(clinicId, (tx) => Promise.all([
+    tx.employee.findMany({
       where: { clinicId, isActive: true },
       select: { id: true, fullName: true, position: true, dailyRate: true, dateHired: true },
       orderBy: { fullName: 'asc' },
     }),
     // Sum basicSalary (not holidayPay — PD 851 excludes premiums) for each employee for the year
-    prisma.payrollRecord.groupBy({
+    tx.payrollRecord.groupBy({
       by: ['employeeId'],
       where: { clinicId, periodYear: year },
       _sum: { basicSalary: true },
     }),
-    prisma.thirteenthMonthRecord.findMany({
+    tx.thirteenthMonthRecord.findMany({
       where: { clinicId, year },
     }),
-  ])
+  ]))
 
   const totalsByEmployee = new Map(
     payrollTotals.map(r => [r.employeeId, Number(r._sum.basicSalary ?? 0)])
@@ -68,35 +68,38 @@ export async function PATCH(req: NextRequest) {
   const { employeeId, year, midYearPaid, fullYearPaid } = await req.json()
   if (!employeeId || !year) return NextResponse.json({ error: 'employeeId and year required' }, { status: 400 })
 
-  const employee = await prisma.employee.findFirst({ where: { id: employeeId, clinicId } })
-  if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+  const record = await withClinicDb(clinicId, async (tx) => {
+    const employee = await tx.employee.findFirst({ where: { id: employeeId, clinicId } })
+    if (!employee) return null
 
-  // Recompute the current totals
-  const totals = await prisma.payrollRecord.aggregate({
-    where: { clinicId, employeeId, periodYear: year },
-    _sum: { basicSalary: true },
+    // Recompute the current totals
+    const totals = await tx.payrollRecord.aggregate({
+      where: { clinicId, employeeId, periodYear: year },
+      _sum: { basicSalary: true },
+    })
+    const totalBasicPay = Number(totals._sum.basicSalary ?? 0)
+    const amount        = computeThirteenthMonth(totalBasicPay)
+
+    return tx.thirteenthMonthRecord.upsert({
+      where: { employeeId_year: { employeeId, year } },
+      update: {
+        totalBasicPay,
+        amount,
+        ...(midYearPaid  !== undefined && { midYearPaid }),
+        ...(fullYearPaid !== undefined && { fullYearPaid }),
+      },
+      create: {
+        clinicId,
+        employeeId,
+        year,
+        totalBasicPay,
+        amount,
+        midYearPaid:  midYearPaid  ?? false,
+        fullYearPaid: fullYearPaid ?? false,
+      },
+    })
   })
-  const totalBasicPay = Number(totals._sum.basicSalary ?? 0)
-  const amount        = computeThirteenthMonth(totalBasicPay)
 
-  const record = await prisma.thirteenthMonthRecord.upsert({
-    where: { employeeId_year: { employeeId, year } },
-    update: {
-      totalBasicPay,
-      amount,
-      ...(midYearPaid  !== undefined && { midYearPaid }),
-      ...(fullYearPaid !== undefined && { fullYearPaid }),
-    },
-    create: {
-      clinicId,
-      employeeId,
-      year,
-      totalBasicPay,
-      amount,
-      midYearPaid:  midYearPaid  ?? false,
-      fullYearPaid: fullYearPaid ?? false,
-    },
-  })
-
+  if (!record) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
   return NextResponse.json({ id: record.id, amount: Number(record.amount) })
 }

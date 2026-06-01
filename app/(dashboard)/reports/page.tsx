@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import ReportsClient from './ReportsClient'
@@ -122,21 +123,22 @@ export default async function ReportsPage() {
     select: { clinicId: true },
   })
   if (!user?.clinicId) redirect('/onboarding')
+  const clinicId = user.clinicId
 
   const { startOfMonth, now } = dateRanges()
 
   // Fetch the full month in one query — filter for periods in JS
-  const [rawInvoices, rawExpenses] = await Promise.all([
-    prisma.invoice.findMany({
-      where: { clinicId: user.clinicId, transactionDate: { gte: startOfMonth, lte: now } },
+  const [rawInvoices, rawExpenses] = await withClinicDb(clinicId, (tx) => Promise.all([
+    tx.invoice.findMany({
+      where: { clinicId, transactionDate: { gte: startOfMonth, lte: now } },
       include: { visit: { select: { patientId: true } } },
       orderBy: { transactionDate: 'asc' },
     }),
-    prisma.expense.findMany({
-      where: { clinicId: user.clinicId, date: { gte: startOfMonth, lte: now } },
+    tx.expense.findMany({
+      where: { clinicId, date: { gte: startOfMonth, lte: now } },
       select: { grossAmount: true, inputVatAmount: true, date: true },
     }),
-  ])
+  ]))
 
   const { startOfToday, startOfWeek } = dateRanges()
 

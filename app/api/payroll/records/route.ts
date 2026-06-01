@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSessionUser } from '@/lib/auth'
+import { withClinicDb } from '@/lib/clinic-db'
 import { computeWeeklyPayroll, weekDateRange } from '@/lib/payroll'
 import { getHolidaysForDates } from '@/lib/ph-holidays'
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const year  = req.nextUrl.searchParams.get('year')  ? Number(req.nextUrl.searchParams.get('year'))  : undefined
   const week  = req.nextUrl.searchParams.get('week')  ? Number(req.nextUrl.searchParams.get('week'))  : undefined
 
-  const records = await prisma.payrollRecord.findMany({
+  const records = await withClinicDb(clinicId, (tx) => tx.payrollRecord.findMany({
     where: {
       clinicId,
       ...(employeeId && { employeeId }),
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     },
     include: { employee: { select: { fullName: true, position: true, dailyRate: true } } },
     orderBy: [{ periodYear: 'desc' }, { periodMonth: 'desc' }, { periodWeek: 'asc' }],
-  })
+  }))
 
   return NextResponse.json(records.map((r) => ({
     id: r.id,
@@ -72,12 +72,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'daysWorked must be 0–7' }, { status: 400 })
   }
 
-  const employee = await prisma.employee.findFirst({ where: { id: employeeId, clinicId } })
+  const employee = await withClinicDb(clinicId, (tx) => tx.employee.findFirst({ where: { id: employeeId, clinicId } }))
   if (!employee) return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
 
-  const existing = await prisma.payrollRecord.findFirst({
+  const existing = await withClinicDb(clinicId, (tx) => tx.payrollRecord.findFirst({
     where: { employeeId, clinicId, periodMonth, periodYear, periodWeek },
-  })
+  }))
   if (existing) {
     return NextResponse.json(
       { error: `Payroll already exists for Week ${periodWeek} of this period` },
@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
     specialWorked,
   )
 
-  const record = await prisma.payrollRecord.create({
+  const record = await withClinicDb(clinicId, (tx) => tx.payrollRecord.create({
     data: {
       clinicId,
       employeeId,
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
       withholdingTax: weekly.withholdingTax,
       netPay: weekly.netPay,
     },
-  })
+  }))
 
   return NextResponse.json({ id: record.id, ...weekly }, { status: 201 })
 }

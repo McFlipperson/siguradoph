@@ -16,7 +16,7 @@
  * The plain `prisma` client is only for auth-level lookups (User, Clinic by id).
  */
 
-import { prisma } from './prisma'
+import { prismaTenant } from './prisma'
 import type { PrismaClient } from '@prisma/client'
 
 // The transaction client type Prisma exposes inside $transaction callbacks
@@ -39,7 +39,7 @@ export async function withClinicDb<T>(
   clinicId: string,
   fn: (db: TxClient) => Promise<T>,
 ): Promise<T> {
-  return prisma.$transaction(async (tx) => {
+  return prismaTenant.$transaction(async (tx) => {
     // TRUE = transaction-local (safe with connection pooling)
     await tx.$executeRaw`SELECT set_config('app.clinic_id', ${clinicId}, TRUE)`
     return fn(tx)

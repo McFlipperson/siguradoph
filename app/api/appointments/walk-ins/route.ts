@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns'
@@ -29,7 +30,7 @@ export async function GET() {
     TZ
   )
 
-  const walkIns = await prisma.appointment.findMany({
+  const walkIns = await withClinicDb(clinicId, (tx) => tx.appointment.findMany({
     where: {
       clinicId,
       status: 'WALK_IN',
@@ -37,7 +38,7 @@ export async function GET() {
     },
     include: { patient: { select: { id: true, firstName: true, lastName: true } } },
     orderBy: { scheduledAt: 'asc' },
-  })
+  }))
 
   return NextResponse.json(
     walkIns.map((a) => ({
@@ -56,12 +57,14 @@ export async function POST(req: NextRequest) {
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { patientId } = await req.json()
-  const patient = await prisma.patient.findFirst({ where: { id: patientId, clinicId } })
-  if (!patient) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
-
-  const appt = await prisma.appointment.create({
-    data: { clinicId, patientId, scheduledAt: new Date(), type: 'CHECK_UP', status: 'WALK_IN' },
+  const appt = await withClinicDb(clinicId, async (tx) => {
+    const patient = await tx.patient.findFirst({ where: { id: patientId, clinicId } })
+    if (!patient) return null
+    return tx.appointment.create({
+      data: { clinicId, patientId, scheduledAt: new Date(), type: 'CHECK_UP', status: 'WALK_IN' },
+    })
   })
+  if (!appt) return NextResponse.json({ error: 'Patient not found' }, { status: 404 })
 
   return NextResponse.json({
     id: appt.id,
