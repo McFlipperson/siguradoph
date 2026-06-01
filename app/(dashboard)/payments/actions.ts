@@ -459,7 +459,7 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
       : []
 
     const [recallRules, catalogEntries] = await Promise.all([
-      db((tx) => tx.recallRule.findMany({ where: { isActive: true } })),
+      db((tx) => tx.recallRule.findMany({ where: { clinicId, isActive: true } })),
       db((tx) => tx.serviceCatalog.findMany({
         where: { name: { in: storedAmounts.map(p => p.name) } },
         select: { name: true, category: true },

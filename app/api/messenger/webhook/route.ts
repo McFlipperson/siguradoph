@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/prisma'
+
+// Verifies Meta's X-Hub-Signature-256 header against the raw request body.
+// Meta signs every webhook payload with HMAC-SHA256 keyed by the app secret.
+// Without this check the endpoint is an unauthenticated, cross-tenant write to
+// patient SPI (anyone could forge link events). Reject anything that fails.
+function verifyMetaSignature(rawBody: string, header: string | null): boolean {
+  const appSecret = process.env.FACEBOOK_APP_SECRET
+  if (!appSecret || !header) return false
+
+  const expected = 'sha256=' + createHmac('sha256', appSecret).update(rawBody, 'utf-8').digest('hex')
+  const a = Buffer.from(header)
+  const b = Buffer.from(expected)
+  // timingSafeEqual throws on length mismatch — guard first
+  if (a.length !== b.length) return false
+  return timingSafeEqual(a, b)
+}
 
 // ─── GET — Meta webhook verification ─────────────────────────────────────────
 export async function GET(req: NextRequest) {
@@ -31,8 +48,8 @@ export async function GET(req: NextRequest) {
 // PATH C — Unrecognised message (patient found clinic on own, no pending link):
 //   Create UnlinkedMessenger record for staff to link manually.
 //
-// TODO: When scaling to multi-clinic, look up clinic by entry.id (the Page ID).
-//   For MVP we fall back to the first clinic if messengerPageId doesn't match.
+// Clinics are resolved strictly by entry.id (the Page ID) → Clinic.messengerPageId.
+//   Events for an unrecognised Page ID are dropped (no cross-tenant fallback).
 
 type MessagingEvent = {
   sender:    { id: string }
@@ -53,7 +70,19 @@ type WebhookPayload = {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json() as WebhookPayload
+  // Read the raw body first — the signature is computed over the exact bytes.
+  const rawBody = await req.text()
+
+  if (!verifyMetaSignature(rawBody, req.headers.get('x-hub-signature-256'))) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
+  let body: WebhookPayload
+  try {
+    body = JSON.parse(rawBody) as WebhookPayload
+  } catch {
+    return new NextResponse('Bad Request', { status: 400 })
+  }
 
   if (body.object !== 'page') {
     return NextResponse.json({ ok: true })
@@ -62,14 +91,13 @@ export async function POST(req: NextRequest) {
   for (const entry of body.entry) {
     const pageId = entry.id
 
-    // Resolve clinic
-    let clinic = await prisma.clinic.findFirst({
+    // Resolve clinic strictly by the Page ID that received the message.
+    // Never fall back to an arbitrary clinic — that would attribute one
+    // tenant's inbound messages (and PSID links) to another tenant.
+    const clinic = await prisma.clinic.findFirst({
       where: { messengerPageId: pageId },
       select: { id: true },
     })
-    if (!clinic) {
-      clinic = await prisma.clinic.findFirst({ select: { id: true } })
-    }
     if (!clinic) continue
 
     const clinicId = clinic.id
