@@ -121,6 +121,33 @@ model Clinic {
   thirteenthMonthRecords     ThirteenthMonthRecord[]
   recallRules                RecallRule[]
   pendingMessengerLink       PendingMessengerLink?
+  incidentLogs               IncidentLog[]
+}
+
+// RA 10173 — Security incident & data-breach register.
+// Backs the 72-hour NPC breach notification clock and the Annual Security
+// Incident Report (ASIR, due March 31 for the prior calendar year).
+model IncidentLog {
+  id                  String    @id @default(cuid())
+  clinicId            String
+  clinic              Clinic    @relation(fields: [clinicId], references: [id])
+  incidentDate        DateTime  // when the incident occurred
+  discoveryDate       DateTime  // when the clinic became aware — starts the 72h clock
+  type                String    // UNAUTHORIZED_ACCESS | LOSS | UNAUTHORIZED_DISCLOSURE | SYSTEM_BREACH | RANSOMWARE | OTHER
+  severity            String    @default("LOW")  // LOW | MEDIUM | HIGH
+  description         String    @db.Text
+  natureOfData        String?   // categories of personal data involved
+  individualsAffected Int       @default(0)
+  measuresTaken       String?   @db.Text  // containment / remediation
+  reportedToNpc       Boolean   @default(false)
+  npcReportDate       DateTime?
+  reportedToSubjects  Boolean   @default(false)
+  status              String    @default("OPEN")  // OPEN | CONTAINED | RESOLVED
+  createdBy           String    // userEmail who logged it
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([clinicId, discoveryDate])
 }
 
 model UnlinkedMessenger {

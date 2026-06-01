@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Shield, Download, Search, AlertTriangle, CheckCircle2, FileText, Users } from 'lucide-react'
+import { useState, useMemo, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { Shield, Download, Search, AlertTriangle, CheckCircle2, FileText, Users, Siren, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
+import { createIncident, updateIncident, type IncidentRow, type IncidentType, type IncidentSeverity } from './actions'
 
 type AuditEntry = {
   id: string
@@ -32,6 +35,24 @@ interface Props {
   patientCount: number
   logs: AuditEntry[]
   scPwdLogs: ScPwdEntry[]
+  incidents: IncidentRow[]
+}
+
+const INCIDENT_TYPE_LABELS: Record<string, string> = {
+  UNAUTHORIZED_ACCESS: 'Unauthorized access',
+  LOSS: 'Loss of data',
+  UNAUTHORIZED_DISCLOSURE: 'Unauthorized disclosure',
+  SYSTEM_BREACH: 'System breach',
+  RANSOMWARE: 'Ransomware',
+  OTHER: 'Other',
+}
+
+// RA 10173 / NPC Circular 16-03: notify NPC + affected subjects within 72h of discovery.
+function breachClock(discoveryIso: string) {
+  const deadline = new Date(discoveryIso)
+  deadline.setHours(deadline.getHours() + 72)
+  const ms = deadline.getTime() - Date.now()
+  return { deadline, overdue: ms < 0, hoursLeft: Math.round(ms / 3_600_000) }
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -69,12 +90,19 @@ export default function ComplianceClient({
   patientCount,
   logs,
   scPwdLogs,
+  incidents,
 }: Props) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [filterAction, setFilterAction] = useState('ALL')
-  const [activeTab, setActiveTab] = useState<'audit' | 'scpwd'>('audit')
+  const [activeTab, setActiveTab] = useState<'audit' | 'scpwd' | 'incidents'>('audit')
 
   const npcWarning = patientCount >= 800
+
+  // Open breaches not yet reported to the NPC — drives the 72h alert.
+  const unreportedBreaches = incidents.filter(i => !i.reportedToNpc)
+  const breachAlert = unreportedBreaches.length > 0
 
   const filteredLogs = useMemo(() => {
     return logs.filter(l => {
@@ -131,6 +159,101 @@ export default function ComplianceClient({
     URL.revokeObjectURL(url)
   }
 
+  // ── Incident logging ──────────────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10)
+  const [showIncidentForm, setShowIncidentForm] = useState(false)
+  const [incForm, setIncForm] = useState({
+    incidentDate: today,
+    discoveryDate: today,
+    type: 'UNAUTHORIZED_ACCESS' as IncidentType,
+    severity: 'MEDIUM' as IncidentSeverity,
+    description: '',
+    natureOfData: '',
+    individualsAffected: 0,
+    measuresTaken: '',
+  })
+
+  function submitIncident() {
+    if (!incForm.description.trim()) { toast.error('Describe what happened.'); return }
+    startTransition(async () => {
+      try {
+        await createIncident(incForm)
+        toast.success('Incident logged')
+        setShowIncidentForm(false)
+        setIncForm({ ...incForm, description: '', natureOfData: '', measuresTaken: '', individualsAffected: 0 })
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Failed to log incident')
+      }
+    })
+  }
+
+  function markReportedToNpc(id: string) {
+    startTransition(async () => {
+      try {
+        await updateIncident({ id, reportedToNpc: true })
+        toast.success('Marked reported to NPC')
+        router.refresh()
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Update failed')
+      }
+    })
+  }
+
+  // ── ASIR (Annual Security Incident Report) ────────────────────────────────
+  const incidentYears = Array.from(new Set(incidents.map(i => new Date(i.discoveryDate).getFullYear())))
+  const defaultAsirYear = new Date().getFullYear() - 1 // ASIR covers the PRIOR calendar year
+  const [asirYear, setAsirYear] = useState<number>(defaultAsirYear)
+  const asirYearOptions = Array.from(new Set([defaultAsirYear, new Date().getFullYear(), ...incidentYears])).sort((a, b) => b - a)
+
+  const asir = useMemo(() => {
+    const inYear = incidents.filter(i => new Date(i.discoveryDate).getFullYear() === asirYear)
+    const byType: Record<string, number> = {}
+    for (const i of inYear) byType[i.type] = (byType[i.type] ?? 0) + 1
+    return {
+      incidents: inYear,
+      total: inYear.length,
+      reported: inYear.filter(i => i.reportedToNpc).length,
+      individualsAffected: inYear.reduce((s, i) => s + i.individualsAffected, 0),
+      byType,
+    }
+  }, [incidents, asirYear])
+
+  function exportAsirCSV() {
+    const header = [
+      `Annual Security Incident Report (ASIR) — ${asirYear}`,
+      `Clinic: ${clinicName}`,
+      `Generated: ${new Date().toLocaleString('en-PH')}`,
+      `Total incidents: ${asir.total} | Reported to NPC: ${asir.reported} | Individuals affected: ${asir.individualsAffected}`,
+      'NPC deadline: March 31, ' + (asirYear + 1) + ' (submit via the NPC DBNMS).',
+      '',
+    ]
+    const rows = [
+      ['Discovery Date', 'Incident Date', 'Type', 'Severity', 'Individuals Affected', 'Reported to NPC', 'NPC Report Date', 'Subjects Notified', 'Status', 'Description', 'Measures Taken'],
+      ...asir.incidents.map(i => [
+        formatDateShort(i.discoveryDate),
+        formatDateShort(i.incidentDate),
+        INCIDENT_TYPE_LABELS[i.type] ?? i.type,
+        i.severity,
+        String(i.individualsAffected),
+        i.reportedToNpc ? 'Yes' : 'No',
+        i.npcReportDate ? formatDateShort(i.npcReportDate) : '',
+        i.reportedToSubjects ? 'Yes' : 'No',
+        i.status,
+        i.description,
+        i.measuresTaken ?? '',
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`)),
+    ]
+    const csv = [...header.map(h => `"${h.replace(/"/g, '""')}"`), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `ASIR-${asirYear}-${clinicName.replace(/\s+/g, '-')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="space-y-6 pb-6">
 
@@ -139,6 +262,25 @@ export default function ComplianceClient({
         <h1 className="text-xl font-bold">Compliance</h1>
         <p className="text-sm text-muted-foreground mt-0.5">{clinicName}</p>
       </div>
+
+      {/* 72-hour breach alert */}
+      {breachAlert && (
+        <div className="rounded-2xl bg-red-50 border border-red-200 p-4 flex gap-3">
+          <Siren className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-red-800">
+              {unreportedBreaches.length} unreported incident{unreportedBreaches.length !== 1 ? 's' : ''} — 72-hour NPC clock running
+            </p>
+            <p className="text-xs text-red-700 leading-relaxed">
+              RA 10173 requires notifying the NPC and affected patients within 72 hours of discovery.
+              Review the Incidents tab, take action, then mark each as reported.
+            </p>
+            <button onClick={() => setActiveTab('incidents')} className="text-xs font-medium text-red-800 underline">
+              Go to Incidents →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Status cards */}
       <div className="grid grid-cols-2 gap-3">
@@ -212,6 +354,16 @@ export default function ComplianceClient({
         >
           <FileText className="w-4 h-4" />
           SC / PWD Log
+        </button>
+        <button
+          onClick={() => setActiveTab('incidents')}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'incidents' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground'
+          }`}
+        >
+          <Siren className="w-4 h-4" />
+          Incidents
+          {breachAlert && <span className="ml-1 w-2 h-2 rounded-full bg-red-500" />}
         </button>
       </div>
 
@@ -312,6 +464,152 @@ export default function ComplianceClient({
                 <p className="text-xs text-muted-foreground">ID: {log.idNumber}</p>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Incidents tab */}
+      {activeTab === 'incidents' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700 leading-relaxed">
+            Security incident &amp; data-breach register (RA 10173). Log any suspected or actual breach.
+            The NPC and affected patients must be notified within <strong>72 hours of discovery</strong>.
+            Use the ASIR section below to generate your Annual Security Incident Report (due March 31).
+          </div>
+
+          {/* Log incident toggle */}
+          {!showIncidentForm && (
+            <Button onClick={() => setShowIncidentForm(true)} className="w-full gap-1.5">
+              <Siren className="w-4 h-4" /> Log a security incident
+            </Button>
+          )}
+
+          {/* Log incident form */}
+          {showIncidentForm && (
+            <div className="rounded-2xl border bg-background p-4 space-y-3">
+              <h2 className="text-sm font-semibold">Log security incident</h2>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Incident date</label>
+                  <input type="date" value={incForm.incidentDate} onChange={e => setIncForm({ ...incForm, incidentDate: e.target.value })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Discovery date (starts 72h)</label>
+                  <input type="date" value={incForm.discoveryDate} onChange={e => setIncForm({ ...incForm, discoveryDate: e.target.value })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Type</label>
+                  <select value={incForm.type} onChange={e => setIncForm({ ...incForm, type: e.target.value as IncidentType })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+                    {Object.entries(INCIDENT_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Severity</label>
+                  <select value={incForm.severity} onChange={e => setIncForm({ ...incForm, severity: e.target.value as IncidentSeverity })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm">
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">What happened? *</label>
+                <textarea value={incForm.description} onChange={e => setIncForm({ ...incForm, description: e.target.value })} rows={3} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm resize-none" placeholder="Describe the incident…" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Individuals affected</label>
+                  <input type="number" min={0} value={incForm.individualsAffected} onChange={e => setIncForm({ ...incForm, individualsAffected: Number(e.target.value) })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Nature of data</label>
+                  <input value={incForm.natureOfData} onChange={e => setIncForm({ ...incForm, natureOfData: e.target.value })} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm" placeholder="e.g. names, medical history" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Measures taken</label>
+                <textarea value={incForm.measuresTaken} onChange={e => setIncForm({ ...incForm, measuresTaken: e.target.value })} rows={2} className="w-full mt-1 rounded-xl border bg-background px-3 py-2 text-sm resize-none" placeholder="Containment / remediation steps…" />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowIncidentForm(false)} disabled={isPending}>Cancel</Button>
+                <Button className="flex-1" onClick={submitIncident} disabled={isPending}>{isPending ? 'Saving…' : 'Log incident'}</Button>
+              </div>
+            </div>
+          )}
+
+          {/* Incident list */}
+          <div className="space-y-2">
+            {incidents.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-8">No incidents logged. That&apos;s good — but log any breach the moment you discover it.</p>
+            )}
+            {incidents.map(i => {
+              const clock = breachClock(i.discoveryDate)
+              return (
+                <div key={i.id} className="rounded-2xl border bg-background px-4 py-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-medium">{INCIDENT_TYPE_LABELS[i.type] ?? i.type}</span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      i.severity === 'HIGH' ? 'bg-red-100 text-red-700' : i.severity === 'MEDIUM' ? 'bg-amber-100 text-amber-700' : 'bg-muted text-muted-foreground'
+                    }`}>{i.severity}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{i.description}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                    <span>Discovered {formatDateShort(i.discoveryDate)}</span>
+                    <span>{i.individualsAffected} affected</span>
+                    <span>Status: {i.status}</span>
+                  </div>
+                  {/* 72h clock / NPC status */}
+                  {i.reportedToNpc ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-700">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Reported to NPC{i.npcReportDate ? ` ${formatDateShort(i.npcReportDate)}` : ''}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className={`flex items-center gap-1.5 text-[11px] font-medium ${clock.overdue ? 'text-red-700' : 'text-amber-700'}`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        {clock.overdue
+                          ? `NPC deadline passed ${Math.abs(clock.hoursLeft)}h ago`
+                          : `${clock.hoursLeft}h left to notify NPC`}
+                      </div>
+                      <Button size="sm" variant="outline" className="h-7 text-[11px]" onClick={() => markReportedToNpc(i.id)} disabled={isPending}>
+                        Mark reported
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ASIR */}
+          <div className="rounded-2xl border bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">Annual Security Incident Report (ASIR)</h2>
+              <select value={asirYear} onChange={e => setAsirYear(Number(e.target.value))} className="rounded-lg border bg-background px-2 py-1 text-xs">
+                {asirYearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Covers incidents discovered in {asirYear}. Due to the NPC by <strong>March 31, {asirYear + 1}</strong> via the DBNMS — required even if you had zero incidents.
+            </p>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-background border p-2">
+                <p className="text-lg font-bold">{asir.total}</p>
+                <p className="text-[10px] text-muted-foreground">Incidents</p>
+              </div>
+              <div className="rounded-xl bg-background border p-2">
+                <p className="text-lg font-bold">{asir.reported}</p>
+                <p className="text-[10px] text-muted-foreground">Reported to NPC</p>
+              </div>
+              <div className="rounded-xl bg-background border p-2">
+                <p className="text-lg font-bold">{asir.individualsAffected}</p>
+                <p className="text-[10px] text-muted-foreground">Individuals</p>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportAsirCSV} className="w-full gap-1.5 h-8 text-xs">
+              <Download className="w-3.5 h-3.5" /> Download ASIR {asirYear} (CSV)
+            </Button>
           </div>
         </div>
       )}

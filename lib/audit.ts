@@ -12,8 +12,10 @@ export type AuditAction =
   | 'DELETE_PATIENT'
   | 'EXPORT_PATIENTS'
   | 'EXPORT_INVOICES'
+  | 'CREATE_INCIDENT'
+  | 'UPDATE_INCIDENT'
 
-export type AuditResourceType = 'PATIENT' | 'VISIT' | 'INVOICE'
+export type AuditResourceType = 'PATIENT' | 'VISIT' | 'INVOICE' | 'INCIDENT'
 
 /**
  * Write an audit log entry for RA 10173 access accountability.

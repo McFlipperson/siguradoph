@@ -11,10 +11,10 @@ export default async function CompliancePage() {
   if (!user?.clinicId) redirect('/login')
 
   const clinicId = user.clinicId
-  const [clinic, logs, patientCount, scPwdLogs] = await Promise.all([
+  const [clinic, logs, patientCount, scPwdLogs, incidents] = await Promise.all([
     prisma.clinic.findUnique({
       where: { id: clinicId },
-      select: { name: true, tosAcceptedAt: true, enrollmentDate: true },
+      select: { name: true, tosAcceptedAt: true, enrollmentDate: true, dpoName: true, dpoEmail: true },
     }),
     withClinicDb(clinicId, (tx) => tx.auditLog.findMany({
       where: { clinicId },
@@ -26,6 +26,10 @@ export default async function CompliancePage() {
       where: { clinicId },
       orderBy: { createdAt: 'desc' },
       take: 200,
+    })),
+    withClinicDb(clinicId, (tx) => tx.incidentLog.findMany({
+      where: { clinicId },
+      orderBy: { discoveryDate: 'desc' },
     })),
   ])
 
@@ -53,6 +57,23 @@ export default async function CompliancePage() {
         discountPct: Number(l.discountPct),
         discountAmount: Number(l.discountAmount),
         createdAt: l.createdAt.toISOString(),
+      }))}
+      incidents={incidents.map(i => ({
+        id: i.id,
+        incidentDate: i.incidentDate.toISOString(),
+        discoveryDate: i.discoveryDate.toISOString(),
+        type: i.type,
+        severity: i.severity,
+        description: i.description,
+        natureOfData: i.natureOfData,
+        individualsAffected: i.individualsAffected,
+        measuresTaken: i.measuresTaken,
+        reportedToNpc: i.reportedToNpc,
+        npcReportDate: i.npcReportDate?.toISOString() ?? null,
+        reportedToSubjects: i.reportedToSubjects,
+        status: i.status,
+        createdBy: i.createdBy,
+        createdAt: i.createdAt.toISOString(),
       }))}
     />
   )
