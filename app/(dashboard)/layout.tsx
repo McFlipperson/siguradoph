@@ -20,10 +20,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user?.clinic?.onboardingComplete) redirect('/onboarding')
 
-  // Trial enforcement — block access 30 days after registration
-  if (user.clinic.trialEndsAt && new Date() > user.clinic.trialEndsAt) {
-    redirect('/trial-expired')
-  }
+  // NOTE: No time-based lockout. The Free tier is "free forever" (see landing page),
+  // so clinics are never expired by elapsed time. The Free/Basic/Pro boundary is a
+  // plan-entitlement concern (e.g. the 30-patient cap), not a clock. Re-introduce
+  // enforcement here keyed to a subscription/plan field once billing exists —
+  // never re-enable a blanket trialEndsAt redirect, which breaks the public promise.
 
   const needsDPA = !user.clinic.tosAcceptedAt
 
