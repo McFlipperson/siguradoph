@@ -155,6 +155,7 @@ model Patient {
   address         String
   phone           String
   email           String?
+  philsysId       String?  // Philippine Identification System (PhilSys) ID — optional
   medicalHistory  String?
   medications     String?
   allergies       String?

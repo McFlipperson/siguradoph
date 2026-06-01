@@ -53,6 +53,7 @@ export function IntakeForm({
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [philsysId, setPhilsysId] = useState('')
   const [medicalHistory, setMedicalHistory] = useState('')
   const [medications, setMedications] = useState('')
   const [allergies, setAllergies] = useState('')
@@ -82,6 +83,7 @@ export function IntakeForm({
     const data: IntakeStep1Data = {
       firstName, middleName: middleName || undefined, lastName, dateOfBirth, address, phone,
       email: email || undefined,
+      philsysId: philsysId || undefined,
       medicalHistory, medications, allergies,
       isMinor,
       guardianName: isMinor ? guardianName : undefined,
@@ -116,7 +118,7 @@ export function IntakeForm({
 
   function handleReset() {
     setFirstName(''); setMiddleName(''); setLastName(''); setDateOfBirth(''); setAddress('')
-    setPhone(''); setEmail(''); setMedicalHistory(''); setMedications('')
+    setPhone(''); setEmail(''); setPhilsysId(''); setMedicalHistory(''); setMedications('')
     setAllergies(''); setIsMinor(false); setGuardianName('')
     setGuardianRelationship(''); setConsentGiven(false)
     setPatientId(null); setChannel(null); setStep('form')
@@ -323,6 +325,21 @@ export function IntakeForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">Email <span className="text-muted-foreground font-normal">(optional — leave blank if none)</span></Label>
           <Input id="email" type="text" inputMode="email" value={email} onChange={e => setEmail(e.target.value)} className="min-h-[48px]" placeholder="patient@example.com" />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="philsysId">
+            PhilSys ID Number <span className="text-muted-foreground font-normal">(optional)</span>
+          </Label>
+          <Input
+            id="philsysId"
+            value={philsysId}
+            onChange={e => setPhilsysId(e.target.value)}
+            className="min-h-[48px]"
+            placeholder="e.g. 1234-5678-9012-3"
+            inputMode="numeric"
+          />
+          <p className="text-xs text-muted-foreground">Philippine Identification System number printed on the physical PhilSys card.</p>
         </div>
       </section>
 

@@ -14,6 +14,7 @@ export type IntakeStep1Data = {
   address: string
   phone: string
   email?: string
+  philsysId?: string
   medicalHistory: string
   medications: string
   allergies: string
@@ -55,6 +56,7 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
           address: data.address.trim(),
           phone: data.phone.trim(),
           email: data.email?.trim() || null,
+          philsysId: data.philsysId?.trim() || null,
           medicalHistory: data.medicalHistory.trim(),
           medications: data.medications.trim(),
           allergies: data.allergies.trim(),
