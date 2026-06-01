@@ -68,6 +68,7 @@ export type FullPatient = {
   medications: string | null
   allergies: string | null
   enrolledAt: Date
+  anonymizedAt: Date | null
   bracesComplete: boolean
   reminderChannel: string
   messengerPsid: string | null
@@ -409,6 +410,16 @@ export async function deletePatient(patientId: string): Promise<void> {
 
   const fullName = [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(' ')
 
+  // BIR retention: a patient with issued official receipts must NOT be hard-deleted,
+  // because that destroys mandated financial records and breaks the OR sequence.
+  // The caller must anonymize instead (scrub PII, keep invoices).
+  const issuedInvoices = await db((tx) => tx.invoice.count({
+    where: { clinicId, status: 'ISSUED', visit: { patientId } },
+  }))
+  if (issuedInvoices > 0) {
+    throw new Error('HAS_ISSUED_INVOICES: This patient has issued official receipts (BIR records). Anonymize the patient instead of deleting.')
+  }
+
   await db(async (tx) => {
     // 1. Delete LoyaltyCardUsage (references LoyaltyCard + Invoice)
     const cards = await tx.loyaltyCard.findMany({
@@ -467,6 +478,70 @@ export async function deletePatient(patientId: string): Promise<void> {
   })
 
   revalidatePath('/patients')
+}
+
+// ---------------------------------------------------------------------------
+// Anonymize patient — RA 10173 erasure while retaining BIR financial records.
+// Scrubs personal data and stamps anonymizedAt; keeps invoices + visits so
+// official receipts remain intact. Use this when deletePatient is blocked.
+// ---------------------------------------------------------------------------
+
+export async function anonymizePatient(patientId: string): Promise<void> {
+  const { clinicId, userEmail, db } = await getActorDb()
+
+  const patient = await db((tx) => tx.patient.findUnique({
+    where: { id: patientId },
+    select: { clinicId: true, firstName: true, middleName: true, lastName: true, anonymizedAt: true },
+  }))
+  if (!patient || patient.clinicId !== clinicId) throw new Error('Patient not found')
+  if (patient.anonymizedAt) throw new Error('Patient is already anonymized')
+
+  const fullName = [patient.firstName, patient.middleName, patient.lastName].filter(Boolean).join(' ')
+
+  await db(async (tx) => {
+    // Scrub identifying personal data; keep clinical/financial records linked to
+    // retained invoices. Future-only, non-financial items are removed.
+    await tx.patient.update({
+      where: { id: patientId },
+      data: {
+        firstName: '[Anonymized]',
+        middleName: null,
+        lastName: `#${patientId.slice(-6)}`,
+        address: '[erased]',
+        phone: '[erased]',
+        email: null,
+        philsysId: null,
+        medicalHistory: null,
+        medications: null,
+        allergies: null,
+        scIdNumber: null,
+        pwdIdNumber: null,
+        messengerPsid: null,
+        reminderChannel: 'NONE',
+        anonymizedAt: new Date(),
+      },
+    })
+
+    // Remove future-facing, non-evidentiary data.
+    await tx.scheduledReminder.deleteMany({ where: { patientId, status: 'PENDING' } })
+    await tx.appointment.deleteMany({ where: { patientId, status: { in: ['SCHEDULED', 'CONFIRMED'] } } })
+    await tx.loyaltyCard.updateMany({ where: { patientId }, data: { isActive: false } })
+
+    // Clear any pending messenger-link slot pointing at this patient.
+    await tx.pendingMessengerLink.deleteMany({ where: { clinicId, patientId } })
+  })
+
+  await writeAudit({
+    clinicId,
+    userEmail,
+    action: 'ANONYMIZE_PATIENT',
+    resourceType: 'PATIENT',
+    resourceId: patientId,
+    detail: `Anonymized patient PII (RA 10173 erasure); financial records retained: ${fullName}`,
+  })
+
+  revalidatePath('/patients')
+  revalidatePath(`/patients/${patientId}`)
 }
 
 // ─── Messenger intake linking ─────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, updatePatientScPwd, deletePatient, startMessengerLink, cancelMessengerLink, checkMessengerLink } from '../actions'
+import { updatePatientMedical, updatePatientInfo, issueLoyaltyCard, updatePatientScPwd, deletePatient, anonymizePatient, startMessengerLink, cancelMessengerLink, checkMessengerLink } from '../actions'
 import { voidVisit, updateVisit } from '../../visits/actions'
 import type { FullPatient } from '../actions'
 import { Input } from '@/components/ui/input'
@@ -837,6 +837,20 @@ function DeletePatientSection({ patient }: { patient: FullPatient }) {
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // When delete is blocked by BIR-retained receipts, switch to anonymize mode.
+  const [mustAnonymize, setMustAnonymize] = useState(false)
+
+  if (patient.anonymizedAt) {
+    return (
+      <div className="rounded-xl border bg-muted/40 p-4">
+        <p className="text-sm font-semibold">Record anonymized</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          This patient&apos;s personal data was erased on {new Date(patient.anonymizedAt).toLocaleDateString('en-PH')} under
+          RA 10173. Financial records (official receipts) are retained for BIR compliance.
+        </p>
+      </div>
+    )
+  }
 
   async function handleDelete() {
     if (confirmText !== 'DELETE') return
@@ -846,7 +860,28 @@ function DeletePatientSection({ patient }: { patient: FullPatient }) {
       await deletePatient(patient.id)
       router.push('/patients')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete patient')
+      const msg = err instanceof Error ? err.message : 'Failed to delete patient'
+      if (msg.startsWith('HAS_ISSUED_INVOICES')) {
+        // Can't hard-delete — offer anonymization instead.
+        setMustAnonymize(true)
+        setConfirmText('')
+        setError(null)
+      } else {
+        setError(msg)
+      }
+      setDeleting(false)
+    }
+  }
+
+  async function handleAnonymize() {
+    if (confirmText !== 'ANONYMIZE') return
+    setDeleting(true)
+    setError(null)
+    try {
+      await anonymizePatient(patient.id)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to anonymize patient')
       setDeleting(false)
     }
   }
@@ -856,7 +891,9 @@ function DeletePatientSection({ patient }: { patient: FullPatient }) {
       <div>
         <p className="text-sm font-semibold text-red-800">Danger Zone</p>
         <p className="text-xs text-red-700 mt-0.5">
-          Permanently deletes this patient and all their records, visits, invoices, and loyalty card data. This cannot be undone.
+          Deletes this patient and their records. Patients with issued official receipts can&apos;t be
+          fully deleted (BIR requires keeping receipts) — you&apos;ll be offered to anonymize instead,
+          which erases personal data but keeps the financial records.
         </p>
       </div>
 
@@ -868,6 +905,40 @@ function DeletePatientSection({ patient }: { patient: FullPatient }) {
         >
           Delete this patient…
         </button>
+      ) : mustAnonymize ? (
+        <div className="flex flex-col gap-3">
+          <p className="text-xs font-medium text-red-800">
+            This patient has issued official receipts and can&apos;t be deleted. Type <strong>ANONYMIZE</strong> to
+            erase their personal data (name, contact, medical history) while keeping the receipts for BIR.
+          </p>
+          <input
+            type="text"
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder="Type ANONYMIZE to confirm"
+            className="min-h-[48px] rounded-lg border border-red-300 bg-white px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-red-400 w-full"
+            autoCapitalize="characters"
+          />
+          {error && <p className="text-xs text-red-700">{error}</p>}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => { setOpen(false); setMustAnonymize(false); setConfirmText(''); setError(null) }}
+              disabled={deleting}
+              className="min-h-[48px] rounded-xl border border-red-200 bg-white text-sm font-semibold text-red-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAnonymize}
+              disabled={confirmText !== 'ANONYMIZE' || deleting}
+              className="min-h-[48px] rounded-xl bg-red-600 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {deleting ? 'Anonymizing…' : 'Anonymize'}
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           <p className="text-xs font-medium text-red-800">

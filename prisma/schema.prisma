@@ -207,6 +207,7 @@ model Patient {
   pwdDisabilityType String?  // VISUAL | HEARING | SPEECH | PHYSICAL | INTELLECTUAL | PSYCHOSOCIAL | LEARNING | MENTAL
   enrolledAt                   DateTime
   createdAt                    DateTime @default(now())
+  anonymizedAt                 DateTime?  // set when PII is scrubbed under RA 10173 erasure while BIR financial records are retained
 
   consentRecords     ConsentRecord[]
   visits             Visit[]
