@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { SIGURADO_DPO } from '@/lib/dpo'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Sigurado',
@@ -8,7 +9,7 @@ export const metadata: Metadata = {
 }
 
 const LAST_UPDATED = 'May 30, 2026'
-const DPO_EMAIL = 'privacy@sigurado.xyz'
+const DPO_EMAIL = SIGURADO_DPO.email
 
 export default function PrivacyPage() {
   return (

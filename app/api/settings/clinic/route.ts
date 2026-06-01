@@ -44,6 +44,12 @@ export async function GET() {
     philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
     pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
     accountantEmail: clinic.accountantEmail ?? '',
+    // Clinic's own DPO + NPC registration (clinic = PIC)
+    dpoName: clinic.dpoName ?? '',
+    dpoEmail: clinic.dpoEmail ?? '',
+    dpoPhone: clinic.dpoPhone ?? '',
+    npcRegistrationNumber: clinic.npcRegistrationNumber ?? '',
+    npcRegistrationDate: clinic.npcRegistrationDate?.toISOString() ?? null,
   })
 }
 
@@ -60,6 +66,7 @@ export async function PATCH(req: NextRequest) {
     orSeriesStart,
     hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
     accountantEmail,
+    dpoName, dpoEmail, dpoPhone, npcRegistrationNumber, npcRegistrationDate,
     tin, rdoCode, corNumber, entityType, vatRegistered, vatRegistrationDate, filingMethod,
   } = body
 
@@ -82,6 +89,11 @@ export async function PATCH(req: NextRequest) {
       ...(philhealthEmployerNumber !== undefined && { philhealthEmployerNumber: philhealthEmployerNumber || null }),
       ...(pagibigEmployerNumber !== undefined && { pagibigEmployerNumber: pagibigEmployerNumber || null }),
       ...(accountantEmail !== undefined && { accountantEmail: accountantEmail || null }),
+      ...(dpoName !== undefined && { dpoName: dpoName || null }),
+      ...(dpoEmail !== undefined && { dpoEmail: dpoEmail || null }),
+      ...(dpoPhone !== undefined && { dpoPhone: dpoPhone || null }),
+      ...(npcRegistrationNumber !== undefined && { npcRegistrationNumber: npcRegistrationNumber || null }),
+      ...(npcRegistrationDate !== undefined && { npcRegistrationDate: npcRegistrationDate ? new Date(npcRegistrationDate) : null }),
       ...(tin !== undefined && { tin }),
       ...(rdoCode !== undefined && { rdoCode }),
       ...(corNumber !== undefined && { corNumber }),

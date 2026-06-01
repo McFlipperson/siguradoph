@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Shield, CheckCircle2 } from 'lucide-react'
+import { SIGURADO_DPO } from '@/lib/dpo'
 
 interface Step1DPAProps {
   onAccept: () => void
@@ -79,11 +80,13 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
         <section className="space-y-1">
           <p className="font-medium text-foreground">5. Your Obligations as PIC</p>
           <p>
-            You are responsible for: obtaining valid consent or having a lawful basis for processing
+            You are responsible for: <strong>appointing your own Data Protection Officer (DPO)</strong>;
+            obtaining valid consent or having a lawful basis for processing
             each patient&apos;s personal data; posting a privacy notice in your clinic; registering with the
             National Privacy Commission (NPC) if you process Sensitive Personal Information of 1,000 or
             more individuals; responding to data subject requests within 15 business days; and reporting
-            any breach to the NPC within 72 hours of discovery.
+            any breach to the NPC within 72 hours of discovery. Your clinic&apos;s DPO is separate from
+            Sigurado&apos;s DPO named below — you record yours in Settings.
           </p>
         </section>
 
@@ -124,8 +127,8 @@ export function Step1DPA({ onAccept, isSaving }: Step1DPAProps) {
         </section>
 
         <p className="text-xs pt-2 border-t">
-          Questions? Contact our Data Protection Officer at{' '}
-          <strong>privacy@sigurado.xyz</strong> before accepting.
+          Questions? Contact Sigurado&apos;s Data Protection Officer, {SIGURADO_DPO.name}{' '}
+          ({SIGURADO_DPO.company}), at <strong>{SIGURADO_DPO.email}</strong> before accepting.
         </p>
       </div>
 

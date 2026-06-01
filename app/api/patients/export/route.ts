@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 function escapeCsv(value: string | null | undefined): string {
   const s = String(value ?? '')
@@ -67,6 +68,17 @@ export async function GET() {
   const csv = [header, ...rows]
     .map((row) => row.map(escapeCsv).join(','))
     .join('\n')
+
+  // RA 10173: a bulk export is a mass disclosure of Sensitive Personal
+  // Information — record who exported what, and when.
+  await writeAudit({
+    clinicId,
+    userEmail: user.email,
+    action: 'EXPORT_PATIENTS',
+    resourceType: 'PATIENT',
+    resourceId: 'BULK_EXPORT',
+    detail: `Exported ${patients.length} patient record(s) to CSV (includes medical history, medications, allergies)`,
+  })
 
   const today = new Date().toISOString().split('T')[0]
 

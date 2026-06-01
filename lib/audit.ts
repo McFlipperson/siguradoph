@@ -10,13 +10,20 @@ export type AuditAction =
   | 'CONFIRM_PAYMENT'
   | 'VOID_INVOICE'
   | 'DELETE_PATIENT'
+  | 'EXPORT_PATIENTS'
+  | 'EXPORT_INVOICES'
 
 export type AuditResourceType = 'PATIENT' | 'VISIT' | 'INVOICE'
 
 /**
- * Write an immutable audit log entry for RA 10173 compliance.
- * Fire-and-forget: errors are silently swallowed so a logging failure
- * never breaks the main operation.
+ * Write an audit log entry for RA 10173 access accountability.
+ *
+ * Non-throwing: a logging failure must never break the underlying clinical or
+ * financial operation. But it is NOT silent — failures are logged to the server
+ * console (Vercel runtime logs) so a gap in the access trail is observable, and
+ * the function returns false so callers can react if they choose. A silently
+ * dropped audit entry would mean SPI access with no record, which defeats the
+ * purpose of the log for compliance proof.
  */
 export async function writeAudit(params: {
   clinicId: string
@@ -25,10 +32,20 @@ export async function writeAudit(params: {
   resourceType: AuditResourceType
   resourceId: string
   detail?: string
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     await prisma.auditLog.create({ data: params })
-  } catch {
-    // Never let audit logging break the main flow
+    return true
+  } catch (err) {
+    // Surface the failure (do not throw) — an unlogged SPI access is a
+    // compliance gap that must be visible in the logs, not swallowed.
+    console.error('[audit] FAILED to write audit entry', {
+      clinicId: params.clinicId,
+      action: params.action,
+      resourceType: params.resourceType,
+      resourceId: params.resourceId,
+      error: err instanceof Error ? err.message : String(err),
+    })
+    return false
   }
 }

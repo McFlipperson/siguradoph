@@ -44,6 +44,8 @@ const ACTION_LABELS: Record<string, string> = {
   VOID_INVOICE:         'Invoice voided',
   UPDATE_VISIT:         'Visit updated',
   DELETE_PATIENT:       'Patient deleted',
+  EXPORT_PATIENTS:      'Patient data exported',
+  EXPORT_INVOICES:      'Invoices exported',
 }
 
 function formatDate(iso: string) {

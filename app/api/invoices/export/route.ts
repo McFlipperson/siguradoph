@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withClinicDb } from '@/lib/clinic-db'
 import { getSessionUser } from '@/lib/auth'
+import { writeAudit } from '@/lib/audit'
 
 function escapeCsv(value: string | null | undefined): string {
   const s = String(value ?? '')
@@ -44,6 +45,16 @@ export async function GET() {
   const csv = [header, ...rows]
     .map((row) => row.map(escapeCsv).join(','))
     .join('\n')
+
+  // Invoice exports carry patient names/addresses — log the disclosure.
+  await writeAudit({
+    clinicId,
+    userEmail: user.email,
+    action: 'EXPORT_INVOICES',
+    resourceType: 'INVOICE',
+    resourceId: 'BULK_EXPORT',
+    detail: `Exported ${invoices.length} invoice(s) to CSV (includes patient names)`,
+  })
 
   const today = new Date().toISOString().split('T')[0]
 

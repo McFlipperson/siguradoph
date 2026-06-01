@@ -48,6 +48,11 @@ type ClinicData = {
   philhealthEmployerNumber: string
   pagibigEmployerNumber: string
   accountantEmail: string
+  dpoName: string
+  dpoEmail: string
+  dpoPhone: string
+  npcRegistrationNumber: string
+  npcRegistrationDate: string | null
 }
 
 type ServiceItem = {
@@ -247,6 +252,12 @@ export default function SettingsClient({
   const [pagibigEmployerNumber, setPagibigEmployerNumber] = useState(clinic.pagibigEmployerNumber)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [accountantEmail, setAccountantEmail] = useState(clinic.accountantEmail)
+  // Clinic's own DPO + NPC registration (clinic = PIC under RA 10173)
+  const [dpoName, setDpoName] = useState(clinic.dpoName)
+  const [dpoEmail, setDpoEmail] = useState(clinic.dpoEmail)
+  const [dpoPhone, setDpoPhone] = useState(clinic.dpoPhone)
+  const [npcRegistrationNumber, setNpcRegistrationNumber] = useState(clinic.npcRegistrationNumber)
+  const [npcRegistrationDate, setNpcRegistrationDate] = useState(clinic.npcRegistrationDate ?? '')
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -319,6 +330,8 @@ export default function SettingsClient({
           orSeriesStart,
           hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
           accountantEmail,
+          dpoName, dpoEmail, dpoPhone, npcRegistrationNumber,
+          npcRegistrationDate: npcRegistrationDate || null,
           tin, rdoCode, corNumber, entityType,
           vatRegistered, vatRegistrationDate: vatRegistrationDate || null,
           filingMethod,
@@ -671,6 +684,37 @@ export default function SettingsClient({
               <span className="text-sm font-medium shrink-0">
                 {new Date(clinic.enrollmentDate).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
               </span>
+            </div>
+          </div>
+
+          {/* Data Privacy — the CLINIC's own DPO (clinic = Personal Information Controller) */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Data Privacy (RA 10173)</h2>
+            <div className="rounded-lg bg-muted/40 border px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+              Your clinic is the <strong>Personal Information Controller</strong>. Under RA 10173 you must
+              appoint your own Data Protection Officer (DPO) and, if you process the data of 1,000+ patients,
+              register with the National Privacy Commission. Record your DPO and registration here — this is
+              the information you provide to the NPC. (Sigurado has its own separate DPO as your processor.)
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">DPO Full Name</label>
+              <input value={dpoName} onChange={e => setDpoName(e.target.value)} placeholder="e.g. Dr. Maria Santos" className={`${inputClass} mt-1`} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">DPO Email</label>
+              <input value={dpoEmail} onChange={e => setDpoEmail(e.target.value)} inputMode="email" placeholder="dpo@yourclinic.ph" className={`${inputClass} mt-1`} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">DPO Phone</label>
+              <input value={dpoPhone} onChange={e => setDpoPhone(e.target.value)} inputMode="tel" placeholder="+63 9XX XXX XXXX" className={`${inputClass} mt-1`} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">NPC Registration Number <span className="font-normal">(if registered)</span></label>
+              <input value={npcRegistrationNumber} onChange={e => setNpcRegistrationNumber(e.target.value)} placeholder="e.g. PIC-XXXXXXXX" className={`${inputClass} mt-1`} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">NPC Registration Date</label>
+              <input type="date" value={npcRegistrationDate ? npcRegistrationDate.slice(0, 10) : ''} onChange={e => setNpcRegistrationDate(e.target.value)} className={`${inputClass} mt-1`} />
             </div>
           </div>
 

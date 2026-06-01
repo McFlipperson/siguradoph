@@ -49,81 +49,11 @@ export async function getPatients(): Promise<PatientSummary[]> {
   }))
 }
 
-export type CreatePatientData = {
-  firstName: string
-  middleName?: string
-  lastName: string
-  dateOfBirth: string
-  address: string
-  phone: string
-  email?: string
-  medicalHistory: string
-  medications: string
-  allergies: string
-  isMinor: boolean
-  guardianName?: string
-  guardianRelationship?: string
-  guardianPhone?: string
-}
-
-export async function createPatient(data: CreatePatientData): Promise<string> {
-  const { clinicId, userEmail, db } = await getActorDb()
-  const clinic = await prisma.clinic.findUnique({
-    where: { id: clinicId },
-    select: { enrollmentDate: true },
-  })
-  if (!clinic) throw new Error('Clinic not found')
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const enrollmentDate = new Date(clinic.enrollmentDate)
-  enrollmentDate.setHours(0, 0, 0, 0)
-  if (today < enrollmentDate) {
-    throw new Error('DAY_ONE: This clinic is not yet accepting records.')
-  }
-
-  const enrolledAt = today
-
-  const patient = await db((tx) => tx.patient.create({
-    data: {
-      clinicId,
-      firstName: data.firstName,
-      middleName: data.middleName?.trim() || null,
-      lastName: data.lastName,
-      dateOfBirth: new Date(data.dateOfBirth),
-      address: data.address,
-      phone: data.phone,
-      email: data.email || null,
-      medicalHistory: data.medicalHistory,
-      medications: data.medications,
-      allergies: data.allergies,
-      enrolledAt,
-      consentRecords: {
-        create: {
-          clinicId,
-          npcConsentGiven: true,
-          truthfulnessDeclaration: true,
-          surgicalConsentGiven: true,
-          isMinor: data.isMinor,
-          guardianName: data.guardianName || null,
-          guardianRelationship: data.guardianRelationship || null,
-          consentMethod: 'verbal',
-        },
-      },
-    },
-  }))
-
-  await writeAudit({
-    clinicId,
-    userEmail,
-    action: 'CREATE_PATIENT',
-    resourceType: 'PATIENT',
-    resourceId: patient.id,
-    detail: `Created patient record: ${data.firstName} ${data.lastName}`,
-  })
-
-  return patient.id
-}
+// NOTE: The legacy createPatient() action was removed. It fabricated consent
+// (npcConsentGiven/truthfulnessDeclaration hardcoded true, method 'verbal') and
+// had no callers. The only supported intake path is submitIntakeStep1
+// (app/(dashboard)/patients/intake/actions.ts), which records the data subject's
+// actual consent action. Do not reintroduce a path that asserts consent.
 
 export type FullPatient = {
   id: string
@@ -459,61 +389,10 @@ export async function getServiceCatalog(): Promise<ServiceCatalogItem[]> {
   }))
 }
 
-export type CreateVisitData = {
-  patientId: string
-  visitDate: string
-  diagnosis: string
-  toothNumber?: string
-  treatment: string
-  notes: string
-  grossAmount: number
-  isBracesReminder?: boolean
-  reminderWeeks?: number
-}
-
-export async function createVisit(data: CreateVisitData): Promise<string> {
-  const { clinicId, db } = await getActorDb()
-
-  const grossAmount = data.grossAmount
-  const netAmount = parseFloat((grossAmount / 1.12).toFixed(2))
-  const vatAmount = parseFloat((grossAmount - netAmount).toFixed(2))
-
-  const visitId = await db(async (tx) => {
-    const visit = await tx.visit.create({
-      data: {
-        clinicId,
-        patientId: data.patientId,
-        visitDate: new Date(data.visitDate),
-        diagnosis: data.diagnosis,
-        toothNumber: data.toothNumber || null,
-        treatment: data.treatment,
-        notes: data.notes,
-        grossAmount,
-        netAmount,
-        vatAmount,
-      },
-    })
-
-    if (data.isBracesReminder && data.reminderWeeks) {
-      const scheduledFor = new Date(data.visitDate)
-      scheduledFor.setDate(scheduledFor.getDate() + data.reminderWeeks * 7)
-      await tx.scheduledReminder.create({
-        data: {
-          clinicId,
-          patientId: data.patientId,
-          visitId: visit.id,
-          reminderType: 'BRACES_ALIGNMENT',
-          scheduledFor,
-        },
-      })
-    }
-
-    return visit.id
-  })
-
-  revalidatePath(`/patients/${data.patientId}`)
-  return visitId
-}
+// NOTE: The legacy createVisit() action was removed — it had no callers and
+// applied 12% VAT (net = gross/1.12), contradicting the supported saveVisit()
+// path (app/(dashboard)/visits/actions.ts) which treats dental services as
+// VAT-exempt. saveVisit is the single source of truth for visit creation.
 
 // ---------------------------------------------------------------------------
 // Delete patient — permanently removes all associated records
@@ -596,19 +475,19 @@ export async function deletePatient(patientId: string): Promise<void> {
 // Any first-time message received on the clinic Page auto-links to this patient.
 // Only one slot per clinic — replaces any previous pending link.
 export async function startMessengerLink(patientId: string): Promise<void> {
-  const { clinicId } = await getActorDb()
+  const { clinicId, db } = await getActorDb()
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000)
-  await prisma.pendingMessengerLink.upsert({
+  await db((tx) => tx.pendingMessengerLink.upsert({
     where: { clinicId },
     create: { clinicId, patientId, expiresAt },
     update: { patientId, expiresAt },
-  })
+  }))
 }
 
 // Cancels the pending slot (e.g. staff tapped Cancel).
 export async function cancelMessengerLink(): Promise<void> {
-  const { clinicId } = await getActorDb()
-  await prisma.pendingMessengerLink.deleteMany({ where: { clinicId } })
+  const { clinicId, db } = await getActorDb()
+  await db((tx) => tx.pendingMessengerLink.deleteMany({ where: { clinicId } }))
 }
 
 // Polls whether a patient has been linked yet.
@@ -628,9 +507,9 @@ export async function checkMessengerLink(
   if (patient?.messengerPsid) return { linked: true }
 
   // Check if the pending slot is still alive
-  const pending = await prisma.pendingMessengerLink.findUnique({
+  const pending = await db((tx) => tx.pendingMessengerLink.findUnique({
     where: { clinicId },
-  })
+  }))
   if (!pending || pending.patientId !== patientId) return { linked: false, expired: true }
   if (pending.expiresAt < new Date()) return { linked: false, expired: true }
 

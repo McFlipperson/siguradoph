@@ -21,6 +21,11 @@ export type IntakeStep1Data = {
   isMinor: boolean
   guardianName?: string
   guardianRelationship?: string
+  // RA 10173: consent is captured from the data subject's actual action on the
+  // intake device — never assumed. noticeVersion records WHICH privacy notice
+  // they agreed to, for evidentiary purposes.
+  consentGiven: boolean
+  noticeVersion: string
 }
 
 export type IntakeStep1Result =
@@ -31,6 +36,10 @@ export type IntakeStep1Result =
 export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeStep1Result> {
   try {
     const { clinicId, db } = await getActorDb()
+
+    // RA 10173: no lawful basis → do not create a Sensitive Personal Information
+    // record. Consent must be the data subject's actual action, not assumed.
+    if (!data.consentGiven) return { success: false, error: 'consent_required' }
 
     const clinic = await prisma.clinic.findUnique({
       where: { id: clinicId },
@@ -69,13 +78,17 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
         data: {
           patientId: patient.id,
           clinicId,
-          npcConsentGiven: true,
-          truthfulnessDeclaration: true,
+          // Persist the data subject's ACTUAL consent action (the single tap on
+          // the intake device covers processing consent + truthfulness — see
+          // the consent statement in IntakeForm). Never hardcoded.
+          npcConsentGiven: data.consentGiven,
+          truthfulnessDeclaration: data.consentGiven,
           surgicalConsentGiven: false,
           isMinor: data.isMinor,
           guardianName: data.isMinor ? data.guardianName?.trim() || null : null,
           guardianRelationship: data.isMinor ? data.guardianRelationship?.trim() || null : null,
           consentMethod: 'digital',
+          noticeVersion: data.noticeVersion,
         },
       })
 

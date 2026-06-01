@@ -88,6 +88,14 @@ model Clinic {
   loyaltyCardPrice         Decimal      @default(500)
   loyaltyValidityMonths    Int          @default(24)
   accountantEmail          String?
+  // RA 10173 — the CLINIC's own Data Protection Officer (the clinic is the PIC).
+  // Distinct from Sigurado's company DPO (lib/dpo.ts). The clinic provides this to
+  // the NPC for ITS registration and shows it on its patient privacy notice.
+  dpoName                  String?
+  dpoEmail                 String?
+  dpoPhone                 String?
+  npcRegistrationNumber    String?      // the clinic's own NPC registration number (proof of compliance)
+  npcRegistrationDate      DateTime?
   tosAcceptedAt            DateTime?    // timestamp when DPA/ToS was accepted during onboarding
   trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
   createdAt                DateTime     @default(now())
@@ -193,6 +201,7 @@ model ConsentRecord {
   guardianRelationship    String?
   consentDate             DateTime @default(now())
   consentMethod           String   @default("digital")
+  noticeVersion           String?  // version of the privacy notice the data subject actually agreed to (RA 10173 evidence of WHAT was consented)
 }
 
 model Visit {

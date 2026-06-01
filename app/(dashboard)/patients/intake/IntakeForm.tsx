@@ -20,6 +20,10 @@ const GUARDIAN_RELATIONSHIPS = [
 
 const FB_PAGE_ID = process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID ?? ''
 
+// RA 10173 consent-notice version. Bump this whenever the consent statement
+// text below changes, so each ConsentRecord proves exactly what the patient agreed to.
+const CONSENT_NOTICE_VERSION = '2026-06-01'
+
 type ChannelOption = {
   channel: ReminderChannel
   emoji: string
@@ -88,6 +92,8 @@ export function IntakeForm({
       isMinor,
       guardianName: isMinor ? guardianName : undefined,
       guardianRelationship: isMinor ? guardianRelationship : undefined,
+      consentGiven,
+      noticeVersion: CONSENT_NOTICE_VERSION,
     }
     const result = await submitIntakeStep1(data)
     setSavingStep1(false)
@@ -396,7 +402,7 @@ export function IntakeForm({
         <div className="flex items-start gap-3">
           <input id="consent" type="checkbox" checked={consentGiven} onChange={e => setConsentGiven(e.target.checked)} className="h-5 w-5 rounded mt-0.5 shrink-0" />
           <Label htmlFor="consent" className="text-sm leading-relaxed">
-            I have read and understood the above. I consent to {clinicName} collecting and processing my personal and medical information for dental care purposes, and to being contacted via my chosen reminder channel.
+            I have read and understood the above. I consent to {clinicName} collecting and processing my personal and medical information for dental care purposes, and to being contacted via my chosen reminder channel. I confirm the information I provided is true and accurate.
           </Label>
         </div>
       </section>
