@@ -70,6 +70,20 @@ export async function PATCH(req: NextRequest) {
     tin, rdoCode, corNumber, entityType, vatRegistered, vatRegistrationDate, filingMethod,
   } = body
 
+  // Validate enum fields when provided — a bad value would otherwise throw a 500.
+  if (entityType !== undefined && !['SOLE_PROPRIETOR', 'PARTNERSHIP', 'CORPORATION'].includes(entityType)) {
+    return NextResponse.json({ error: 'Invalid entityType' }, { status: 400 })
+  }
+  if (filingMethod !== undefined && !['EBIRFORMS', 'EFPS'].includes(filingMethod)) {
+    return NextResponse.json({ error: 'Invalid filingMethod' }, { status: 400 })
+  }
+  if (vatRegistrationDate !== undefined && vatRegistrationDate !== null && isNaN(new Date(vatRegistrationDate).getTime())) {
+    return NextResponse.json({ error: 'Invalid vatRegistrationDate' }, { status: 400 })
+  }
+  if (npcRegistrationDate !== undefined && npcRegistrationDate !== null && npcRegistrationDate !== '' && isNaN(new Date(npcRegistrationDate).getTime())) {
+    return NextResponse.json({ error: 'Invalid npcRegistrationDate' }, { status: 400 })
+  }
+
   const updated = await prisma.clinic.update({
     where: { id: clinicId },
     data: {

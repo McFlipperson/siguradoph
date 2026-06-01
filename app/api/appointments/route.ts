@@ -65,6 +65,16 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { patientId, scheduledAt, type, notes } = body
 
+  if (!patientId || typeof patientId !== 'string') {
+    return NextResponse.json({ error: 'patientId is required' }, { status: 400 })
+  }
+  if (!type || typeof type !== 'string') {
+    return NextResponse.json({ error: 'type is required' }, { status: 400 })
+  }
+  if (!scheduledAt || isNaN(new Date(scheduledAt).getTime())) {
+    return NextResponse.json({ error: 'scheduledAt is not a valid date' }, { status: 400 })
+  }
+
   // Validate patient belongs to clinic
   const patient = await withClinicDb(clinicId, (tx) =>
     tx.patient.findFirst({ where: { id: patientId, clinicId } })

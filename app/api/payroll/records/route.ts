@@ -61,14 +61,28 @@ export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { employeeId, periodMonth, periodYear, periodWeek, daysWorked, specialHolidayDays } = await req.json()
+  const body = await req.json()
+  const { employeeId, daysWorked, specialHolidayDays } = body
 
-  if (!periodWeek || periodWeek < 1 || periodWeek > 4) {
+  // Validate + coerce numeric period fields (avoid NaN rows / Invalid Date math)
+  if (typeof employeeId !== 'string' || !employeeId) {
+    return NextResponse.json({ error: 'employeeId is required' }, { status: 400 })
+  }
+  const periodWeek = Number(body.periodWeek)
+  const periodMonth = Number(body.periodMonth)
+  const periodYear = Number(body.periodYear)
+  if (!Number.isInteger(periodWeek) || periodWeek < 1 || periodWeek > 4) {
     return NextResponse.json({ error: 'periodWeek must be 1–4' }, { status: 400 })
+  }
+  if (!Number.isInteger(periodMonth) || periodMonth < 1 || periodMonth > 12) {
+    return NextResponse.json({ error: 'periodMonth must be 1–12' }, { status: 400 })
+  }
+  if (!Number.isInteger(periodYear) || periodYear < 2000 || periodYear > 2100) {
+    return NextResponse.json({ error: 'periodYear is invalid' }, { status: 400 })
   }
 
   const days = Number(daysWorked ?? 6)
-  if (days < 0 || days > 7) {
+  if (!Number.isFinite(days) || days < 0 || days > 7) {
     return NextResponse.json({ error: 'daysWorked must be 0–7' }, { status: 400 })
   }
 
