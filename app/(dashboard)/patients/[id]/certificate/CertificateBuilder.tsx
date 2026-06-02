@@ -1,11 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { emailCertificate } from './actions'
 
 type LatestVisit = { date: string; treatment: string; toothNumber: string; diagnosis: string; notes: string } | null
 
 type Props = {
+  patientId: string
+  patientEmail: string
   patientName: string
   age: number
   address: string
@@ -86,9 +90,49 @@ export default function CertificateBuilder(props: Props) {
   const [prcLicenseNo, setPrcLicenseNo] = useState(props.prcLicenseNo)
   const [clinicAddress, setClinicAddress] = useState(props.clinicAddress)
   const [clinicPhone, setClinicPhone] = useState(props.clinicPhone)
+  const [recipient, setRecipient] = useState(props.patientEmail)
+  const [isSending, startSending] = useTransition()
 
   function setProc(i: number, patch: Partial<Procedure>) {
     setProcedures((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)))
+  }
+
+  function sendEmail() {
+    if (!recipient.includes('@')) { toast.error('Enter the patient\'s email address'); return }
+    startSending(async () => {
+      try {
+        const res = await emailCertificate({
+          to: recipient,
+          patientId: props.patientId,
+          dateIssued,
+          patientName,
+          age,
+          civilStatus,
+          address,
+          dateExamined,
+          procedures: procedures.filter((p) => p.checked).map((p) => ({
+            label: p.key === 'others' ? (othersLabel || 'Others') : p.label,
+            toothNo: p.toothNo,
+            diagnosis: p.diagnosis,
+          })),
+          findings,
+          recommendations: [
+            ...recommendations.filter((r) => r.checked).map((r) => r.label),
+            ...(otherRecommendation.trim() ? [otherRecommendation.trim()] : []),
+          ],
+          dentistName,
+          prcLicenseNo,
+          signatureUrl: props.signatureUrl,
+          clinicName: props.clinicName,
+          clinicAddress,
+          clinicPhone,
+        })
+        if (res.ok) toast.success(`Certificate emailed to ${recipient}`)
+        else toast.error(res.error ?? 'Failed to send')
+      } catch {
+        toast.error('Failed to send')
+      }
+    })
   }
 
   const line = 'border-b border-gray-400 outline-none bg-transparent px-1'
@@ -96,14 +140,26 @@ export default function CertificateBuilder(props: Props) {
   return (
     <div className="max-w-2xl mx-auto pb-24">
       {/* Toolbar (hidden on print) */}
-      <div className="no-print flex items-center justify-between gap-2 mb-4 sticky top-0 bg-background py-2 z-10">
-        <button onClick={() => router.back()} className="text-sm text-muted-foreground underline">← Back</button>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground hidden sm:inline">Edit any field, then print or save as PDF</span>
-          <button onClick={() => window.print()} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm">
+      <div className="no-print mb-4 sticky top-0 bg-background py-2 z-10 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <button onClick={() => router.back()} className="text-sm text-muted-foreground underline">← Back</button>
+          <button onClick={() => window.print()} className="px-4 py-2.5 rounded-xl border font-semibold text-sm">
             Print / Save PDF
           </button>
         </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="email"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="patient@email.com"
+            className="flex-1 min-h-[44px] rounded-xl border bg-background px-3 text-sm"
+          />
+          <button onClick={sendEmail} disabled={isSending} className="px-5 min-h-[44px] rounded-xl bg-emerald-600 text-white font-semibold text-sm disabled:opacity-50">
+            {isSending ? 'Sending…' : 'Email Certificate'}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground">Edit any field below, then email it to the patient (PDF) or print/save it.</p>
       </div>
 
       <style>{`

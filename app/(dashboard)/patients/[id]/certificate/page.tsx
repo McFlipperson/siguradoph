@@ -20,7 +20,7 @@ export default async function CertificatePage({ params }: { params: { id: string
     where: { id: params.id },
     select: {
       id: true, clinicId: true, firstName: true, middleName: true, lastName: true,
-      dateOfBirth: true, address: true, addressLine2: true,
+      dateOfBirth: true, address: true, addressLine2: true, email: true,
       visits: {
         where: { status: { not: 'VOID' } },
         orderBy: { visitDate: 'desc' },
@@ -43,6 +43,8 @@ export default async function CertificatePage({ params }: { params: { id: string
 
   return (
     <CertificateBuilder
+      patientId={patient.id}
+      patientEmail={patient.email ?? ''}
       patientName={fullName}
       age={computeAge(patient.dateOfBirth)}
       address={address}
