@@ -14,9 +14,17 @@ type ClinicRow = {
   createdAt: string
 }
 
+type ActivityRow = {
+  id: string
+  actorEmail: string
+  action: string
+  detail: string
+  createdAt: string
+}
+
 const PLANS: Plan[] = ['FREE', 'BASIC', 'PRO']
 
-export default function AdminClient({ clinics }: { clinics: ClinicRow[] }) {
+export default function AdminClient({ clinics, activity }: { clinics: ClinicRow[]; activity: ActivityRow[] }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -91,6 +99,28 @@ export default function AdminClient({ clinics }: { clinics: ClinicRow[] }) {
         ))}
         {filtered.length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-8">No clinics match.</p>
+        )}
+      </div>
+
+      {/* Admin activity log — tamper-evident record of plan changes */}
+      <div className="pt-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Recent admin activity</h2>
+        {activity.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No plan changes recorded yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {activity.map((a) => (
+              <div key={a.id} className="rounded-xl border bg-background px-4 py-2.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{a.detail}</span>
+                  <span className="text-[11px] text-muted-foreground shrink-0">
+                    {new Date(a.createdAt).toLocaleString('en-PH')}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">by {a.actorEmail}</p>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

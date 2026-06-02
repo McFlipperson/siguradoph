@@ -29,6 +29,19 @@ enum Plan {
   PRO
 }
 
+// Sigurado-staff (super-admin) action log — e.g. plan changes via /admin.
+// Cross-clinic by nature; only readable through the admin-gated route.
+model AdminAuditLog {
+  id             String   @id @default(cuid())
+  actorEmail     String
+  action         String   // SET_PLAN
+  targetClinicId String
+  detail         String
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 enum PaymentMethod {
   CASH
   GCASH

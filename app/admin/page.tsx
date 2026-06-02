@@ -12,17 +12,23 @@ export default async function AdminPage() {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!isAdminEmail(authUser?.email)) redirect('/')
 
-  const clinics = await prisma.clinic.findMany({
-    select: {
-      id: true,
-      name: true,
-      plan: true,
-      email: true,
-      createdAt: true,
-      _count: { select: { patients: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  })
+  const [clinics, activity] = await Promise.all([
+    prisma.clinic.findMany({
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        email: true,
+        createdAt: true,
+        _count: { select: { patients: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.adminAuditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
+  ])
 
   return (
     <AdminClient
@@ -33,6 +39,13 @@ export default async function AdminPage() {
         email: c.email,
         patientCount: c._count.patients,
         createdAt: c.createdAt.toISOString(),
+      }))}
+      activity={activity.map((a) => ({
+        id: a.id,
+        actorEmail: a.actorEmail,
+        action: a.action,
+        detail: a.detail,
+        createdAt: a.createdAt.toISOString(),
       }))}
     />
   )
