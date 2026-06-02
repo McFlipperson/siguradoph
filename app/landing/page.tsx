@@ -49,29 +49,11 @@ export default function LandingPage() {
       style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}
     >
 
-      {/* Animated flag / sheet keyframes — injected once at the top */}
+      {/* Wave animation keyframes */}
       <style>{`
-        @keyframes flagWave {
-          0%   { d: path('M0,0 Q25,-18 50,0 Q75,18 100,0 L100,100 Q75,118 50,100 Q25,82 0,100 Z'); opacity: 0.13; }
-          25%  { d: path('M0,0 Q25,20 50,0 Q75,-20 100,0 L100,100 Q75,80 50,100 Q25,120 0,100 Z'); opacity: 0.18; }
-          50%  { d: path('M0,0 Q30,-22 55,5 Q80,28 100,0 L100,100 Q70,72 45,95 Q20,118 0,100 Z'); opacity: 0.14; }
-          75%  { d: path('M0,0 Q20,15 50,-5 Q80,-20 100,0 L100,100 Q80,120 50,105 Q20,85 0,100 Z'); opacity: 0.17; }
-          100% { d: path('M0,0 Q25,-18 50,0 Q75,18 100,0 L100,100 Q75,118 50,100 Q25,82 0,100 Z'); opacity: 0.13; }
-        }
-        @keyframes sheetDrift1 {
-          0%, 100% { transform: translate(-5%, -8%) rotate(-6deg) scaleX(1.1); opacity: 0.10; }
-          40%       { transform: translate(3%, 5%)  rotate(2deg)  scaleX(0.95); opacity: 0.18; }
-          70%       { transform: translate(-2%, 2%) rotate(-3deg) scaleX(1.05); opacity: 0.13; }
-        }
-        @keyframes sheetDrift2 {
-          0%, 100% { transform: translate(8%, 4%)  rotate(5deg)  scaleX(0.9);  opacity: 0.08; }
-          35%       { transform: translate(-4%, -6%) rotate(-4deg) scaleX(1.08); opacity: 0.15; }
-          65%       { transform: translate(2%, 3%)  rotate(1deg)  scaleX(1.02); opacity: 0.11; }
-        }
-        @keyframes sheetDrift3 {
-          0%, 100% { transform: translate(0%, -12%) rotate(-2deg) scaleX(1.15); opacity: 0.07; }
-          50%       { transform: translate(-6%, 8%)  rotate(6deg)  scaleX(0.88); opacity: 0.14; }
-        }
+        @keyframes wave1 { 0%,100% { transform: translateX(0);    } 50% { transform: translateX(-25%); } }
+        @keyframes wave2 { 0%,100% { transform: translateX(-15%); } 50% { transform: translateX(10%);  } }
+        @keyframes wave3 { 0%,100% { transform: translateX(5%);   } 50% { transform: translateX(-20%); } }
       `}</style>
 
       {/* ══════════════════════════════════════════════════════════
@@ -81,12 +63,12 @@ export default function LandingPage() {
         className="flex items-center justify-between px-5 py-4"
         style={{ background: '#0038A8' }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <Image
             src="/images/SIG final PH LOGO.png"
             alt="Sigurado"
-            width={120}
-            height={40}
+            width={160}
+            height={87}
             className="object-contain"
             priority
           />
@@ -119,50 +101,39 @@ export default function LandingPage() {
         className="overflow-hidden relative"
         style={{ background: '#0038A8' }}
       >
-        {/* ── Animated sheet / flag layers ─────────────────────── */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-          {/* Sheet 1 — large slow billow */}
-          <div style={{
-            position: 'absolute',
-            inset: '-20% -10%',
-            background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(252,209,22,0.10) 40%, rgba(206,17,38,0.08) 70%, transparent 100%)',
-            borderRadius: '38% 62% 55% 45% / 45% 35% 65% 55%',
-            filter: 'blur(2px)',
-            animation: 'sheetDrift1 9s ease-in-out infinite',
-            willChange: 'transform, opacity',
-          }} />
-          {/* Sheet 2 — medium, offset phase */}
-          <div style={{
-            position: 'absolute',
-            inset: '-15% -5%',
-            background: 'linear-gradient(220deg, rgba(255,255,255,0.12) 0%, rgba(252,209,22,0.07) 50%, transparent 100%)',
-            borderRadius: '55% 45% 38% 62% / 60% 40% 60% 40%',
-            filter: 'blur(1px)',
-            animation: 'sheetDrift2 12s ease-in-out infinite',
-            willChange: 'transform, opacity',
-          }} />
-          {/* Sheet 3 — thin highlight edge */}
-          <div style={{
-            position: 'absolute',
-            inset: '-25% -15%',
-            background: 'linear-gradient(60deg, transparent 30%, rgba(255,255,255,0.10) 55%, rgba(206,17,38,0.06) 75%, transparent 100%)',
-            borderRadius: '40% 60% 50% 50% / 50% 55% 45% 50%',
-            animation: 'sheetDrift3 15s ease-in-out infinite',
-            willChange: 'transform, opacity',
-          }} />
+        {/* ── Animated SVG waves — bottom of hero ─────────────── */}
+        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: 120 }}>
+          {/* Wave 1 — back, slowest */}
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
+            style={{ position: 'absolute', bottom: 0, width: '200%', height: '100%', animation: 'wave1 10s ease-in-out infinite', willChange: 'transform' }}>
+            <path d="M0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 L1200,120 L0,120 Z"
+              fill="rgba(255,255,255,0.07)" />
+          </svg>
+          {/* Wave 2 — middle */}
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
+            style={{ position: 'absolute', bottom: 0, width: '200%', height: '80%', animation: 'wave2 7s ease-in-out infinite', willChange: 'transform' }}>
+            <path d="M0,40 C200,80 400,0 600,40 C800,80 1000,10 1200,40 L1200,120 L0,120 Z"
+              fill="rgba(255,255,255,0.09)" />
+          </svg>
+          {/* Wave 3 — front, fastest */}
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
+            style={{ position: 'absolute', bottom: 0, width: '200%', height: '60%', animation: 'wave3 5s ease-in-out infinite', willChange: 'transform' }}>
+            <path d="M0,30 C300,70 600,0 900,50 C1050,75 1150,20 1200,30 L1200,120 L0,120 Z"
+              fill="rgba(255,255,255,0.12)" />
+          </svg>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0 relative">
 
           {/* Text side */}
           <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
-            {/* Hero logo — new logo */}
+            {/* Hero logo */}
             <div className="mb-6">
               <Image
                 src="/images/SIG final PH LOGO.png"
                 alt="Sigurado"
-                width={180}
-                height={60}
+                width={220}
+                height={120}
                 className="object-contain"
                 priority
               />
@@ -341,16 +312,9 @@ export default function LandingPage() {
           BRAND STRIP — between How It Works and Pricing
       ══════════════════════════════════════════════════════════ */}
       <div
-        className="flex items-center justify-center gap-4 px-5 py-5"
+        className="flex items-center justify-center px-5 py-5"
         style={{ background: '#0B1627' }}
       >
-        <Image
-          src="/images/SIG final PH LOGO.png"
-          alt="Sigurado"
-          width={32}
-          height={32}
-          className="object-contain opacity-90"
-        />
         <p className="font-black text-sm tracking-wide" style={{ color: 'rgba(255,255,255,0.55)' }}>
           Sigurado — Dental clinic software built for the Philippines.
         </p>
@@ -494,8 +458,8 @@ export default function LandingPage() {
             <Image
               src="/images/SIG final PH LOGO.png"
               alt="Sigurado"
-              width={52}
-              height={52}
+              width={160}
+              height={87}
               className="object-contain"
             />
           </div>
@@ -544,15 +508,14 @@ export default function LandingPage() {
           FOOTER
       ══════════════════════════════════════════════════════════ */}
       <footer className="px-5 py-10 flex flex-col gap-4" style={{ background: '#060E1F' }}>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <Image
             src="/images/SIG final PH LOGO.png"
             alt="Sigurado"
-            width={56}
-            height={56}
+            width={140}
+            height={76}
             className="object-contain"
           />
-          <span className="font-black text-xl" style={{ color: '#ffffff' }}>Sigurado</span>
         </div>
         <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
           © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
