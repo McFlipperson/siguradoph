@@ -2,6 +2,32 @@
 
 Last updated: 2026-06-02. Plain-English where possible; technical detail for a developer.
 
+## Verification status (2026-06-02 live click-test on production)
+
+Click-tested end-to-end on the live site (clinic "denty"); test data cleaned up after.
+
+**Verified working:**
+- Plan gating — admin sets plan, change logged in activity feed, Pro feature shows
+  upgrade screen when Free, **server-side 403** confirmed (export API direct hit), restore.
+- Consent capture (P1) — patient created via intake; consent persisted with real
+  `npcConsentGiven=true`, `noticeVersion`, method `digital`. Continue button disabled
+  without consent.
+- Patient delete — happy path (no receipts → deletes + redirects) AND the BIR guard
+  (patient with issued receipts → blocked, offered Anonymize).
+- Incident logging both layers (clinic Compliance + Sigurado /admin/incidents) — create,
+  72-hour countdown, breach banner/red-dot, mark-reported, audit-logged.
+- Access logging (P3), all new pages render.
+
+**Bug found & fixed during testing:** delete-guard signaled the block via a thrown
+error message, which Next.js redacts in production → showed a generic server error
+instead of the anonymize prompt. Fixed to return a structured result. Re-tested: works.
+
+**Not exercised (logic present + type-checked, not click-run):**
+- Free-tier 30-patient cap *firing* (would need 30 patients to trigger; under-cap create works).
+- Anonymize *execution* (the scrub itself — would permanently alter a real record; only the
+  guard→prompt was tested).
+- Messenger webhook signature; ConsentRecord immutability trigger (DB-level).
+
 Sigurado is a dental-clinic SaaS for the Philippines (Next.js 14 App Router,
 Supabase/Postgres + Prisma, Tailwind, deployed on Vercel). It is multi-tenant:
 each dental clinic is a separate "tenant" and must never see another clinic's data.
