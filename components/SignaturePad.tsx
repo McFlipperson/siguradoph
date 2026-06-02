@@ -2,14 +2,14 @@
 
 import { useRef, useState, useEffect } from 'react'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 
 /**
- * Draw-and-save signature pad. Uploads the drawn PNG to the existing
- * `clinic-logos` storage bucket and returns a public URL via onChange.
- * Used at onboarding and in Settings; the saved image prints on certificates.
+ * Draw-and-save signature pad. Saves the drawing as a base64 PNG data URL
+ * (stored in the clinic row — NOT a public file), so the signature specimen is
+ * never exposed at a public URL. Used at onboarding and in Settings; the saved
+ * image is embedded on dental certificates.
  */
 export function SignaturePad({
   value,
@@ -21,7 +21,6 @@ export function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
   const [editing, setEditing] = useState(!value)
-  const [uploading, setUploading] = useState(false)
   const [hasInk, setHasInk] = useState(false)
 
   useEffect(() => {
@@ -69,28 +68,14 @@ export function SignaturePad({
     setHasInk(false)
   }
 
-  async function save() {
+  function save() {
     if (!hasInk) { toast.error('Please draw your signature first'); return }
-    setUploading(true)
-    try {
-      const blob: Blob = await new Promise((res, rej) =>
-        canvasRef.current!.toBlob((b) => (b ? res(b) : rej(new Error('Could not capture signature'))), 'image/png')
-      )
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('Not authenticated')
-      const path = `${user.id}/signature.png`
-      const { error } = await supabase.storage.from('clinic-logos').upload(path, blob, { upsert: true, contentType: 'image/png' })
-      if (error) throw error
-      const { data: { publicUrl } } = supabase.storage.from('clinic-logos').getPublicUrl(path)
-      onChange(`${publicUrl}?t=${Date.now()}`) // cache-bust on re-save
-      setEditing(false)
-      toast.success('Signature saved')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Upload failed')
-    } finally {
-      setUploading(false)
-    }
+    // Store as a base64 data URL inside the clinic record — kept private,
+    // never published to a public storage URL.
+    const dataUrl = canvasRef.current!.toDataURL('image/png')
+    onChange(dataUrl)
+    setEditing(false)
+    toast.success('Signature saved')
   }
 
   if (!editing && value) {
@@ -119,8 +104,8 @@ export function SignaturePad({
         onTouchStart={start} onTouchMove={move} onTouchEnd={end}
       />
       <div className="flex gap-2">
-        <Button type="button" variant="outline" className="flex-1 min-h-[44px]" onClick={clear} disabled={uploading}>Clear</Button>
-        <Button type="button" className="flex-1 min-h-[44px]" onClick={save} disabled={uploading}>{uploading ? 'Saving…' : 'Save signature'}</Button>
+        <Button type="button" variant="outline" className="flex-1 min-h-[44px]" onClick={clear}>Clear</Button>
+        <Button type="button" className="flex-1 min-h-[44px]" onClick={save}>Save signature</Button>
       </div>
       <p className="text-xs text-muted-foreground">Sign with your finger, stylus, or mouse.</p>
     </div>

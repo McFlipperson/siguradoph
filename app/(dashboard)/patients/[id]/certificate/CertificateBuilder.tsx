@@ -174,7 +174,12 @@ export default function CertificateBuilder(props: Props) {
           </div>
         </div>
 
-        <p className="mb-8">This certification is issued upon the request of the patient for whatever legal purpose it may serve.</p>
+        <p className="mb-3">This certification is issued upon the request of the patient for whatever legal purpose it may serve.</p>
+
+        <p className="mb-8 text-[12px] text-gray-700">
+          To verify the authenticity of this certificate, please contact {props.clinicName || 'the clinic'} at{' '}
+          <input value={clinicPhone} onChange={(e) => setClinicPhone(e.target.value)} className={`${line} w-48`} />.
+        </p>
 
         <div className="mt-10">
           <p className="mb-2">Respectfully,</p>
