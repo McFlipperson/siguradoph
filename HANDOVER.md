@@ -1,6 +1,22 @@
 # Sigurado — Handover & Operations Guide
 
-Last updated: 2026-06-02. Plain-English where possible; technical detail for a developer.
+Last updated: 2026-06-03. Plain-English where possible; technical detail for a developer.
+
+## 0. New session — start here
+
+Recent work since the privacy track (all live on production):
+- **Address Line 2** (optional) on Patient — intake + profile + certificate.
+- **Subscription plans** (Free/Basic/Pro) + feature gating + `/admin` plan-setter (§3, §4).
+- **Dental Certificate generator** — `/patients/[id]/certificate` (§12): auto-fills from
+  patient + most recent visit, editable, **Print/Save-PDF**, and **email-to-patient as PDF**.
+- **Dentist PRC License No.** + **drawn digital signature** stored on the clinic (§12).
+
+**Requested but NOT yet built (next task) — see §13:**
+- **Civil status** as a stored Patient field (currently only an editable field on the cert).
+- **Sex (Male/Female)** field on Patient — does **not** exist anywhere yet.
+Both should be quick dropdowns asked at intake and editable in the profile, then flow to the certificate.
+
+**Still pending from before:** activate RLS (§6), automated PayMongo billing (§4).
 
 ## Verification status (2026-06-02 live click-test on production)
 
@@ -165,6 +181,14 @@ Applied migrations of note:
 - `Patient.anonymizedAt`
 - `Clinic.plan` enum (existing clinics → PRO)
 - `IncidentLog`, `PlatformIncident`, `AdminAuditLog` tables
+- `Patient.addressLine2`
+- `Clinic.prcLicenseNo`, `Clinic.signatureUrl`
+
+How migrations get applied here: there is no migration runner on deploy. The pattern used
+this whole project is a throwaway Node script that reads `DIRECT_URL` from `vercel env pull`
+and runs the SQL file via the `pg` package, then verifies the column/table exists. (Examples
+are in the git history.) `prisma db push` is an alternative for plain columns but does NOT
+create triggers/RLS — those need the raw SQL.
 
 ---
 
@@ -209,3 +233,47 @@ receipts deletes normally. This is in the patient profile "Danger Zone".
 - **Apply a new DB migration:** run the SQL in `supabase/migrations/` against the DB
   (Supabase SQL Editor or a script using `DIRECT_URL`).
 - **Roll back a deploy:** Vercel dashboard → Deployments → promote a previous build.
+
+---
+
+## 12. Dental certificates & dentist signature
+
+- **Button:** "Dental Certificate" on the patient profile → `/patients/[id]/certificate`.
+- **Builder** (`CertificateBuilder.tsx`): every field editable. Auto-fills issue date (today),
+  patient name/age/address, exam date, and pre-checks the procedure(s) + tooth no. + diagnosis
+  from the patient's **most recent visit**. Civil status / findings / recommendations are filled
+  at issue time. Dentist name, PRC license, clinic address/contact auto-fill from the clinic.
+- **Output:** "Print / Save PDF" (browser print, isolated via print CSS) **and** "Email Certificate"
+  → server action `emailCertificate` renders a PDF (`lib/certificate-pdf.tsx`, React-PDF, signature
+  embedded) and sends it via Resend as an attachment. Emailing is audit-logged.
+- **PRC License No.:** `Clinic.prcLicenseNo`, set in Settings → "Dentist Credentials". Prints on every cert.
+- **Signature:** drawn with `components/SignaturePad.tsx`, stored as a **base64 data URL in
+  `Clinic.signatureUrl`** (deliberately NOT a public storage URL — a signature specimen must not be
+  public). Captured at onboarding (Step 1) and editable in Settings → Dentist Credentials.
+  Renders above the dentist name on the cert + in the PDF.
+- **Verify-by-phone:** the cert/PDF shows "To verify, contact [clinic] at [phone]" — the low-tech
+  authenticity check (it's a convenience signature, not a cryptographic e-signature; fine for
+  routine certificates, wet-sign for contested ones).
+- **Not live-tested:** the actual email *send* (Resend) and the signature appearing in the emailed
+  PDF were not click-verified end to end. Worth one test send to a real inbox.
+
+---
+
+## 13. NEXT TASK — Civil status + Sex on the patient (requested, not built)
+
+Currently: there is **no sex/gender field** anywhere, and **civil status** is only an editable
+field on the certificate form (not stored on the patient). The ask is to make both proper
+**Patient** fields, captured at intake and editable in the profile, then used on the certificate.
+
+To implement (mirror the `addressLine2` change for the wiring pattern):
+1. **Schema** `prisma/schema.prisma` — add to `Patient`: `sex String?` (or an enum MALE/FEMALE)
+   and `civilStatus String?`. Add a migration SQL file + apply it (see §7).
+2. **Intake** `app/(dashboard)/patients/intake/IntakeForm.tsx` + `actions.ts` — add two quick
+   dropdowns (Sex: Male/Female; Civil Status: Single/Married/Widowed/Separated/Other). Persist them.
+3. **Profile** `app/(dashboard)/patients/[id]/PatientProfile.tsx` + `updatePatientInfo` in
+   `patients/actions.ts` + the `FullPatient` type — show + edit both.
+4. **Certificate** `certificate/page.tsx` selects them; `CertificateBuilder.tsx` pre-fills civil
+   status from the patient (instead of blank); consider showing sex on the cert if useful.
+5. **Anonymize** — add `sex`/`civilStatus` to the scrub in `anonymizePatient` (set null).
+   (Note: `getPatient` uses `include`, so new scalar fields flow through automatically, but the
+   explicit `FullPatient` TYPE must list them or TS won't expose them.)
