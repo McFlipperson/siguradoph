@@ -5,10 +5,16 @@
  * lock features) and the server (to actually block actions) read from here.
  *
  * Mirrors the pricing on the landing page:
- *   FREE  — up to 30 patients; records, OR receipts, expenses
+ *   FREE  — up to 30 patients; records, OR receipts, expenses ("try it")
  *   BASIC — unlimited patients + scheduling, reminders, loyalty, SC/PWD,
- *           reports, data export, privacy/compliance tools
- *   PRO   — everything in Basic + employees, payroll, incident/breach tools
+ *           reports, data export ("run your clinic day-to-day")
+ *   PRO   — everything in Basic + the full privacy/compliance suite
+ *           (audit/consent dashboard, incident & breach/ASIR tools) +
+ *           employees & payroll ("complete & compliant + staff")
+ *
+ * NOTE: consent capture at intake and background audit logging are NEVER gated —
+ * they're legally required for any clinic collecting patient data. Pro unlocks
+ * the tools to VIEW, export, and manage that compliance data.
  */
 
 export type Plan = 'FREE' | 'BASIC' | 'PRO'
@@ -37,13 +43,13 @@ const BASIC_FEATURES: Feature[] = [
   'scpwd',
   'reports',
   'data_export',
-  'compliance',
 ]
 
 const PLAN_FEATURES: Record<Plan, Feature[]> = {
   FREE: [],
   BASIC: BASIC_FEATURES,
-  PRO: [...BASIC_FEATURES, 'employees', 'payroll', 'incidents'],
+  // Pro adds the full privacy/compliance suite + staff/payroll.
+  PRO: [...BASIC_FEATURES, 'compliance', 'employees', 'payroll', 'incidents'],
 }
 
 /** True if `plan` includes `feature`. */

@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { withClinicDb } from '@/lib/clinic-db'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
+import { UpgradeRequired } from '@/components/UpgradeRequired'
 import { redirect } from 'next/navigation'
 import ComplianceClient from './ComplianceClient'
 
@@ -11,6 +13,15 @@ export default async function CompliancePage() {
   if (!user?.clinicId) redirect('/login')
 
   const clinicId = user.clinicId
+
+  const plan = await getClinicPlan(clinicId)
+  if (!planAllows(plan, 'compliance')) {
+    return <UpgradeRequired
+      title="Privacy & Compliance Tools"
+      description="View your audit log, consent records, SC/PWD log, and log data-breach incidents with the 72-hour NPC clock and annual report. Your records are already being kept safely — upgrade to access and manage them."
+      planNeeded="PRO" />
+  }
+
   const [clinic, logs, patientCount, scPwdLogs, incidents] = await Promise.all([
     prisma.clinic.findUnique({
       where: { id: clinicId },

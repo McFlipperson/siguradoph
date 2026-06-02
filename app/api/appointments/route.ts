@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { withClinicDb } from '@/lib/clinic-db'
+import { getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
 import { createServerClient } from '@/lib/supabase'
 import { toZonedTime, fromZonedTime } from 'date-fns-tz'
 import { addDays, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns'
@@ -61,6 +63,10 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!planAllows(await getClinicPlan(clinicId), 'scheduling')) {
+    return NextResponse.json({ error: 'Scheduling is available on the Basic plan.' }, { status: 403 })
+  }
 
   const body = await req.json()
   const { patientId, scheduledAt, type, notes } = body

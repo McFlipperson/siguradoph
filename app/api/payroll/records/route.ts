@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
 import { withClinicDb } from '@/lib/clinic-db'
 import { computeWeeklyPayroll, weekDateRange } from '@/lib/payroll'
 import { getHolidaysForDates } from '@/lib/ph-holidays'
@@ -60,6 +61,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!planAllows(await getClinicPlan(clinicId), 'payroll')) {
+    return NextResponse.json({ error: 'Payroll is available on the Pro plan.' }, { status: 403 })
+  }
 
   const body = await req.json()
   const { employeeId, daysWorked, specialHolidayDays } = body

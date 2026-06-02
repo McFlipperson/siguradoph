@@ -1,4 +1,6 @@
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
+import { UpgradeRequired } from '@/components/UpgradeRequired'
 import { withClinicDb } from '@/lib/clinic-db'
 import { redirect } from 'next/navigation'
 import EmployeesClient from './EmployeesClient'
@@ -11,6 +13,14 @@ export default async function EmployeesPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
   const clinicId = user.clinicId
+
+  const plan = await getClinicPlan(clinicId)
+  if (!planAllows(plan, 'employees')) {
+    return <UpgradeRequired
+      title="Employees & Payroll"
+      description="Manage staff records and run Philippine-compliant payroll — SSS, PhilHealth, Pag-IBIG, 13th month, holiday pay, and SIL."
+      planNeeded="PRO" />
+  }
 
   const now          = new Date()
   const currentWeek  = Math.min(Math.ceil(now.getDate() / 7), 4)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
 import { withClinicDb } from '@/lib/clinic-db'
 
 async function getClinicId() {
@@ -42,6 +43,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const clinicId = await getClinicId()
   if (!clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!planAllows(await getClinicPlan(clinicId), 'payroll')) {
+    return NextResponse.json({ error: 'Employees & payroll are available on the Pro plan.' }, { status: 403 })
+  }
 
   const { fullName, position, dateHired, dailyRate, sssNumber, philhealthNumber, pagibigNumber, tin } = await req.json()
 

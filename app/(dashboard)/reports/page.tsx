@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { withClinicDb } from '@/lib/clinic-db'
+import { getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
+import { UpgradeRequired } from '@/components/UpgradeRequired'
 import { createServerClient } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
 import ReportsClient from './ReportsClient'
@@ -124,6 +127,14 @@ export default async function ReportsPage() {
   })
   if (!user?.clinicId) redirect('/onboarding')
   const clinicId = user.clinicId
+
+  const plan = await getClinicPlan(clinicId)
+  if (!planAllows(plan, 'reports')) {
+    return <UpgradeRequired
+      title="Revenue Reports"
+      description="See your daily, weekly, and monthly income, top services, and payment breakdowns at a glance."
+      planNeeded="BASIC" />
+  }
 
   const { startOfMonth, now } = dateRanges()
 

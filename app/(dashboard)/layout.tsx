@@ -5,6 +5,7 @@ import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import BottomNav from './BottomNav'
 import { DPAAcceptanceBanner } from '@/components/DPAAcceptanceBanner'
+import type { Plan } from '@/lib/entitlements'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerClient()
@@ -27,12 +28,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // never re-enable a blanket trialEndsAt redirect, which breaks the public promise.
 
   const needsDPA = !user.clinic.tosAcceptedAt
+  const plan = user.clinic.plan as Plan
 
   return (
     <div className="min-h-screen bg-background pb-20">
       {needsDPA && <DPAAcceptanceBanner />}
       <main className="max-w-screen-sm mx-auto px-4 py-6">{children}</main>
-      <BottomNav />
+      <BottomNav plan={plan} />
     </div>
   )
 }

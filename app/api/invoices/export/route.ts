@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withClinicDb } from '@/lib/clinic-db'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
 import { writeAudit } from '@/lib/audit'
 
 function escapeCsv(value: string | null | undefined): string {
@@ -17,6 +18,9 @@ export async function GET() {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const clinicId = user.clinicId as string
+  if (!planAllows(await getClinicPlan(clinicId), 'data_export')) {
+    return NextResponse.json({ error: 'Data export is available on the Basic plan.' }, { status: 403 })
+  }
 
   const invoices = await withClinicDb(clinicId, (tx) => tx.invoice.findMany({
     where: { clinicId },

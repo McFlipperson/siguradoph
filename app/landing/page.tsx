@@ -30,15 +30,15 @@ const BASIC_FEATURES = [
   'Loyalty cards & Senior Citizen / PWD discounts',
   'Expense tracking & revenue reports',
   'Data export — patients, invoices, expenses',
-  'Patient privacy tools — consent records & audit logs',
   'Messenger support 9am–4pm',
 ]
 
 const PRO_EXTRAS = [
+  'Full privacy & compliance suite — consent records, audit logs',
+  'Data-breach reporting — 72-hour NPC clock & annual report (ASIR)',
   'Employee records & attendance tracking',
   'Payroll — SSS, PhilHealth, Pag-IBIG, 13th month & holiday pay',
   'Service Incentive Leave (SIL) tracking',
-  'Incident logging & breach reporting',
   'Messenger support 9am–4pm',
 ]
 

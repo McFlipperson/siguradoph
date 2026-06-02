@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
-import { getSessionUser } from '@/lib/auth'
+import { getSessionUser, getClinicPlan } from '@/lib/auth'
+import { planAllows } from '@/lib/entitlements'
+import { UpgradeRequired } from '@/components/UpgradeRequired'
 import { withClinicDb } from '@/lib/clinic-db'
 import { redirect } from 'next/navigation'
 import RemindersClient from './RemindersClient'
@@ -33,6 +35,14 @@ export default async function RemindersPage() {
   if (!user?.clinicId) redirect('/login')
 
   const clinicId = user.clinicId
+
+  const plan = await getClinicPlan(clinicId)
+  if (!planAllows(plan, 'reminders')) {
+    return <UpgradeRequired
+      title="Automated Patient Reminders"
+      description="Automatically remind patients about appointments and recalls via Messenger and email, so they never miss a visit."
+      planNeeded="BASIC" />
+  }
 
   const [clinic, reminders, channelCounts, unlinkedMessages, recallRules, catalogServices] = await Promise.all([
     prisma.clinic.findUnique({

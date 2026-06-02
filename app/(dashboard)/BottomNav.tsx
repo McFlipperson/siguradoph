@@ -17,6 +17,7 @@ import {
   Shield,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
+import { planAllows, type Plan, type Feature } from '@/lib/entitlements'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,7 @@ type MenuItem = {
   href: string
   icon: React.ComponentType<{ className?: string }>
   color: string
+  feature?: Feature   // if set, item only shows when the plan includes it
 }
 
 type MenuSection = {
@@ -55,17 +57,17 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Clinic',
     items: [
-      { label: 'Reminders',     href: '/reminders', icon: Bell,        color: 'bg-sky-500'    },
-      { label: 'Employees',     href: '/employees', icon: Users,       color: 'bg-violet-500' },
-      { label: 'Loyalty Cards', href: '/loyalty',   icon: CreditCard,  color: 'bg-rose-500'   },
-      { label: 'Reports',       href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500'},
+      { label: 'Reminders',     href: '/reminders', icon: Bell,        color: 'bg-sky-500',    feature: 'reminders' },
+      { label: 'Employees',     href: '/employees', icon: Users,       color: 'bg-violet-500', feature: 'employees' },
+      { label: 'Loyalty Cards', href: '/loyalty',   icon: CreditCard,  color: 'bg-rose-500',   feature: 'loyalty'   },
+      { label: 'Reports',       href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500', feature: 'reports'  },
     ],
   },
   /* TAX_MODULE — Finance section hidden; re-enable in lib/features.ts */
   {
     title: 'Account',
     items: [
-      { label: 'Compliance',   href: '/compliance', icon: Shield,    color: 'bg-emerald-600'},
+      { label: 'Compliance',   href: '/compliance', icon: Shield,    color: 'bg-emerald-600', feature: 'compliance' },
       { label: 'Settings',    href: '/settings',  icon: Settings,  color: 'bg-slate-500'  },
     ],
   },
@@ -80,10 +82,18 @@ function isActive(pathname: string, href: string): boolean {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function BottomNav() {
+export default function BottomNav({ plan }: { plan: Plan }) {
   const router   = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  // Only show menu items the clinic's plan unlocks (items with no feature are always shown).
+  const visibleSections = MENU_SECTIONS
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.feature || planAllows(plan, item.feature)),
+    }))
+    .filter((section) => section.items.length > 0)
 
   function navigate(href: string) {
     setOpen(false)
@@ -180,7 +190,7 @@ export default function BottomNav() {
           {/* Scrollable content */}
           <div className="px-4 pb-2 overflow-y-auto max-h-[72vh] space-y-4">
 
-            {MENU_SECTIONS.map((section) => (
+            {visibleSections.map((section) => (
               <div key={section.title}>
                 <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-widest px-1 mb-1.5">
                   {section.title}
