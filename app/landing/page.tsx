@@ -193,10 +193,10 @@ export default function LandingPage() {
       <section className="relative">
         {/* Full image at natural ratio — no crop, no cut head */}
         <Image
-          src="/images/section2.png"
+          src="/images/joey clinic.jpeg"
           alt="Filipino dental clinic"
-          width={1448}
-          height={1086}
+          width={1024}
+          height={768}
           className="w-full h-auto block"
         />
 
