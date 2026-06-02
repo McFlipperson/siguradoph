@@ -49,11 +49,22 @@ export default function LandingPage() {
       style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}
     >
 
-      {/* Wave animation keyframes */}
+      {/* Philippine flag wave animation keyframes */}
       <style>{`
-        @keyframes wave1 { 0%,100% { transform: translateX(0);    } 50% { transform: translateX(-25%); } }
-        @keyframes wave2 { 0%,100% { transform: translateX(-15%); } 50% { transform: translateX(10%);  } }
-        @keyframes wave3 { 0%,100% { transform: translateX(5%);   } 50% { transform: translateX(-20%); } }
+        /* The flag cloth ripples by morphing the skew + scale together */
+        @keyframes flagRipple {
+          0%   { transform: skewY(-1deg) scaleX(1.00) translateX(0%);   }
+          20%  { transform: skewY(0.5deg) scaleX(1.02) translateX(-1%); }
+          40%  { transform: skewY(1.5deg) scaleX(0.99) translateX(-2%); }
+          60%  { transform: skewY(0deg)  scaleX(1.01) translateX(-1%); }
+          80%  { transform: skewY(-1deg) scaleX(1.03) translateX(-0.5%); }
+          100% { transform: skewY(-1deg) scaleX(1.00) translateX(0%);   }
+        }
+        /* Sun pulse — very subtle */
+        @keyframes sunPulse {
+          0%,100% { opacity: 0.9; transform: scale(1);    }
+          50%      { opacity: 1;   transform: scale(1.04); }
+        }
       `}</style>
 
       {/* ══════════════════════════════════════════════════════════
@@ -101,25 +112,65 @@ export default function LandingPage() {
         className="overflow-hidden relative"
         style={{ background: '#0038A8' }}
       >
-        {/* ── Animated SVG waves — bottom of hero ─────────────── */}
-        <div aria-hidden="true" className="pointer-events-none absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: 120 }}>
-          {/* Wave 1 — back, slowest */}
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
-            style={{ position: 'absolute', bottom: 0, width: '200%', height: '100%', animation: 'wave1 10s ease-in-out infinite', willChange: 'transform' }}>
-            <path d="M0,60 C150,100 350,0 600,60 C850,120 1050,20 1200,60 L1200,120 L0,120 Z"
-              fill="rgba(255,255,255,0.07)" />
-          </svg>
-          {/* Wave 2 — middle */}
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
-            style={{ position: 'absolute', bottom: 0, width: '200%', height: '80%', animation: 'wave2 7s ease-in-out infinite', willChange: 'transform' }}>
-            <path d="M0,40 C200,80 400,0 600,40 C800,80 1000,10 1200,40 L1200,120 L0,120 Z"
-              fill="rgba(255,255,255,0.09)" />
-          </svg>
-          {/* Wave 3 — front, fastest */}
-          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
-            style={{ position: 'absolute', bottom: 0, width: '200%', height: '60%', animation: 'wave3 5s ease-in-out infinite', willChange: 'transform' }}>
-            <path d="M0,30 C300,70 600,0 900,50 C1050,75 1150,20 1200,30 L1200,120 L0,120 Z"
-              fill="rgba(255,255,255,0.12)" />
+        {/* ── Philippine flag — zoomed in, faded, waving ──────── */}
+        {/* The flag fills the whole hero, zoomed so only the cloth
+            fills the frame. Opacity 0.13 keeps it very subtle —
+            visible as texture but never competing with the text.   */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
+          style={{ opacity: 0.13 }}
+        >
+          <svg
+            viewBox="0 0 900 450"
+            preserveAspectRatio="xMidYMid slice"
+            style={{
+              position: 'absolute',
+              inset: '-10% -5%',
+              width: '110%',
+              height: '120%',
+              animation: 'flagRipple 6s ease-in-out infinite',
+              willChange: 'transform',
+            }}
+          >
+            {/* ── Top half — blue ── */}
+            <rect x="0" y="0"   width="900" height="225" fill="#0038A8" />
+            {/* ── Bottom half — red ── */}
+            <rect x="0" y="225" width="900" height="225" fill="#CE1126" />
+            {/* ── White triangle (hoist side) ── */}
+            <polygon points="0,0 340,225 0,450" fill="#FFFFFF" />
+
+            {/* ── Sun (centered in triangle) ── */}
+            <g transform="translate(113,225)" style={{ animation: 'sunPulse 4s ease-in-out infinite' }}>
+              {/* Sun disc */}
+              <circle r="46" fill="#FCD116" />
+              {/* 8 rays */}
+              {[0,45,90,135,180,225,270,315].map((deg) => (
+                <line
+                  key={deg}
+                  x1="0" y1="52"
+                  x2="0" y2="82"
+                  stroke="#FCD116"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  transform={`rotate(${deg})`}
+                />
+              ))}
+            </g>
+
+            {/* ── Three stars (corners of triangle) ── */}
+            {/* Top star */}
+            <g transform="translate(50,68)">
+              <polygon points="0,-14 3.3,-5 12.7,-5 5.6,1.9 8.6,11.5 0,6 -8.6,11.5 -5.6,1.9 -12.7,-5 -3.3,-5" fill="#FCD116" />
+            </g>
+            {/* Bottom star */}
+            <g transform="translate(50,382)">
+              <polygon points="0,-14 3.3,-5 12.7,-5 5.6,1.9 8.6,11.5 0,6 -8.6,11.5 -5.6,1.9 -12.7,-5 -3.3,-5" fill="#FCD116" />
+            </g>
+            {/* Right star (tip of triangle) */}
+            <g transform="translate(310,225)">
+              <polygon points="0,-14 3.3,-5 12.7,-5 5.6,1.9 8.6,11.5 0,6 -8.6,11.5 -5.6,1.9 -12.7,-5 -3.3,-5" fill="#FCD116" />
+            </g>
           </svg>
         </div>
 
