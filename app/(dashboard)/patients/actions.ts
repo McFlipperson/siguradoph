@@ -399,7 +399,9 @@ export async function getServiceCatalog(): Promise<ServiceCatalogItem[]> {
 // Delete patient — permanently removes all associated records
 // ---------------------------------------------------------------------------
 
-export async function deletePatient(patientId: string): Promise<void> {
+export type DeletePatientResult = { ok: true } | { ok: false; reason: 'has_issued_invoices' }
+
+export async function deletePatient(patientId: string): Promise<DeletePatientResult> {
   const { clinicId, userEmail, db } = await getActorDb()
 
   const patient = await db((tx) => tx.patient.findUnique({
@@ -412,12 +414,13 @@ export async function deletePatient(patientId: string): Promise<void> {
 
   // BIR retention: a patient with issued official receipts must NOT be hard-deleted,
   // because that destroys mandated financial records and breaks the OR sequence.
-  // The caller must anonymize instead (scrub PII, keep invoices).
+  // Return a structured result (NOT a thrown error) — Next.js redacts thrown
+  // server-action messages in production, so the caller can't read a sentinel string.
   const issuedInvoices = await db((tx) => tx.invoice.count({
     where: { clinicId, status: 'ISSUED', visit: { patientId } },
   }))
   if (issuedInvoices > 0) {
-    throw new Error('HAS_ISSUED_INVOICES: This patient has issued official receipts (BIR records). Anonymize the patient instead of deleting.')
+    return { ok: false, reason: 'has_issued_invoices' }
   }
 
   await db(async (tx) => {
@@ -478,6 +481,7 @@ export async function deletePatient(patientId: string): Promise<void> {
   })
 
   revalidatePath('/patients')
+  return { ok: true }
 }
 
 // ---------------------------------------------------------------------------

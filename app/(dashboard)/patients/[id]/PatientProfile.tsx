@@ -857,18 +857,18 @@ function DeletePatientSection({ patient }: { patient: FullPatient }) {
     setDeleting(true)
     setError(null)
     try {
-      await deletePatient(patient.id)
-      router.push('/patients')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to delete patient'
-      if (msg.startsWith('HAS_ISSUED_INVOICES')) {
-        // Can't hard-delete — offer anonymization instead.
+      const res = await deletePatient(patient.id)
+      if (!res.ok && res.reason === 'has_issued_invoices') {
+        // Can't hard-delete (BIR-retained receipts) — offer anonymization instead.
         setMustAnonymize(true)
         setConfirmText('')
         setError(null)
-      } else {
-        setError(msg)
+        setDeleting(false)
+        return
       }
+      router.push('/patients')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete patient')
       setDeleting(false)
     }
   }
