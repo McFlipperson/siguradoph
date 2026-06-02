@@ -12,6 +12,7 @@ type Props = {
   clinicName: string
   dentistName: string
   prcLicenseNo: string
+  signatureUrl: string | null
   clinicAddress: string
   clinicPhone: string
   latestVisit: LatestVisit
@@ -176,7 +177,11 @@ export default function CertificateBuilder(props: Props) {
         <p className="mb-8">This certification is issued upon the request of the patient for whatever legal purpose it may serve.</p>
 
         <div className="mt-10">
-          <p className="mb-6">Respectfully,</p>
+          <p className="mb-2">Respectfully,</p>
+          {props.signatureUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={props.signatureUrl} alt="Signature" className="h-16 w-auto object-contain mb-1" />
+          )}
           <div>Dr. <input value={dentistName} onChange={(e) => setDentistName(e.target.value)} className={`${line} w-2/3 font-medium`} /></div>
           <p className="text-xs text-gray-600 mt-0.5">Dentist</p>
           <div className="mt-3 space-y-1">

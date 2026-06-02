@@ -100,6 +100,7 @@ export default function OnboardingPage() {
             step1: {
               slug: clinic.slug ?? '',
               logoUrl: clinic.logoUrl ?? null,
+              signatureUrl: clinic.signatureUrl ?? null,
               clinicName: clinic.name,
               ownerName: clinic.ownerName,
               street: clinic.street,

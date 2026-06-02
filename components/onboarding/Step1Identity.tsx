@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase-browser'
 import { toast } from 'sonner'
+import { SignaturePad } from '@/components/SignaturePad'
 import type { Step1Data } from '@/app/(onboarding)/onboarding/actions'
 
 interface Step1IdentityProps {
@@ -38,6 +39,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
   const [form, setForm] = useState<Step1Data>({
     slug: initialData.slug ?? '',
     logoUrl: initialData.logoUrl ?? null,
+    signatureUrl: initialData.signatureUrl ?? null,
     clinicName: initialData.clinicName ?? '',
     ownerName: initialData.ownerName ?? '',
     street: initialData.street ?? '',
@@ -272,6 +274,12 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
           className="min-h-[48px]"
           placeholder="Dr. Maria Dela Cruz"
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Dentist Signature (optional)</Label>
+        <p className="text-xs text-muted-foreground -mt-1">Sign once here — it prints on every dental certificate you issue. You can change it later in Settings.</p>
+        <SignaturePad value={form.signatureUrl ?? null} onChange={(url) => set('signatureUrl', url)} />
       </div>
 
       <div className="flex flex-col gap-2">

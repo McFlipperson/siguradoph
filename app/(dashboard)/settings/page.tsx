@@ -66,6 +66,7 @@ export default async function SettingsPage() {
         npcRegistrationNumber: clinic.npcRegistrationNumber ?? '',
         npcRegistrationDate: clinic.npcRegistrationDate?.toISOString() ?? null,
         prcLicenseNo: clinic.prcLicenseNo ?? '',
+        signatureUrl: clinic.signatureUrl ?? null,
       }}
       initialServices={services.map(s => ({
         id: s.id,

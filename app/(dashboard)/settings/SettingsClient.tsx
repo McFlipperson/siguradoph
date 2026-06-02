@@ -5,7 +5,8 @@ import { toast } from 'sonner'
 import Image from 'next/image'
 import { PrinterSection } from './PrinterSection'
 import { createClient } from '@/lib/supabase-browser'
-import { updateClinicLogo } from './actions'
+import { updateClinicLogo, updateClinicSignature } from './actions'
+import { SignaturePad } from '@/components/SignaturePad'
 
 const SUPPLIER_CATEGORIES = [
   { value: 'DENTAL_SUPPLIES', label: 'Dental Supplies' },
@@ -54,6 +55,7 @@ type ClinicData = {
   npcRegistrationNumber: string
   npcRegistrationDate: string | null
   prcLicenseNo: string
+  signatureUrl: string | null
 }
 
 type ServiceItem = {
@@ -260,6 +262,7 @@ export default function SettingsClient({
   const [npcRegistrationNumber, setNpcRegistrationNumber] = useState(clinic.npcRegistrationNumber)
   const [npcRegistrationDate, setNpcRegistrationDate] = useState(clinic.npcRegistrationDate ?? '')
   const [prcLicenseNo, setPrcLicenseNo] = useState(clinic.prcLicenseNo)
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(clinic.signatureUrl)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -728,6 +731,19 @@ export default function SettingsClient({
               <label className="text-xs font-medium text-muted-foreground">PRC License No.</label>
               <input value={prcLicenseNo} onChange={e => setPrcLicenseNo(e.target.value)} placeholder="e.g. 0123456" className={`${inputClass} mt-1`} />
               <p className="text-xs text-muted-foreground mt-1">Printed on every dental certificate you issue.</p>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Dentist Signature</label>
+              <p className="text-xs text-muted-foreground mb-2">Saved automatically. Printed above the dentist&apos;s name on certificates.</p>
+              <SignaturePad
+                value={signatureUrl}
+                onChange={async (url) => {
+                  setSignatureUrl(url)
+                  const res = await updateClinicSignature(url)
+                  if (res.error) toast.error(res.error)
+                  else toast.success(url ? 'Signature saved' : 'Signature removed')
+                }}
+              />
             </div>
           </div>
 

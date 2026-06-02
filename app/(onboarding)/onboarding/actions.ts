@@ -9,6 +9,7 @@ import { EntityType, FilingMethod, ExpenseCategory } from '@prisma/client'
 export type Step1Data = {
   slug: string
   logoUrl?: string | null
+  signatureUrl?: string | null
   clinicName: string
   ownerName: string
   street: string
@@ -149,6 +150,7 @@ export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<
         // slug is immutable once set
         ...(!user.clinic.slug && data.slug ? { slug: data.slug } : {}),
         ...(data.logoUrl !== undefined ? { logoUrl: data.logoUrl } : {}),
+        ...(data.signatureUrl !== undefined ? { signatureUrl: data.signatureUrl } : {}),
         name: data.clinicName,
         ownerName: data.ownerName,
         street: data.street,
@@ -169,6 +171,7 @@ export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<
       data: {
         slug: data.slug || null,
         logoUrl: data.logoUrl || null,
+        signatureUrl: data.signatureUrl || null,
         name: data.clinicName,
         ownerName: data.ownerName,
         street: data.street,
