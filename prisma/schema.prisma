@@ -23,6 +23,12 @@ enum UserRole {
   CPA
 }
 
+enum Plan {
+  FREE
+  BASIC
+  PRO
+}
+
 enum PaymentMethod {
   CASH
   GCASH
@@ -84,6 +90,7 @@ model Clinic {
   sssEmployerNumber        String?
   philhealthEmployerNumber String?
   pagibigEmployerNumber    String?
+  plan                     Plan         @default(FREE)  // subscription tier — gates features + patient cap
   loyaltyCardEnabled       Boolean      @default(true)
   loyaltyCardPrice         Decimal      @default(500)
   loyaltyValidityMonths    Int          @default(24)

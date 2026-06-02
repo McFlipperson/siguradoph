@@ -99,7 +99,13 @@ export function IntakeForm({
     setSavingStep1(false)
 
     if (!result.success) {
-      toast.error('Something went wrong. Please try again.')
+      if (result.error === 'patient_limit') {
+        toast.error('You\'ve reached the 30-patient limit on the Free plan. Upgrade to Basic for unlimited patients.')
+      } else if (result.error === 'consent_required') {
+        toast.error('Patient consent is required before saving.')
+      } else {
+        toast.error('Something went wrong. Please try again.')
+      }
       return
     }
     setPatientId(result.patientId)

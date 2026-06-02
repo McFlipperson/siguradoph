@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
-import { getActorDb } from '@/lib/auth'
+import { getActorDb, getClinicPlan } from '@/lib/auth'
+import { patientLimit } from '@/lib/entitlements'
 
 export type ReminderChannel = 'MESSENGER' | 'EMAIL' | 'SMS' | 'NONE'
 
@@ -40,6 +41,14 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
     // RA 10173: no lawful basis → do not create a Sensitive Personal Information
     // record. Consent must be the data subject's actual action, not assumed.
     if (!data.consentGiven) return { success: false, error: 'consent_required' }
+
+    // Free-tier patient cap. Basic/Pro are unlimited.
+    const plan = await getClinicPlan(clinicId)
+    const limit = patientLimit(plan)
+    if (Number.isFinite(limit)) {
+      const count = await db((tx) => tx.patient.count({ where: { clinicId } }))
+      if (count >= limit) return { success: false, error: 'patient_limit' }
+    }
 
     const clinic = await prisma.clinic.findUnique({
       where: { id: clinicId },

@@ -1,6 +1,27 @@
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { withClinicDb, type TxClient } from '@/lib/clinic-db'
+import { planAllows, type Plan, type Feature } from '@/lib/entitlements'
+
+/** Current subscription plan for a clinic (defaults to FREE). */
+export async function getClinicPlan(clinicId: string): Promise<Plan> {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id: clinicId },
+    select: { plan: true },
+  })
+  return (clinic?.plan as Plan) ?? 'FREE'
+}
+
+/**
+ * Server-side feature gate. Throws if the clinic's plan doesn't include the
+ * feature. UI hiding is cosmetic — this is the real enforcement.
+ */
+export async function assertFeature(clinicId: string, feature: Feature): Promise<void> {
+  const plan = await getClinicPlan(clinicId)
+  if (!planAllows(plan, feature)) {
+    throw new Error(`UPGRADE_REQUIRED:${feature}`)
+  }
+}
 
 export async function getSessionUser() {
   const supabase = createServerClient()
