@@ -142,6 +142,7 @@ model Clinic {
   dpoPhone                 String?
   npcRegistrationNumber    String?      // the clinic's own NPC registration number (proof of compliance)
   npcRegistrationDate      DateTime?
+  prcLicenseNo             String?      // dentist's PRC license number — printed on dental certificates
   tosAcceptedAt            DateTime?    // timestamp when DPA/ToS was accepted during onboarding
   trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
   createdAt                DateTime     @default(now())

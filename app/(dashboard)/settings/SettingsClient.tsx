@@ -53,6 +53,7 @@ type ClinicData = {
   dpoPhone: string
   npcRegistrationNumber: string
   npcRegistrationDate: string | null
+  prcLicenseNo: string
 }
 
 type ServiceItem = {
@@ -258,6 +259,7 @@ export default function SettingsClient({
   const [dpoPhone, setDpoPhone] = useState(clinic.dpoPhone)
   const [npcRegistrationNumber, setNpcRegistrationNumber] = useState(clinic.npcRegistrationNumber)
   const [npcRegistrationDate, setNpcRegistrationDate] = useState(clinic.npcRegistrationDate ?? '')
+  const [prcLicenseNo, setPrcLicenseNo] = useState(clinic.prcLicenseNo)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -332,6 +334,7 @@ export default function SettingsClient({
           accountantEmail,
           dpoName, dpoEmail, dpoPhone, npcRegistrationNumber,
           npcRegistrationDate: npcRegistrationDate || null,
+          prcLicenseNo,
           tin, rdoCode, corNumber, entityType,
           vatRegistered, vatRegistrationDate: vatRegistrationDate || null,
           filingMethod,
@@ -715,6 +718,16 @@ export default function SettingsClient({
             <div>
               <label className="text-xs font-medium text-muted-foreground">NPC Registration Date</label>
               <input type="date" value={npcRegistrationDate ? npcRegistrationDate.slice(0, 10) : ''} onChange={e => setNpcRegistrationDate(e.target.value)} className={`${inputClass} mt-1`} />
+            </div>
+          </div>
+
+          {/* Dentist credentials — printed on dental certificates */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Dentist Credentials</h2>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">PRC License No.</label>
+              <input value={prcLicenseNo} onChange={e => setPrcLicenseNo(e.target.value)} placeholder="e.g. 0123456" className={`${inputClass} mt-1`} />
+              <p className="text-xs text-muted-foreground mt-1">Printed on every dental certificate you issue.</p>
             </div>
           </div>
 

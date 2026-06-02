@@ -1083,6 +1083,12 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
             {patient.email && (
               <p className="text-sm text-muted-foreground">{patient.email}</p>
             )}
+            <Link
+              href={`/patients/${patient.id}/certificate`}
+              className="min-h-[56px] flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white font-semibold text-base"
+            >
+              📄 Dental Certificate
+            </Link>
             <div className="flex gap-2">
               <Link
                 href={`/visits/new?patientId=${patient.id}`}

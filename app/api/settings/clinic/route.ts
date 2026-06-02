@@ -50,6 +50,7 @@ export async function GET() {
     dpoPhone: clinic.dpoPhone ?? '',
     npcRegistrationNumber: clinic.npcRegistrationNumber ?? '',
     npcRegistrationDate: clinic.npcRegistrationDate?.toISOString() ?? null,
+    prcLicenseNo: clinic.prcLicenseNo ?? '',
   })
 }
 
@@ -66,7 +67,7 @@ export async function PATCH(req: NextRequest) {
     orSeriesStart,
     hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
     accountantEmail,
-    dpoName, dpoEmail, dpoPhone, npcRegistrationNumber, npcRegistrationDate,
+    dpoName, dpoEmail, dpoPhone, npcRegistrationNumber, npcRegistrationDate, prcLicenseNo,
     tin, rdoCode, corNumber, entityType, vatRegistered, vatRegistrationDate, filingMethod,
   } = body
 
@@ -108,6 +109,7 @@ export async function PATCH(req: NextRequest) {
       ...(dpoPhone !== undefined && { dpoPhone: dpoPhone || null }),
       ...(npcRegistrationNumber !== undefined && { npcRegistrationNumber: npcRegistrationNumber || null }),
       ...(npcRegistrationDate !== undefined && { npcRegistrationDate: npcRegistrationDate ? new Date(npcRegistrationDate) : null }),
+      ...(prcLicenseNo !== undefined && { prcLicenseNo: prcLicenseNo || null }),
       ...(tin !== undefined && { tin }),
       ...(rdoCode !== undefined && { rdoCode }),
       ...(corNumber !== undefined && { corNumber }),
