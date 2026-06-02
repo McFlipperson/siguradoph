@@ -59,7 +59,7 @@ export default function LandingPage() {
       >
         <div className="flex items-center">
           <Image
-            src="/images/SIG final PH LOGO.png"
+            src="/images/sig-final-ph-logo.png"
             alt="Sigurado"
             width={160}
             height={87}
@@ -128,7 +128,7 @@ export default function LandingPage() {
             {/* Hero logo */}
             <div className="mb-6">
               <Image
-                src="/images/SIG final PH LOGO.png"
+                src="/images/sig-final-ph-logo.png"
                 alt="Sigurado"
                 width={220}
                 height={120}
@@ -193,7 +193,7 @@ export default function LandingPage() {
       <section className="relative">
         {/* Full image at natural ratio — no crop, no cut head */}
         <Image
-          src="/images/joey clinic.jpeg"
+          src="/images/joey-clinic.jpeg"
           alt="Filipino dental clinic"
           width={1024}
           height={768}
@@ -454,7 +454,7 @@ export default function LandingPage() {
         <div className="px-5 py-12" style={{ background: '#0B1627' }}>
           <div className="mb-6">
             <Image
-              src="/images/SIG final PH LOGO.png"
+              src="/images/sig-final-ph-logo.png"
               alt="Sigurado"
               width={160}
               height={87}
@@ -508,7 +508,7 @@ export default function LandingPage() {
       <footer className="px-5 py-10 flex flex-col gap-4" style={{ background: '#060E1F' }}>
         <div className="flex items-center">
           <Image
-            src="/images/SIG final PH LOGO.png"
+            src="/images/sig-final-ph-logo.png"
             alt="Sigurado"
             width={140}
             height={76}
