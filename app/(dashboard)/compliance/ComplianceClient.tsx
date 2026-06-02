@@ -6,6 +6,7 @@ import { Shield, Download, Search, AlertTriangle, CheckCircle2, FileText, Users,
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { createIncident, updateIncident, type IncidentRow, type IncidentType, type IncidentSeverity } from './actions'
+import { INCIDENT_TYPE_LABELS, breachClock } from '@/lib/incidents'
 
 type AuditEntry = {
   id: string
@@ -36,23 +37,6 @@ interface Props {
   logs: AuditEntry[]
   scPwdLogs: ScPwdEntry[]
   incidents: IncidentRow[]
-}
-
-const INCIDENT_TYPE_LABELS: Record<string, string> = {
-  UNAUTHORIZED_ACCESS: 'Unauthorized access',
-  LOSS: 'Loss of data',
-  UNAUTHORIZED_DISCLOSURE: 'Unauthorized disclosure',
-  SYSTEM_BREACH: 'System breach',
-  RANSOMWARE: 'Ransomware',
-  OTHER: 'Other',
-}
-
-// RA 10173 / NPC Circular 16-03: notify NPC + affected subjects within 72h of discovery.
-function breachClock(discoveryIso: string) {
-  const deadline = new Date(discoveryIso)
-  deadline.setHours(deadline.getHours() + 72)
-  const ms = deadline.getTime() - Date.now()
-  return { deadline, overdue: ms < 0, hoursLeft: Math.round(ms / 3_600_000) }
 }
 
 const ACTION_LABELS: Record<string, string> = {
