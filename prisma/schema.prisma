@@ -29,6 +29,32 @@ enum Plan {
   PRO
 }
 
+// Sigurado's OWN security incident register (Sigurado = Personal Information
+// Processor under RA 10173). Company-level — NOT tied to any one clinic. Backs
+// the Sigurado-side 72h breach clock and the company's annual ASIR. Distinct
+// from the per-clinic IncidentLog. Admin-only.
+model PlatformIncident {
+  id                  String    @id @default(cuid())
+  incidentDate        DateTime
+  discoveryDate       DateTime
+  type                String
+  severity            String    @default("LOW")
+  description         String    @db.Text
+  natureOfData        String?
+  clinicsAffected     Int       @default(0)   // how many clinics impacted
+  individualsAffected Int       @default(0)
+  measuresTaken       String?   @db.Text
+  reportedToNpc       Boolean   @default(false)
+  npcReportDate       DateTime?
+  reportedToSubjects  Boolean   @default(false)
+  status              String    @default("OPEN")
+  createdBy           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([discoveryDate])
+}
+
 // Sigurado-staff (super-admin) action log — e.g. plan changes via /admin.
 // Cross-clinic by nature; only readable through the admin-gated route.
 model AdminAuditLog {

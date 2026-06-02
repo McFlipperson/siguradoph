@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { setClinicPlan } from './actions'
 import { PLAN_LABELS, type Plan } from '@/lib/entitlements'
 
@@ -57,11 +58,16 @@ export default function AdminClient({ clinics, activity }: { clinics: ClinicRow[
 
   return (
     <div className="max-w-3xl mx-auto px-5 py-8 space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold">Sigurado Admin</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Set a clinic&apos;s plan when their GCash / bank payment is confirmed. {clinics.length} clinic{clinics.length !== 1 ? 's' : ''}.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Sigurado Admin</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Set a clinic&apos;s plan when their GCash / bank payment is confirmed. {clinics.length} clinic{clinics.length !== 1 ? 's' : ''}.
+          </p>
+        </div>
+        <Link href="/admin/incidents" className="shrink-0 text-sm font-medium px-4 py-2 rounded-xl bg-primary text-primary-foreground">
+          DPO Incidents →
+        </Link>
       </div>
 
       <input
