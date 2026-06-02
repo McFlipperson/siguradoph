@@ -49,6 +49,31 @@ export default function LandingPage() {
       style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}
     >
 
+      {/* Animated flag / sheet keyframes — injected once at the top */}
+      <style>{`
+        @keyframes flagWave {
+          0%   { d: path('M0,0 Q25,-18 50,0 Q75,18 100,0 L100,100 Q75,118 50,100 Q25,82 0,100 Z'); opacity: 0.13; }
+          25%  { d: path('M0,0 Q25,20 50,0 Q75,-20 100,0 L100,100 Q75,80 50,100 Q25,120 0,100 Z'); opacity: 0.18; }
+          50%  { d: path('M0,0 Q30,-22 55,5 Q80,28 100,0 L100,100 Q70,72 45,95 Q20,118 0,100 Z'); opacity: 0.14; }
+          75%  { d: path('M0,0 Q20,15 50,-5 Q80,-20 100,0 L100,100 Q80,120 50,105 Q20,85 0,100 Z'); opacity: 0.17; }
+          100% { d: path('M0,0 Q25,-18 50,0 Q75,18 100,0 L100,100 Q75,118 50,100 Q25,82 0,100 Z'); opacity: 0.13; }
+        }
+        @keyframes sheetDrift1 {
+          0%, 100% { transform: translate(-5%, -8%) rotate(-6deg) scaleX(1.1); opacity: 0.10; }
+          40%       { transform: translate(3%, 5%)  rotate(2deg)  scaleX(0.95); opacity: 0.18; }
+          70%       { transform: translate(-2%, 2%) rotate(-3deg) scaleX(1.05); opacity: 0.13; }
+        }
+        @keyframes sheetDrift2 {
+          0%, 100% { transform: translate(8%, 4%)  rotate(5deg)  scaleX(0.9);  opacity: 0.08; }
+          35%       { transform: translate(-4%, -6%) rotate(-4deg) scaleX(1.08); opacity: 0.15; }
+          65%       { transform: translate(2%, 3%)  rotate(1deg)  scaleX(1.02); opacity: 0.11; }
+        }
+        @keyframes sheetDrift3 {
+          0%, 100% { transform: translate(0%, -12%) rotate(-2deg) scaleX(1.15); opacity: 0.07; }
+          50%       { transform: translate(-6%, 8%)  rotate(6deg)  scaleX(0.88); opacity: 0.14; }
+        }
+      `}</style>
+
       {/* ══════════════════════════════════════════════════════════
           NAV
       ══════════════════════════════════════════════════════════ */}
@@ -58,19 +83,13 @@ export default function LandingPage() {
       >
         <div className="flex items-center gap-3">
           <Image
-            src="/images/s-logo-ph.png"
-            alt="Sigurado S"
-            width={48}
-            height={48}
+            src="/images/SIG final PH LOGO.png"
+            alt="Sigurado"
+            width={120}
+            height={40}
             className="object-contain"
             priority
           />
-          <span
-            className="font-black text-xl tracking-tight"
-            style={{ color: '#ffffff' }}
-          >
-            Sigurado
-          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -97,20 +116,53 @@ export default function LandingPage() {
           sm+: text left, dashboard screenshot right (floats up)
       ══════════════════════════════════════════════════════════ */}
       <section
-        className="overflow-hidden"
+        className="overflow-hidden relative"
         style={{ background: '#0038A8' }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0">
+        {/* ── Animated sheet / flag layers ─────────────────────── */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+          {/* Sheet 1 — large slow billow */}
+          <div style={{
+            position: 'absolute',
+            inset: '-20% -10%',
+            background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(252,209,22,0.10) 40%, rgba(206,17,38,0.08) 70%, transparent 100%)',
+            borderRadius: '38% 62% 55% 45% / 45% 35% 65% 55%',
+            filter: 'blur(2px)',
+            animation: 'sheetDrift1 9s ease-in-out infinite',
+            willChange: 'transform, opacity',
+          }} />
+          {/* Sheet 2 — medium, offset phase */}
+          <div style={{
+            position: 'absolute',
+            inset: '-15% -5%',
+            background: 'linear-gradient(220deg, rgba(255,255,255,0.12) 0%, rgba(252,209,22,0.07) 50%, transparent 100%)',
+            borderRadius: '55% 45% 38% 62% / 60% 40% 60% 40%',
+            filter: 'blur(1px)',
+            animation: 'sheetDrift2 12s ease-in-out infinite',
+            willChange: 'transform, opacity',
+          }} />
+          {/* Sheet 3 — thin highlight edge */}
+          <div style={{
+            position: 'absolute',
+            inset: '-25% -15%',
+            background: 'linear-gradient(60deg, transparent 30%, rgba(255,255,255,0.10) 55%, rgba(206,17,38,0.06) 75%, transparent 100%)',
+            borderRadius: '40% 60% 50% 50% / 50% 55% 45% 50%',
+            animation: 'sheetDrift3 15s ease-in-out infinite',
+            willChange: 'transform, opacity',
+          }} />
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0 relative">
 
           {/* Text side */}
           <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
-            {/* Hero logo mark — brand first impression */}
+            {/* Hero logo — new logo */}
             <div className="mb-6">
               <Image
-                src="/images/s-logo-ph.png"
+                src="/images/SIG final PH LOGO.png"
                 alt="Sigurado"
-                width={96}
-                height={96}
+                width={180}
+                height={60}
                 className="object-contain"
                 priority
               />
@@ -161,7 +213,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-        </div>
+        </div> {/* end relative inner wrapper */}
       </section>
 
       {/* ══════════════════════════════════════════════════════════
@@ -293,7 +345,7 @@ export default function LandingPage() {
         style={{ background: '#0B1627' }}
       >
         <Image
-          src="/images/s-logo-ph.png"
+          src="/images/SIG final PH LOGO.png"
           alt="Sigurado"
           width={32}
           height={32}
@@ -440,7 +492,7 @@ export default function LandingPage() {
         <div className="px-5 py-12" style={{ background: '#0B1627' }}>
           <div className="mb-6">
             <Image
-              src="/images/s-logo-ph.png"
+              src="/images/SIG final PH LOGO.png"
               alt="Sigurado"
               width={52}
               height={52}
@@ -494,7 +546,7 @@ export default function LandingPage() {
       <footer className="px-5 py-10 flex flex-col gap-4" style={{ background: '#060E1F' }}>
         <div className="flex items-center gap-3">
           <Image
-            src="/images/s-logo-ph.png"
+            src="/images/SIG final PH LOGO.png"
             alt="Sigurado"
             width={56}
             height={56}
