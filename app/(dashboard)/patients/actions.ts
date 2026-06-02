@@ -62,6 +62,7 @@ export type FullPatient = {
   lastName: string
   dateOfBirth: Date
   address: string
+  addressLine2: string | null
   phone: string
   email: string | null
   medicalHistory: string | null
@@ -177,6 +178,7 @@ export async function updatePatientInfo(
     phone: string
     email: string
     address: string
+    addressLine2?: string
   }
 ) {
   const { clinicId, userEmail, db } = await getActorDb()
@@ -196,6 +198,7 @@ export async function updatePatientInfo(
       phone: data.phone.trim(),
       email: data.email.trim() || null,
       address: data.address.trim(),
+      addressLine2: data.addressLine2?.trim() || null,
     },
   }))
 
@@ -512,6 +515,7 @@ export async function anonymizePatient(patientId: string): Promise<void> {
         middleName: null,
         lastName: `#${patientId.slice(-6)}`,
         address: '[erased]',
+        addressLine2: null,
         phone: '[erased]',
         email: null,
         philsysId: null,

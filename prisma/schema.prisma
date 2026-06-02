@@ -234,6 +234,7 @@ model Patient {
   lastName        String
   dateOfBirth     DateTime
   address         String
+  addressLine2    String?   // optional 2nd line — unit/building/barangay
   phone           String
   email           String?
   philsysId       String?  // Philippine Identification System (PhilSys) ID — optional

@@ -992,6 +992,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   const [phone, setPhone] = useState(patient.phone)
   const [email, setEmail] = useState(patient.email ?? '')
   const [address, setAddress] = useState(patient.address ?? '')
+  const [addressLine2, setAddressLine2] = useState(patient.addressLine2 ?? '')
 
   const age = computeAge(patient.dateOfBirth)
   const inputClass = 'w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
@@ -999,7 +1000,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   function handleSave() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !dob) return
     startTransition(async () => {
-      await updatePatientInfo(patient.id, { firstName, middleName: middleName || undefined, lastName, dateOfBirth: dob, phone, email, address })
+      await updatePatientInfo(patient.id, { firstName, middleName: middleName || undefined, lastName, dateOfBirth: dob, phone, email, address, addressLine2: addressLine2 || undefined })
       setEditing(false)
       router.refresh()
     })
@@ -1040,6 +1041,10 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
               <label className="text-xs font-medium text-muted-foreground">Address</label>
               <input className={inputClass} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street, City, Province" />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Address Line 2 <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <input className={inputClass} value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} placeholder="Unit / building / barangay" />
+            </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleSave} disabled={isPending || !firstName.trim() || !lastName.trim() || !phone.trim()} className="flex-1 min-h-[48px]">
                 {isPending ? 'Saving…' : 'Save'}
@@ -1067,7 +1072,9 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
                 Age {age} &middot; DOB {formatDate(patient.dateOfBirth)}
               </p>
               {patient.address && (
-                <p className="text-xs text-muted-foreground mt-0.5">{patient.address}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {patient.address}{patient.addressLine2 ? `, ${patient.addressLine2}` : ''}
+                </p>
               )}
             </div>
             <a href={`tel:${patient.phone}`} className="text-sm text-primary underline min-h-[44px] flex items-center">

@@ -55,6 +55,7 @@ export function IntakeForm({
   const [lastName, setLastName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [address, setAddress] = useState('')
+  const [addressLine2, setAddressLine2] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [philsysId, setPhilsysId] = useState('')
@@ -85,7 +86,9 @@ export function IntakeForm({
     }
     setSavingStep1(true)
     const data: IntakeStep1Data = {
-      firstName, middleName: middleName || undefined, lastName, dateOfBirth, address, phone,
+      firstName, middleName: middleName || undefined, lastName, dateOfBirth, address,
+      addressLine2: addressLine2 || undefined,
+      phone,
       email: email || undefined,
       philsysId: philsysId || undefined,
       medicalHistory, medications, allergies,
@@ -129,7 +132,7 @@ export function IntakeForm({
   }
 
   function handleReset() {
-    setFirstName(''); setMiddleName(''); setLastName(''); setDateOfBirth(''); setAddress('')
+    setFirstName(''); setMiddleName(''); setLastName(''); setDateOfBirth(''); setAddress(''); setAddressLine2('')
     setPhone(''); setEmail(''); setPhilsysId(''); setMedicalHistory(''); setMedications('')
     setAllergies(''); setIsMinor(false); setGuardianName('')
     setGuardianRelationship(''); setConsentGiven(false)
@@ -327,6 +330,11 @@ export function IntakeForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="address">Address *</Label>
           <Input id="address" value={address} onChange={e => setAddress(e.target.value)} required className="min-h-[48px]" />
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="addressLine2">Address Line 2 <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input id="addressLine2" value={addressLine2} onChange={e => setAddressLine2(e.target.value)} className="min-h-[48px]" placeholder="Unit / building / barangay" />
         </div>
 
         <div className="flex flex-col gap-1.5">

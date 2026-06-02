@@ -13,6 +13,7 @@ export type IntakeStep1Data = {
   lastName: string
   dateOfBirth: string
   address: string
+  addressLine2?: string
   phone: string
   email?: string
   philsysId?: string
@@ -72,6 +73,7 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
           lastName: data.lastName.trim(),
           dateOfBirth: new Date(data.dateOfBirth),
           address: data.address.trim(),
+          addressLine2: data.addressLine2?.trim() || null,
           phone: data.phone.trim(),
           email: data.email?.trim() || null,
           philsysId: data.philsysId?.trim() || null,
