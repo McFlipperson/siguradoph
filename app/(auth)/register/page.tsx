@@ -69,10 +69,18 @@ function RegisterForm() {
 
   if (sent) {
     return (
-      <div className="min-h-screen relative overflow-hidden bg-[#dbeafe]">
-        <Image src="/images/login-image.png" alt="" fill className="object-cover object-top" priority onError={() => {}} />
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-5 gap-6">
-          <div className="bg-white rounded-[2rem] shadow-2xl px-8 py-10 flex flex-col items-center gap-5 text-center w-full max-w-sm">
+      <div
+        className="min-h-screen relative overflow-hidden"
+        style={{
+          backgroundImage: "url('/images/login-image.png')",
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+          backgroundRepeat: 'no-repeat',
+          backgroundColor: '#c8dff5',
+        }}
+      >
+        <div className="absolute inset-x-0" style={{ top: '7vh', paddingLeft: '4.5%', paddingRight: '4.5%' }}>
+          <div className="w-full rounded-3xl bg-white shadow-xl px-8 py-10 flex flex-col items-center gap-5 text-center">
             <span className="text-7xl">📬</span>
             <div>
               <h1 className="text-2xl font-black text-gray-900">Check your email!</h1>
@@ -82,7 +90,7 @@ function RegisterForm() {
                 Click it to activate your account.
               </p>
             </div>
-            <Link href="/login" className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-base flex items-center justify-center">
+            <Link href="/login" className="w-full h-12 rounded-xl bg-blue-600 text-white font-bold text-sm flex items-center justify-center">
               Back to Sign In
             </Link>
           </div>
@@ -92,11 +100,19 @@ function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#dbeafe]">
-      <Image src="/images/login-image.png" alt="" fill className="object-cover object-top" priority onError={() => {}} />
-
-      <div className="relative z-10 min-h-screen flex flex-col px-5 pt-10 pb-0">
-        <div className="bg-white rounded-[2rem] shadow-2xl px-7 pt-8 pb-7 flex flex-col gap-4">
+    <div
+      className="min-h-screen relative overflow-hidden"
+      style={{
+        backgroundImage: "url('/images/login-image.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center top',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#c8dff5',
+      }}
+    >
+      {/* TWEAK: `top` moves card up/down. `paddingLeft/Right` controls width. */}
+      <div className="absolute inset-x-0" style={{ top: '7vh', paddingLeft: '4.5%', paddingRight: '4.5%' }}>
+        <div className="w-full rounded-3xl bg-white shadow-xl px-6 pt-6 pb-5 flex flex-col gap-3">
 
           {/* Logo */}
           <div className="flex justify-center">
@@ -216,14 +232,22 @@ function RegisterForm() {
               <p className="text-xs text-blue-700">Secure, private, and always protected.</p>
             </div>
           </div>
+
+          <p className="text-center text-xs font-medium text-gray-500 mt-1">
+            Already have an account?{' '}
+            <Link href="/login" className="text-blue-600 font-bold">Sign in</Link>
+          </p>
+
         </div>
 
-        <p className="text-center text-sm font-medium text-gray-800 mt-5 pb-8">
-          Already have an account?{' '}
-          <Link href="/login" className="text-blue-700 font-bold underline underline-offset-2">
-            Sign in
-          </Link>
-        </p>
+        {/* RA 10173 footer */}
+        <div className="flex items-center justify-center gap-2 mt-3 px-4">
+          <span className="text-lg">🇵🇭</span>
+          <p className="text-xs text-gray-600 text-center">
+            Your data is protected under <strong>RA 10173</strong> —<br />
+            Philippines Data Privacy Act of 2012.
+          </p>
+        </div>
       </div>
     </div>
   )
