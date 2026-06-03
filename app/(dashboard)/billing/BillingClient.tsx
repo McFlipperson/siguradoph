@@ -6,8 +6,18 @@ import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
 import { getOrCreatePendingUpgrade, selfReportPayment } from './actions'
 import { PLAN_PRICES } from '@/lib/billing-constants'
-import { Check, Copy, Zap, ArrowRight } from 'lucide-react'
+import { Check, Copy, Zap, ArrowRight, CalendarClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-PH', {
+    month: 'long', day: 'numeric', year: 'numeric',
+  })
+}
+
+function daysUntil(iso: string) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000)
+}
 
 // ─── Plan definitions ────────────────────────────────────────────────────────
 
@@ -222,13 +232,36 @@ function PaymentPanel({
 function RenewalPanel({
   plan,
   gcashNumber,
+  nextDueDate,
 }: {
   plan: PlanDef
   gcashNumber: string
+  nextDueDate: string | null
 }) {
   const [open, setOpen] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [loadingRef, setLoadingRef] = useState(true)
+  const [refCode, setRefCode] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    let cancelled = false
+    getOrCreatePendingUpgrade(plan.id)
+      .then((r) => { if (!cancelled) setRefCode(r.referenceCode) })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingRef(false) })
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id])
+
+  function copyRef() {
+    if (!refCode) return
+    navigator.clipboard.writeText(refCode).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   if (success) {
     return (
@@ -242,26 +275,75 @@ function RenewalPanel({
     )
   }
 
+  const days = nextDueDate ? daysUntil(nextDueDate) : null
+  const isUrgent = days !== null && days <= 5
+
   return (
-    <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewing next month?</p>
+    <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-4">
+
+      {/* Next due date — big and prominent */}
+      {nextDueDate && (
+        <div className={`rounded-xl px-4 py-3 flex items-start gap-3 ${isUrgent ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
+          <CalendarClock className={`w-5 h-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
+          <div>
+            <p className={`font-bold text-base ${isUrgent ? 'text-red-800' : 'text-amber-800'}`}>
+              Next renewal due: {formatDate(nextDueDate)}
+              {days !== null && days >= 0 && (
+                <span className="font-normal text-sm ml-2">({days === 0 ? 'today' : `${days} day${days !== 1 ? 's' : ''}`})</span>
+              )}
+              {days !== null && days < 0 && (
+                <span className="font-normal text-sm ml-2 text-red-600">(overdue)</span>
+              )}
+            </p>
+            <p className={`text-xs mt-0.5 ${isUrgent ? 'text-red-700' : 'text-amber-700'}`}>
+              To avoid any disruption, pay 2–3 days before the due date.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        {nextDueDate ? 'Pay your renewal' : 'Renewing next month?'}
+      </p>
+
       {!open ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
+          {/* QR + amount side by side */}
           {gcashNumber && (
             <div className="flex items-center gap-4">
               <div className="p-2 rounded-xl border bg-white shadow-sm shrink-0">
-                <QRCode value={gcashNumber} size={96} />
+                <QRCode value={gcashNumber} size={100} />
               </div>
               <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Scan with GCash then send exactly</p>
-                <p className="text-2xl font-bold text-primary">{plan.amountLabel}</p>
+                <p className="text-xs text-muted-foreground">Scan with GCash · send exactly</p>
+                <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
                 <p className="text-xs text-muted-foreground">{gcashNumber}</p>
               </div>
             </div>
           )}
+
+          {/* Reference code */}
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Include in GCash notes (speeds up verification)</p>
+            {loadingRef ? (
+              <div className="h-11 rounded-xl bg-muted animate-pulse" />
+            ) : refCode ? (
+              <button
+                onClick={copyRef}
+                className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 active:bg-primary/10"
+              >
+                <span className="text-lg font-bold tracking-widest text-primary">{refCode}</span>
+                <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </span>
+              </button>
+            ) : null}
+          </div>
+
           <button
             onClick={() => setOpen(true)}
-            className="w-full min-h-[44px] rounded-xl border-2 border-emerald-500 text-emerald-700 font-semibold text-sm active:bg-emerald-50"
+            className="w-full min-h-[48px] rounded-xl bg-emerald-600 text-white font-bold text-sm active:opacity-90"
           >
             I've sent the payment →
           </button>
@@ -343,11 +425,13 @@ export default function BillingClient({
   clinicName,
   gcashNumber,
   recentlyConfirmedPlan,
+  nextDueDate,
 }: {
   currentPlan: Plan
   clinicName: string
   gcashNumber: string
   recentlyConfirmedPlan: Plan | null
+  nextDueDate: string | null
 }) {
   const plansToShow = PLAN_DEFS.filter((p) => PLAN_RANK[p.id] >= PLAN_RANK[currentPlan])
   const currentPlanDef = PLAN_DEFS.find((p) => p.id === currentPlan)
@@ -398,14 +482,14 @@ export default function BillingClient({
               ))}
             </ul>
           </div>
-          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} />
+          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} nextDueDate={nextDueDate} />
         </div>
       )}
 
       {/* BASIC — feature list + renewal + upgrade to Pro */}
       {currentPlan === 'BASIC' && currentPlanDef && (
         <div className="space-y-4">
-          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} />
+          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} nextDueDate={nextDueDate} />
           <p className="text-sm text-muted-foreground">Upgrade to Pro for the full compliance suite:</p>
           {plansToShow.filter(p => p.id !== 'BASIC').map((plan) => (
             <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} />
@@ -423,13 +507,15 @@ export default function BillingClient({
         </div>
       )}
 
-      {currentPlan !== 'PRO' && (
+      {currentPlan === 'FREE' && (
         <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How payment works</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
           <div className="space-y-1.5 text-sm text-muted-foreground">
-            <p>• Send GCash to our number, tap "I've paid" — access is instant.</p>
-            <p>• We verify the payment in the background. No waiting.</p>
-            <p>• Monthly, no auto-charge. You renew manually each month.</p>
+            <p>• Tap <strong className="text-foreground">Upgrade</strong>, scan the GCash QR, send the exact amount.</p>
+            <p>• Tap <strong className="text-foreground">"I've paid"</strong> — your plan activates instantly.</p>
+            <p>• We verify your payment in the background. No waiting, no friction.</p>
+            <p>• Monthly, no auto-charge. Renew manually each month.</p>
+            <p>• Pay 2–3 days early each month to avoid any disruption.</p>
           </div>
         </div>
       )}
