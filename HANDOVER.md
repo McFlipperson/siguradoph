@@ -10,13 +10,18 @@ Recent work this session (all live on production unless noted):
 - **GCash semi-automated billing system** — full billing infrastructure built (§14).
 - **Honor-system payment flow** — clinics tap "I've paid" → instant access, Gmail agent verifies in background (§14).
 - **Admin overhaul** — `/admin` now has Needs Attention / Awaiting Verification / Recently Verified buckets + one-click manual confirm + downgrade (§3).
-- **Onboarding facelift** — new 6-step flow, PH flag colors, gradient hero headers, milestone progress dots, confetti celebration screen (§15).
-- **Onboarding cleaned up** — removed Employees, Expenses, Equipment, Suppliers from onboarding. Now: DPA → Identity → Services → Loyalty → Messenger → Celebration.
+- **Onboarding redesign** — 8-year-old-navigable: fat animated progress bar, 96px bouncing emoji, slide-up content card, big ON/OFF loyalty toggle, chunky service chips with pop animation, GCash field added to identity step (§15).
+- **Plan intent capture** — landing page passes `?plan=basic/pro` → register stores in localStorage → after onboarding confetti redirects to `/billing?upgrade=plan` → payment panel auto-opens (§16).
+- **Login/register redesign** — full-screen background image (`public/images/login-image.png`), transparent form overlay positioned over image, Google + Apple OAuth buttons wired to Supabase (need providers enabled in Supabase dashboard), password show/hide, duplicate email detection (§17).
+- **Auth layout stripped** — login/register manage their own full-screen layout; reset-password has self-contained card.
+- **Duplicate email detection on register** — Supabase silently succeeds for duplicate emails; now detected via `identities.length === 0` and shows clear error.
 
 **Still pending (not yet built):**
-- **Civil status + Sex** on Patient model — see §13 (unchanged from before).
+- **Civil status + Sex** on Patient model — see §13 (unchanged).
 - **Activate RLS** — see §6 (unchanged).
 - **Gmail MCP connector** for the billing agent — Nova needs to connect Gmail at https://claude.ai/customize/connectors, then the hourly billing verification agent can be set up via the `schedule` skill.
+- **Google/Apple OAuth** — buttons exist but providers need enabling in Supabase dashboard → Authentication → Providers.
+- **Login overlay fine-tuning** — positions are calculated from image coordinates (22.5vh top padding etc.) — may need px adjustments after testing on real phone (§17).
 - **Empty states** as feature discovery / conversion nudges — discussed but not built.
 
 ---
@@ -35,6 +40,8 @@ Recent work this session (all live on production unless noted):
 | GCash payments | Wife's personal GCash `09616634838` (Joey B.) |
 
 Deploys are automatic: **push to `main` → Vercel builds & deploys to production.**
+
+Note: there are **two siguradoph folders** on Nova's machine. The live one is `/Users/grumples/Documents/siguradoph/`. The other (`/Users/grumples/siguradoOG/`) is a stale copy — don't edit it.
 
 ---
 
@@ -104,11 +111,9 @@ App-level `clinicId` filters protect tenants today. RLS policies are written but
 
 All migrations through 2026-06-03 have been applied to production.
 
-**New migrations applied this session:**
-- `20260603010000_billing.sql` — adds `Clinic.gcashNumber`, creates `PendingUpgrade` table + `UpgradeStatus` enum (PENDING, SELF_REPORTED, CONFIRMED, EXPIRED). **Already applied.**
-- `20260603020000_billing_self_report.sql` — adds `SELF_REPORTED` to enum + `PendingUpgrade.selfReportedAt`. **Already applied** (had to run as two separate queries due to Postgres enum transaction rules).
-
 **Previously applied migrations of note:**
+- `20260603010000_billing.sql` — adds `Clinic.gcashNumber`, creates `PendingUpgrade` table + `UpgradeStatus` enum.
+- `20260603020000_billing_self_report.sql` — adds `SELF_REPORTED` to enum + `PendingUpgrade.selfReportedAt`.
 - RLS policies, ConsentRecord immutability trigger
 - `Clinic.dpoName/dpoEmail/dpoPhone/npcRegistrationNumber/npcRegistrationDate`
 - `Patient.anonymizedAt`, `Clinic.plan` enum, `IncidentLog/PlatformIncident/AdminAuditLog`
@@ -135,7 +140,9 @@ Unchanged. Patient with issued receipts → cannot delete → offer Anonymize (s
 - **Activate RLS** (§6) — biggest pending hardening.
 - **Gmail MCP connector** — needed for the hourly billing verification agent. Connect at https://claude.ai/customize/connectors then use the `schedule` skill.
 - **Civil status + Sex** on Patient — see §13.
-- **Empty states as feature discovery** — discussed, not built. Each section (Reminders, Loyalty, Reports, etc.) should have a compelling empty state that explains the value and guides setup.
+- **Google/Apple OAuth** — Supabase dashboard → Authentication → Providers → enable Google/Apple, paste credentials.
+- **Login overlay pixel-tuning** — test on real phone, adjust `paddingTop` and `marginTop` values in `app/(auth)/login/page.tsx` if alignment is off.
+- **Empty states as feature discovery** — discussed, not built.
 - **Email drip** — Day 3/7/14 after signup spotlighting unused features. Not built.
 - **Tax/CPA module** — hidden (`lib/features.ts` `TAX_MODULE = false`); routes need access-control hardening before unhiding.
 - **`ADMIN_EMAILS` on Preview** — only set on Production.
@@ -156,7 +163,7 @@ Unchanged. Patient with issued receipts → cannot delete → offer Anonymize (s
 
 ## 12. Dental certificates & dentist signature
 
-- **Clinic logo** now shows top-left on both the on-screen preview and the emailed PDF. Uses `Clinic.logoUrl` (the same logo uploaded at onboarding/settings).
+- **Clinic logo** now shows top-left on both the on-screen preview and the emailed PDF. Uses `Clinic.logoUrl`.
 - **Certificate builder** (`CertificateBuilder.tsx`): editable fields, auto-fills from patient + most recent visit.
 - **Email:** server action `emailCertificate` → React-PDF → Resend attachment. Audit-logged.
 - **PRC License No.:** `Clinic.prcLicenseNo`, set in Settings → Dentist Credentials.
@@ -192,13 +199,9 @@ To implement:
 - `app/(dashboard)/billing/` — billing page + BillingClient + actions
 - `app/api/billing/confirm/route.ts` — webhook endpoint (auth: `x-billing-secret` header)
 - `lib/billing-constants.ts` — plan prices (BASIC: 49900, PRO: 99900 centavos)
-- `public/gcash-qr.jpeg` — Joey's real InstaPay QR (cropped from full GCash screenshot)
+- `public/gcash-qr.jpeg` — Joey's real InstaPay QR
 
-**Due date logic:** anchors to the DAY OF MONTH of the clinic's first-ever payment. If they first paid on the 13th, due date is always the 13th. Computed in `billing/page.tsx`.
-
-**Renewal:** paid clinics see their due date (red if ≤5 days), QR, amount, and reference on the billing page. They tap "I've sent the payment →" → same honor-system flow.
-
-**Settings:** clinic saves their own GCash number in Settings → "Subscription Payment" section (`Clinic.gcashNumber`). Used as fallback matching when reference code is missing from GCash notes.
+**Due date logic:** anchors to the DAY OF MONTH of the clinic's first-ever payment. Computed in `billing/page.tsx`.
 
 **Gmail agent setup (PENDING):**
 - Requires Gmail MCP connected at https://claude.ai/customize/connectors
@@ -212,35 +215,62 @@ To implement:
 
 ---
 
-## 15. Onboarding facelift
+## 15. Onboarding redesign (8-year-old navigable)
 
-**New 6-step flow** (down from 10):
-1. DPA — compact (3 promise cards + collapsible full agreement)
-2. Clinic Identity — name, slug, logo, address, phone, email
-3. Services — tap chips to select
-4. Loyalty Cards — toggle + price
-5. Messenger — connect Facebook (skippable)
-6. 🎉 Celebration — full-screen, flag video background, confetti in PH colors, gold CTA → goes straight to Add Patient (`/patients/intake`)
+**6-step flow:**
+1. DPA — full-color promise cards (blue/green/amber), animated agree button
+2. Clinic Identity — big logo upload zone, emoji labels, GCash number field (below phone)
+3. Services — selected-count badge, category emoji headers, chips pop-bounce on tap
+4. Loyalty Cards — big ON/OFF toggle buttons (green/red), card settings below
+5. Messenger — giant Facebook logo, benefit cards, big connect button
+6. 🎉 Celebration — full-screen PH flag video, confetti, gold CTA
 
-**Removed from onboarding** (moved to dashboard sections):
-- Employees → `/employees` (Pro feature)
-- Recurring Expenses → `/expenses`
-- Equipment → `/expenses`
-- Suppliers → Settings → Suppliers tab
+**Shell (`OnboardingShell.tsx`):**
+- Fat animated progress bar (fills with bounce on each step)
+- 96px emoji pops in and floats on each step change
+- Content card slides up from below
+- CSS animations embedded inline (no Framer Motion dependency)
 
-**Visual design:**
-- `OnboardingShell` component wraps each step with a gradient hero header (blue/gold/red per step), S logo mark top-left, milestone progress dots top-right.
-- `CelebrationStep` is fullscreen — Philippine flag video looping (muted), confetti in blue/red/gold, Sigurado wordmark, "Maligayang pagdating!", gold button.
-- `Step1DPA` redesigned — no legal wall on first load.
-- `WizardProgress` retired (shell handles progress).
-
-**Accountant email** removed from onboarding (was showing a CPA quarterly-report upsell that isn't active yet).
-
-**Key components:** `components/onboarding/OnboardingShell.tsx`, `CelebrationStep.tsx`, `Step1DPA.tsx`, `WizardProgress.tsx` (stub).
+**Plan intent → payment flow:**
+- Landing "Get Basic/Pro" buttons link to `/register?plan=basic/pro`
+- Register stores plan in `localStorage` (`sigurado_selected_plan`)
+- After confetti CTA → redirects to `/billing?upgrade=plan` instead of patients/intake
+- Billing page auto-opens the correct plan's payment panel
 
 ---
 
-## 16. Clinic logo on certificates
+## 16. Login / Register redesign
+
+**Design approach:**
+- Full-screen background: `public/images/login-image.png` (1024×1536, 1.4MB)
+- No white card wrapper — form elements float transparently over the image
+- All text labels removed — image provides the visual design
+- Interactive elements (inputs, buttons) positioned using `vh`-based measurements to align with image coordinates
+
+**Key files:**
+- `app/(auth)/login/page.tsx` — full rewrite, transparent overlay
+- `app/(auth)/register/page.tsx` — same treatment + plan intent logic
+- `app/(auth)/reset-password/page.tsx` — self-contained card (no layout dependency)
+- `app/(auth)/layout.tsx` — stripped to bare `<>{children}</>` passthrough
+
+**Alignment math (login page):**
+Image is 1024×1536. With `background-size: cover` on 390×844 mobile, scale=0.549.
+- Email input top: `padding-top: 22.5vh`
+- Password gap: `margin-top: 4.4vh`
+- Remember me: `margin-top: 2.9vh`
+- Login button: `margin-top: 2.4vh`
+- Divider: `margin-top: 2.9vh`
+- Google/Apple: `margin-top: 1.5vh`
+- Security badge: `margin-top: 2.4vh`
+If off on real device, adjust these values in `login/page.tsx`.
+
+**Google/Apple OAuth:** buttons call `supabase.auth.signInWithOAuth`. Need providers enabled in Supabase dashboard → Authentication → Providers before they work.
+
+**Duplicate email on register:** detected via `data.user.identities?.length === 0` — Supabase silently "succeeds" otherwise.
+
+---
+
+## 17. Clinic logo on certificates
 
 `Clinic.logoUrl` (uploaded at onboarding / Settings → Clinic Logo) now appears:
 - Top-left of the on-screen certificate preview (80×80px)
