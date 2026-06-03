@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import QRCode from 'react-qr-code'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
 import { getOrCreatePendingUpgrade, selfReportPayment } from './actions'
@@ -165,17 +165,14 @@ function PaymentPanel({
       </div>
 
       {/* QR + number */}
-      {gcashNumber ? (
-        <div className="flex flex-col items-center gap-3">
-          <div className="p-3 rounded-2xl border bg-white shadow-sm">
-            <QRCode value={gcashNumber} size={160} />
-          </div>
-          <p className="text-xs text-muted-foreground">Scan with GCash · or send to</p>
-          <p className="text-lg font-bold tracking-widest">{gcashNumber}</p>
+      <div className="flex flex-col items-center gap-2">
+        <div className="rounded-2xl overflow-hidden border shadow-sm w-48">
+          <Image src="/gcash-qr.jpeg" alt="GCash QR code" width={192} height={284} className="w-full h-auto" />
         </div>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center">GCash number not configured. Contact support.</p>
-      )}
+        {gcashNumber && (
+          <p className="text-xs text-muted-foreground">or send to <strong>{gcashNumber}</strong></p>
+        )}
+      </div>
 
       {/* Reference code */}
       <div className="space-y-1.5">
@@ -309,18 +306,16 @@ function RenewalPanel({
       {!open ? (
         <div className="space-y-4">
           {/* QR + amount side by side */}
-          {gcashNumber && (
-            <div className="flex items-center gap-4">
-              <div className="p-2 rounded-xl border bg-white shadow-sm shrink-0">
-                <QRCode value={gcashNumber} size={100} />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Scan with GCash · send exactly</p>
-                <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
-                <p className="text-xs text-muted-foreground">{gcashNumber}</p>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="rounded-xl overflow-hidden border shadow-sm shrink-0 w-24">
+              <Image src="/gcash-qr.jpeg" alt="GCash QR code" width={96} height={142} className="w-full h-auto" />
             </div>
-          )}
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Scan with GCash · send exactly</p>
+              <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
+              {gcashNumber && <p className="text-xs text-muted-foreground">{gcashNumber}</p>}
+            </div>
+          </div>
 
           {/* Reference code */}
           <div className="space-y-1">
