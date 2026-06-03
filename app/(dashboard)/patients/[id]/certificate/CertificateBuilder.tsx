@@ -176,6 +176,10 @@ export default function CertificateBuilder(props: Props) {
 
       {/* The certificate document */}
       <div id="cert-doc" className="bg-white text-black border rounded-lg p-6 sm:p-10 leading-relaxed text-[13px]">
+        <div className="flex items-start justify-between mb-4">
+          <div />
+          {props.logoUrl && <img src={props.logoUrl} alt="Clinic logo" className="h-14 w-14 object-contain" />}
+        </div>
         <div className="text-right mb-6">
           Date: <input value={dateIssued} onChange={(e) => setDateIssued(e.target.value)} className={`${line} w-48 text-center`} />
         </div>
