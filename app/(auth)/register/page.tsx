@@ -31,7 +31,7 @@ export default function RegisterPage() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -41,6 +41,13 @@ export default function RegisterPage() {
 
     if (authError) {
       setError(authError.message)
+      setLoading(false)
+      return
+    }
+
+    // Supabase silently "succeeds" for duplicate emails — detect via empty identities
+    if (data.user && data.user.identities?.length === 0) {
+      setError('An account with that email already exists. Please sign in instead.')
       setLoading(false)
       return
     }
