@@ -153,7 +153,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     e.preventDefault()
     setError(null)
     if (!slugLocked && slugStatus !== 'available') {
-      setError('Please choose a valid, available clinic address before continuing.')
+      setError('Please choose a valid, available clinic URL before continuing (the "Your Clinic Address" field above).')
       return
     }
     try {
@@ -378,23 +378,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="accountantEmail">Accountant Email (optional)</Label>
-        <Input
-          id="accountantEmail"
-          type="email"
-          value={form.accountantEmail ?? ''}
-          onChange={e => set('accountantEmail', e.target.value)}
-          className="min-h-[48px]"
-          placeholder="cpa@youraccountant.com"
-        />
-        <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 space-y-1">
-          <p className="text-xs font-semibold text-emerald-800">📊 Automatic Quarterly Reports</p>
-          <p className="text-xs text-emerald-700 leading-relaxed">
-            Add your accountant&apos;s email and we&apos;ll automatically send them a full financial summary every quarter — <strong>January 1, April 1, July 1, and October 1</strong>. They&apos;ll receive a revenue + VAT breakdown plus two spreadsheet attachments (invoices and expenses) ready for BIR filing. Zero effort from you after setup. You can always update this in Settings.
-          </p>
-        </div>
-      </div>
+      {/* Accountant Email — TAX_MODULE hidden. Re-enable in lib/features.ts */}
 
       <Card>
         <CardHeader>
