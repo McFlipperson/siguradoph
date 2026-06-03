@@ -150,16 +150,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, alreadyConfirmed: true, clinicName: upgrade.clinic.name, plan: upgrade.plan })
   }
 
-  // ── Step 4: Upgrade the clinic ───────────────────────────────────────────
+  // ── Step 4: Upgrade the clinic (skip if already on this plan via self-report) ──
 
   const targetPlan = upgrade.plan
   const clinicId = upgrade.clinicId
+  const alreadyOnPlan = upgrade.status === 'SELF_REPORTED' // plan was already granted
 
   await prisma.$transaction([
-    prisma.clinic.update({
+    // Only update the plan if it wasn't already granted via self-report
+    ...(alreadyOnPlan ? [] : [prisma.clinic.update({
       where: { id: clinicId },
       data: { plan: targetPlan },
-    }),
+    })]),
     prisma.pendingUpgrade.update({
       where: { id: upgrade.id },
       data: {

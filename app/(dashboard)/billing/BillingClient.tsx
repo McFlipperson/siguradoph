@@ -4,9 +4,10 @@ import { useState, useEffect } from 'react'
 import QRCode from 'react-qr-code'
 import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
-import { getOrCreatePendingUpgrade } from './actions'
+import { getOrCreatePendingUpgrade, selfReportPayment } from './actions'
 import { PLAN_PRICES } from '@/lib/billing-constants'
-import { Check, Copy, Zap } from 'lucide-react'
+import { Check, Copy, Zap, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 // ─── Plan definitions ────────────────────────────────────────────────────────
 
@@ -14,8 +15,9 @@ type PlanDef = {
   id: 'BASIC' | 'PRO'
   name: string
   price: string
-  color: string
+  amountLabel: string
   badge: string
+  borderColor: string
   features: string[]
 }
 
@@ -24,8 +26,9 @@ const PLAN_DEFS: PlanDef[] = [
     id: 'BASIC',
     name: 'Basic',
     price: '₱499',
-    color: 'border-blue-400 bg-blue-50',
+    amountLabel: '₱499.00',
     badge: 'bg-blue-100 text-blue-800',
+    borderColor: 'border-blue-300',
     features: [
       'Unlimited patients',
       'Scheduling & appointments',
@@ -40,8 +43,9 @@ const PLAN_DEFS: PlanDef[] = [
     id: 'PRO',
     name: 'Pro',
     price: '₱999',
-    color: 'border-violet-400 bg-violet-50',
+    amountLabel: '₱999.00',
     badge: 'bg-violet-100 text-violet-800',
+    borderColor: 'border-violet-300',
     features: [
       'Everything in Basic',
       'Full privacy compliance suite',
@@ -55,31 +59,61 @@ const PLAN_DEFS: PlanDef[] = [
 
 const PLAN_RANK: Record<Plan, number> = { FREE: 0, BASIC: 1, PRO: 2 }
 
+// ─── Success screen ───────────────────────────────────────────────────────────
+
+function SuccessScreen({ plan, onDone }: { plan: PlanDef; onDone: () => void }) {
+  return (
+    <div className="flex flex-col items-center text-center py-6 space-y-5">
+      <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center">
+        <Check className="w-10 h-10 text-emerald-600" />
+      </div>
+      <div className="space-y-1">
+        <h2 className="text-xl font-bold">You're all set!</h2>
+        <p className="text-sm text-muted-foreground">
+          Your <strong>{plan.name}</strong> plan is active. All features are unlocked.
+        </p>
+      </div>
+      <div className="w-full rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800 text-left space-y-1">
+        <p className="font-semibold">What happens next</p>
+        <p>We&apos;ll verify your GCash payment in the background — no action needed. You&apos;ll get a confirmation email once verified.</p>
+      </div>
+      <button
+        onClick={onDone}
+        className="w-full min-h-[48px] rounded-xl bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2"
+      >
+        Start using {plan.name} <ArrowRight className="w-4 h-4" />
+      </button>
+    </div>
+  )
+}
+
 // ─── PaymentPanel ────────────────────────────────────────────────────────────
 
 function PaymentPanel({
   plan,
   gcashNumber,
   onClose,
+  onSuccess,
 }: {
   plan: PlanDef
   gcashNumber: string
   onClose: () => void
+  onSuccess: () => void
 }) {
-  const [loading, setLoading] = useState(true)
+  const [loadingRef, setLoadingRef] = useState(true)
   const [refCode, setRefCode] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   const amountPesos = PLAN_PRICES[plan.id] / 100
 
-  // Load the reference code as soon as the panel mounts
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
+    setLoadingRef(true)
     getOrCreatePendingUpgrade(plan.id)
-      .then((result) => { if (!cancelled) setRefCode(result.referenceCode) })
-      .catch(() => { if (!cancelled) toast.error('Could not generate payment reference. Please try again.') })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .then((r) => { if (!cancelled) setRefCode(r.referenceCode) })
+      .catch(() => { if (!cancelled) toast.error('Could not generate reference. Try again.') })
+      .finally(() => { if (!cancelled) setLoadingRef(false) })
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan.id])
@@ -92,20 +126,26 @@ function PaymentPanel({
     })
   }
 
+  async function handleIvePaid() {
+    setSubmitting(true)
+    const res = await selfReportPayment(plan.id)
+    setSubmitting(false)
+    if (res.ok) {
+      onSuccess()
+    } else {
+      toast.error(res.error ?? 'Something went wrong. Please try again.')
+    }
+  }
+
   return (
     <div className="mt-3 rounded-2xl border-2 border-primary bg-background shadow-md p-5 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold text-base">Pay via GCash</p>
-          <p className="text-sm text-muted-foreground">{plan.name} plan · {plan.price}/month</p>
+          <p className="text-sm text-muted-foreground">{plan.name} · {plan.price}/month</p>
         </div>
-        <button
-          onClick={onClose}
-          className="text-muted-foreground p-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg active:bg-muted"
-        >
-          ✕
-        </button>
+        <button onClick={onClose} className="text-muted-foreground p-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg active:bg-muted">✕</button>
       </div>
 
       {/* Amount */}
@@ -115,35 +155,27 @@ function PaymentPanel({
       </div>
 
       {/* QR + number */}
-      <div className="flex flex-col items-center gap-3">
-        {gcashNumber ? (
-          <>
-            <div className="p-3 rounded-2xl border bg-white shadow-sm">
-              <QRCode value={gcashNumber} size={160} />
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Scan with GCash · or send to
-            </p>
-            <p className="text-lg font-bold tracking-widest">{gcashNumber}</p>
-          </>
-        ) : (
-          <p className="text-sm text-muted-foreground text-center">
-            GCash number not configured yet. Contact support.
-          </p>
-        )}
-      </div>
+      {gcashNumber ? (
+        <div className="flex flex-col items-center gap-3">
+          <div className="p-3 rounded-2xl border bg-white shadow-sm">
+            <QRCode value={gcashNumber} size={160} />
+          </div>
+          <p className="text-xs text-muted-foreground">Scan with GCash · or send to</p>
+          <p className="text-lg font-bold tracking-widest">{gcashNumber}</p>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground text-center">GCash number not configured. Contact support.</p>
+      )}
 
       {/* Reference code */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-muted-foreground text-center">
-          Include this in your GCash notes to speed up activation
-        </p>
-        {loading ? (
-          <div className="h-14 rounded-xl bg-muted animate-pulse" />
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground text-center">Include in GCash notes to speed up verification</p>
+        {loadingRef ? (
+          <div className="h-12 rounded-xl bg-muted animate-pulse" />
         ) : refCode ? (
           <button
             onClick={copyRef}
-            className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 active:bg-primary/10 transition-colors"
+            className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 active:bg-primary/10"
           >
             <span className="text-xl font-bold tracking-widest text-primary">{refCode}</span>
             <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
@@ -152,70 +184,127 @@ function PaymentPanel({
             </span>
           </button>
         ) : null}
-        <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-          Not required — we can match your payment even without it. But including it helps
-          if you have a new GCash number not registered with us.
-        </p>
       </div>
 
-      {/* Instructions */}
-      <ol className="space-y-2 text-sm">
+      {/* Steps */}
+      <ol className="space-y-2">
         {[
-          'Open GCash and scan the QR code above (or tap Send Money and enter the number)',
-          `Enter the exact amount: ₱${amountPesos.toFixed(2)}`,
-          `Optionally paste your reference code in the Notes field`,
-          'Send the payment',
-          'Your plan will be activated automatically within a few minutes',
+          'Open GCash and scan the QR (or tap Send Money → enter number)',
+          `Send exactly ₱${amountPesos.toFixed(2)}`,
+          'Optionally paste the reference code in GCash notes',
+          'Come back here and tap the button below',
         ].map((step, i) => (
-          <li key={i} className="flex gap-3 items-start">
-            <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center mt-0.5">
-              {i + 1}
-            </span>
-            <span className="text-sm text-muted-foreground leading-snug">{step}</span>
+          <li key={i} className="flex gap-3 items-start text-sm">
+            <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
+            <span className="text-muted-foreground leading-snug">{step}</span>
           </li>
         ))}
       </ol>
 
-      <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-        Payment is verified automatically from our GCash notifications. If your plan
-        isn&apos;t updated within 30 minutes, contact us at{' '}
-        <a href="mailto:support@sigurado.xyz" className="underline">support@sigurado.xyz</a>.
+      {/* I've paid CTA */}
+      <button
+        onClick={handleIvePaid}
+        disabled={submitting}
+        className="w-full min-h-[52px] rounded-xl bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 active:opacity-90 disabled:opacity-50"
+      >
+        {submitting ? 'Activating…' : "✓ I've paid — activate my plan"}
+      </button>
+
+      <p className="text-[11px] text-muted-foreground text-center">
+        We trust you. Your plan activates immediately. We verify the GCash payment in the background.
       </p>
+    </div>
+  )
+}
+
+// ─── RenewalPanel ─────────────────────────────────────────────────────────────
+
+function RenewalPanel({
+  plan,
+  gcashNumber,
+}: {
+  plan: PlanDef
+  gcashNumber: string
+}) {
+  const [open, setOpen] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const router = useRouter()
+
+  if (success) {
+    return (
+      <div className="rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-4 py-4 flex items-start gap-3">
+        <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold text-emerald-800 text-sm">Renewal confirmed!</p>
+          <p className="text-xs text-emerald-700 mt-0.5">Your {plan.name} plan has been renewed. Check your email for confirmation.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewing next month?</p>
+      {!open ? (
+        <div className="space-y-3">
+          {gcashNumber && (
+            <div className="flex items-center gap-4">
+              <div className="p-2 rounded-xl border bg-white shadow-sm shrink-0">
+                <QRCode value={gcashNumber} size={96} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">Scan with GCash then send exactly</p>
+                <p className="text-2xl font-bold text-primary">{plan.amountLabel}</p>
+                <p className="text-xs text-muted-foreground">{gcashNumber}</p>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={() => setOpen(true)}
+            className="w-full min-h-[44px] rounded-xl border-2 border-emerald-500 text-emerald-700 font-semibold text-sm active:bg-emerald-50"
+          >
+            I've sent the payment →
+          </button>
+        </div>
+      ) : (
+        <PaymentPanel
+          plan={plan}
+          gcashNumber={gcashNumber}
+          onClose={() => setOpen(false)}
+          onSuccess={() => { setSuccess(true); router.refresh() }}
+        />
+      )}
     </div>
   )
 }
 
 // ─── PlanCard ────────────────────────────────────────────────────────────────
 
-function PlanCard({
-  plan,
-  currentPlan,
-  gcashNumber,
-}: {
-  plan: PlanDef
-  currentPlan: Plan
-  gcashNumber: string
-}) {
+function PlanCard({ plan, currentPlan, gcashNumber }: { plan: PlanDef; currentPlan: Plan; gcashNumber: string }) {
   const [open, setOpen] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const router = useRouter()
   const isCurrent = currentPlan === plan.id
   const isDowngrade = PLAN_RANK[plan.id] < PLAN_RANK[currentPlan]
 
+  if (success) {
+    return (
+      <div className={`rounded-2xl border-2 ${plan.borderColor} p-4`}>
+        <SuccessScreen plan={plan} onDone={() => { setSuccess(false); router.refresh() }} />
+      </div>
+    )
+  }
+
   return (
     <div className={`rounded-2xl border-2 p-4 space-y-3 ${isCurrent ? 'border-primary' : 'border-border'}`}>
-      {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${plan.badge}`}>
-            {plan.name}
-          </span>
-          {isCurrent && (
-            <span className="text-xs font-medium text-primary">Current plan</span>
-          )}
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${plan.badge}`}>{plan.name}</span>
+          {isCurrent && <span className="text-xs font-medium text-primary">Current plan</span>}
         </div>
         <span className="font-bold text-lg">{plan.price}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
       </div>
 
-      {/* Features */}
       <ul className="space-y-1.5">
         {plan.features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-sm">
@@ -225,7 +314,6 @@ function PlanCard({
         ))}
       </ul>
 
-      {/* CTA */}
       {!isCurrent && !isDowngrade && (
         <button
           onClick={() => setOpen((v) => !v)}
@@ -236,12 +324,12 @@ function PlanCard({
         </button>
       )}
 
-      {/* Payment panel (inline expand) */}
       {open && (
         <PaymentPanel
           plan={plan}
           gcashNumber={gcashNumber}
           onClose={() => setOpen(false)}
+          onSuccess={() => { setOpen(false); setSuccess(true) }}
         />
       )}
     </div>
@@ -262,61 +350,46 @@ export default function BillingClient({
   recentlyConfirmedPlan: Plan | null
 }) {
   const plansToShow = PLAN_DEFS.filter((p) => PLAN_RANK[p.id] >= PLAN_RANK[currentPlan])
+  const currentPlanDef = PLAN_DEFS.find((p) => p.id === currentPlan)
 
   return (
     <div className="space-y-5 pb-4">
       <h1 className="text-xl font-bold">Subscription</h1>
 
-      {/* Recently activated banner */}
       {recentlyConfirmedPlan && (
         <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 flex items-start gap-3">
           <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div>
-            <p className="font-semibold text-emerald-800 text-sm">Plan activated!</p>
-            <p className="text-xs text-emerald-700 mt-0.5">
-              {clinicName} has been upgraded to the {recentlyConfirmedPlan} plan.
-            </p>
+            <p className="font-semibold text-emerald-800 text-sm">Payment verified!</p>
+            <p className="text-xs text-emerald-700 mt-0.5">{clinicName}'s {recentlyConfirmedPlan} plan has been confirmed by GCash.</p>
           </div>
         </div>
       )}
 
-      {/* Current plan summary */}
+      {/* Current plan */}
       <div className="rounded-2xl border bg-background px-4 py-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">Current plan</p>
-          <p className="font-bold text-lg capitalize">{currentPlan.charAt(0) + currentPlan.slice(1).toLowerCase()}</p>
+          <p className="font-bold text-lg">{currentPlan.charAt(0) + currentPlan.slice(1).toLowerCase()}</p>
         </div>
-        {currentPlan === 'FREE' && (
-          <span className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full">
-            Up to 30 patients
-          </span>
-        )}
-        {currentPlan !== 'FREE' && (
-          <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-            {currentPlan === 'PRO' ? 'All features' : 'Core features'}
-          </span>
-        )}
+        <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+          {currentPlan === 'FREE' ? 'Up to 30 patients' : currentPlan === 'PRO' ? 'All features' : 'Core features'}
+        </span>
       </div>
 
-      {/* Plan cards */}
-      {currentPlan === 'PRO' ? (
+      {/* PRO — feature list + renewal */}
+      {currentPlan === 'PRO' && currentPlanDef && (
         <div className="space-y-4">
-          <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 p-4 space-y-3">
+          <div className={`rounded-2xl border-2 ${currentPlanDef.borderColor} p-4 space-y-3`}>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-100 text-violet-800">Pro</span>
+              <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${currentPlanDef.badge}`}>Pro</span>
               <span className="font-bold text-lg">₱999<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
             </div>
             <ul className="space-y-1.5">
-              {[
-                'Unlimited patients',
-                'Scheduling & appointments',
-                'Messenger reminders',
-                'Loyalty cards & SC/PWD discounts',
-                'Reports & data export',
-                'Full privacy compliance suite',
-                'Audit log & consent dashboard',
-                'Breach / ASIR incident tools',
-                'Employee management & payroll',
+              {['Unlimited patients', 'Scheduling & appointments', 'Messenger reminders',
+                'Loyalty cards & SC/PWD discounts', 'Reports & data export',
+                'Full privacy compliance suite', 'Audit log & consent dashboard',
+                'Breach / ASIR incident tools', 'Employee management & payroll',
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
                   <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
@@ -325,52 +398,38 @@ export default function BillingClient({
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewing next month?</p>
-            {gcashNumber ? (
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-xl border bg-white shadow-sm shrink-0">
-                  <QRCode value={gcashNumber} size={96} />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">Scan with GCash then send exactly</p>
-                  <p className="text-2xl font-bold text-primary">₱999.00</p>
-                  <p className="text-xs text-muted-foreground">{gcashNumber}</p>
-                  <p className="text-xs text-muted-foreground">Activated within the hour ✓</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Send ₱999.00 monthly to keep your Pro plan active.</p>
-            )}
-          </div>
+          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} />
         </div>
-      ) : (
+      )}
+
+      {/* BASIC — feature list + renewal + upgrade to Pro */}
+      {currentPlan === 'BASIC' && currentPlanDef && (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {currentPlan === 'FREE'
-              ? 'Upgrade to unlock more patients and features:'
-              : 'Upgrade to Pro for the full compliance suite:'}
-          </p>
-          {plansToShow.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              currentPlan={currentPlan}
-              gcashNumber={gcashNumber}
-            />
+          <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} />
+          <p className="text-sm text-muted-foreground">Upgrade to Pro for the full compliance suite:</p>
+          {plansToShow.filter(p => p.id !== 'BASIC').map((plan) => (
+            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} />
           ))}
         </div>
       )}
 
-      {/* What happens section */}
+      {/* FREE — upgrade cards */}
+      {currentPlan === 'FREE' && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Upgrade to unlock more patients and features:</p>
+          {plansToShow.map((plan) => (
+            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} />
+          ))}
+        </div>
+      )}
+
       {currentPlan !== 'PRO' && (
         <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How payment works</p>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Monthly subscription — pay each month to keep your plan active.</p>
-            <p>• Payment via GCash only for now. Scan the QR code and send the exact amount.</p>
-            <p>• Your plan activates automatically once we receive your GCash payment — usually within minutes.</p>
-            <p>• No automatic recurring charge. You choose to renew each month.</p>
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <p>• Send GCash to our number, tap "I've paid" — access is instant.</p>
+            <p>• We verify the payment in the background. No waiting.</p>
+            <p>• Monthly, no auto-charge. You renew manually each month.</p>
           </div>
         </div>
       )}

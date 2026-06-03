@@ -30,9 +30,10 @@ enum Plan {
 }
 
 enum UpgradeStatus {
-  PENDING
-  CONFIRMED
-  EXPIRED
+  PENDING        // payment panel opened, not yet paid
+  SELF_REPORTED  // clinic tapped "I've paid" — plan granted immediately, awaiting GCash email verification
+  CONFIRMED      // GCash email matched — fully verified
+  EXPIRED        // 7 days passed without payment
 }
 
 // Sigurado's OWN security incident register (Sigurado = Personal Information
@@ -650,6 +651,7 @@ model PendingUpgrade {
   senderName    String?       // GCash-registered name of the sender (from notification email)
   createdAt     DateTime      @default(now())
   expiresAt     DateTime      // 7 days from creation; cron expires stale ones
+  selfReportedAt DateTime?     // when clinic tapped "I've paid" — plan granted at this moment
   confirmedAt   DateTime?
   confirmedBy   String?       // 'auto' (Gmail agent) or admin email (manual confirm)
 

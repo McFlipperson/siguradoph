@@ -37,6 +37,34 @@ export async function setClinicPlan(clinicId: string, plan: Plan): Promise<void>
   revalidatePath('/admin')
 }
 
+/** Revert a clinic to FREE and mark the pending upgrade as EXPIRED. */
+export async function downgradeClinic(upgradeId: string): Promise<void> {
+  const supabase = createServerClient()
+  const { data: { user: authUser } } = await supabase.auth.getUser()
+  if (!isAdminEmail(authUser?.email)) throw new Error('Forbidden')
+
+  const upgrade = await prisma.pendingUpgrade.findUnique({
+    where: { id: upgradeId },
+    include: { clinic: { select: { id: true, name: true, plan: true } } },
+  })
+  if (!upgrade) throw new Error('Upgrade not found')
+
+  await prisma.$transaction([
+    prisma.clinic.update({ where: { id: upgrade.clinicId }, data: { plan: 'FREE' } }),
+    prisma.pendingUpgrade.update({ where: { id: upgradeId }, data: { status: 'EXPIRED' } }),
+    prisma.adminAuditLog.create({
+      data: {
+        actorEmail: authUser!.email!,
+        action: 'SET_PLAN',
+        targetClinicId: upgrade.clinicId,
+        detail: `${upgrade.clinic.name}: ${upgrade.clinic.plan} → FREE (downgraded — unverified payment, ref: ${upgrade.referenceCode})`,
+      },
+    }),
+  ])
+
+  revalidatePath('/admin')
+}
+
 /** Manually confirm a pending upgrade (admin fallback when GCash note was missing). */
 export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
   const supabase = createServerClient()

@@ -12,28 +12,75 @@ export default async function AdminPage() {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!isAdminEmail(authUser?.email)) redirect('/')
 
-  const [clinics, activity, pendingUpgrades] = await Promise.all([
+  const now = new Date()
+  const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const cutoff7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000)
+
+  const [clinics, activity, selfReported, recentlyVerified, pendingOnly] = await Promise.all([
+    // All clinics for the plan management table
     prisma.clinic.findMany({
       select: {
-        id: true,
-        name: true,
-        plan: true,
-        email: true,
-        createdAt: true,
+        id: true, name: true, plan: true, email: true, createdAt: true,
         _count: { select: { patients: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
+
+    // Admin activity log
     prisma.adminAuditLog.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: 30,
     }),
+
+    // SELF_REPORTED — needs attention (>24h) or pending verification (<24h)
     prisma.pendingUpgrade.findMany({
-      where: { status: 'PENDING', expiresAt: { gt: new Date() } },
+      where: { status: 'SELF_REPORTED' },
+      include: { clinic: { select: { name: true, email: true, gcashNumber: true } } },
+      orderBy: { selfReportedAt: 'desc' },
+    }),
+
+    // Recently CONFIRMED (last 7 days)
+    prisma.pendingUpgrade.findMany({
+      where: { status: 'CONFIRMED', confirmedAt: { gt: cutoff7d } },
+      include: { clinic: { select: { name: true, email: true } } },
+      orderBy: { confirmedAt: 'desc' },
+      take: 20,
+    }),
+
+    // Still PENDING (payment panel opened, never paid — expiring soon)
+    prisma.pendingUpgrade.findMany({
+      where: { status: 'PENDING', expiresAt: { gt: now } },
       include: { clinic: { select: { name: true, email: true } } },
       orderBy: { createdAt: 'desc' },
     }),
   ])
+
+  // Split self-reported into needs-attention vs awaiting-verification
+  const needsAttention = selfReported.filter(
+    (u) => u.selfReportedAt && u.selfReportedAt < cutoff24h,
+  )
+  const awaitingVerification = selfReported.filter(
+    (u) => !u.selfReportedAt || u.selfReportedAt >= cutoff24h,
+  )
+
+  function mapUpgrade(u: typeof selfReported[number]) {
+    return {
+      id: u.id,
+      clinicId: u.clinicId,
+      clinicName: u.clinic.name,
+      clinicEmail: u.clinic.email,
+      clinicGcashNumber: u.clinic.gcashNumber ?? null,
+      plan: u.plan as Plan,
+      referenceCode: u.referenceCode,
+      amountCents: u.amountCents,
+      status: u.status,
+      selfReportedAt: u.selfReportedAt?.toISOString() ?? null,
+      confirmedAt: u.confirmedAt?.toISOString() ?? null,
+      confirmedBy: u.confirmedBy ?? null,
+      createdAt: u.createdAt.toISOString(),
+      expiresAt: u.expiresAt.toISOString(),
+    }
+  }
 
   return (
     <AdminClient
@@ -52,17 +99,19 @@ export default async function AdminPage() {
         detail: a.detail,
         createdAt: a.createdAt.toISOString(),
       }))}
-      pendingUpgrades={pendingUpgrades.map((u) => ({
+      needsAttention={needsAttention.map(mapUpgrade)}
+      awaitingVerification={awaitingVerification.map(mapUpgrade)}
+      recentlyVerified={recentlyVerified.map((u) => ({
         id: u.id,
-        clinicId: u.clinicId,
         clinicName: u.clinic.name,
         clinicEmail: u.clinic.email,
         plan: u.plan as Plan,
         referenceCode: u.referenceCode,
         amountCents: u.amountCents,
-        createdAt: u.createdAt.toISOString(),
-        expiresAt: u.expiresAt.toISOString(),
+        confirmedAt: u.confirmedAt?.toISOString() ?? null,
+        confirmedBy: u.confirmedBy ?? null,
       }))}
+      pendingOnly={pendingOnly.map(mapUpgrade)}
     />
   )
 }
