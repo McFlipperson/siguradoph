@@ -325,13 +325,23 @@ export default function BillingClient({
               ))}
             </ul>
           </div>
-          <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">
+          <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewing next month?</p>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>• Send <strong className="text-foreground">₱999.00</strong> to GCash <strong className="text-foreground">{gcashNumber || 'our GCash number'}</strong></p>
-              <p>• Your plan will be reactivated automatically within the hour after we receive it.</p>
-              <p>• No need to visit this page — just send the same amount each month.</p>
-            </div>
+            {gcashNumber ? (
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-xl border bg-white shadow-sm shrink-0">
+                  <QRCode value={gcashNumber} size={96} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Scan with GCash then send exactly</p>
+                  <p className="text-2xl font-bold text-primary">₱999.00</p>
+                  <p className="text-xs text-muted-foreground">{gcashNumber}</p>
+                  <p className="text-xs text-muted-foreground">Activated within the hour ✓</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Send ₱999.00 monthly to keep your Pro plan active.</p>
+            )}
           </div>
         </div>
       ) : (
