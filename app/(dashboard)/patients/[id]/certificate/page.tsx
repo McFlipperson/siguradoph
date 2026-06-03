@@ -33,7 +33,7 @@ export default async function CertificatePage({ params }: { params: { id: string
 
   const clinic = await prisma.clinic.findUnique({
     where: { id: clinicId },
-    select: { name: true, ownerName: true, street: true, city: true, province: true, zip: true, phone: true, prcLicenseNo: true, signatureUrl: true },
+    select: { name: true, ownerName: true, street: true, city: true, province: true, zip: true, phone: true, prcLicenseNo: true, signatureUrl: true, logoUrl: true },
   })
 
   const latest = patient.visits[0] ?? null
@@ -52,6 +52,7 @@ export default async function CertificatePage({ params }: { params: { id: string
       dentistName={clinic?.ownerName ?? ''}
       prcLicenseNo={clinic?.prcLicenseNo ?? ''}
       signatureUrl={clinic?.signatureUrl ?? null}
+      logoUrl={clinic?.logoUrl ?? null}
       clinicAddress={clinicAddress}
       clinicPhone={clinic?.phone ?? ''}
       latestVisit={latest ? {

@@ -17,6 +17,7 @@ type Props = {
   dentistName: string
   prcLicenseNo: string
   signatureUrl: string | null
+  logoUrl: string | null
   clinicAddress: string
   clinicPhone: string
   latestVisit: LatestVisit
@@ -123,6 +124,7 @@ export default function CertificateBuilder(props: Props) {
           dentistName,
           prcLicenseNo,
           signatureUrl: props.signatureUrl,
+          logoUrl: props.logoUrl,
           clinicName: props.clinicName,
           clinicAddress,
           clinicPhone,
