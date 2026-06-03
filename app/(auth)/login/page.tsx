@@ -4,12 +4,15 @@ import Image from 'next/image'
 import { useState } from 'react'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [showPass, setShowPass] = useState(false)
+  const [remember, setRemember] = useState(true)
 
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-[#cfe2f8]">
-      {/* Wrapper is exactly the rendered size of the image, so the input
-          positioned with % coordinates tracks the image as it scales. */}
+      {/* Wrapper matches the rendered image size; children positioned with
+          % coordinates track the image as it scales. */}
       <div className="relative h-screen">
         <Image
           src="/images/login-image.png"
@@ -20,12 +23,7 @@ export default function LoginPage() {
           className="h-screen w-auto max-w-full object-contain"
         />
 
-        {/* Floating email input — positioned over the drawn email box.
-            TUNE these 4 values until it lines up perfectly:
-              left  = distance from left edge of image (% of image width)
-              width = box width (% of image width)
-              top   = distance from top of image (% of image height)
-              height= box height (% of image height) */}
+        {/* ── Email (confirmed good) ──────────────────────────── */}
         <input
           type="email"
           value={email}
@@ -33,14 +31,53 @@ export default function LoginPage() {
           placeholder="you@example.com"
           autoComplete="email"
           className="absolute rounded-[14px] bg-white text-gray-800 text-[1.6vh] outline-none focus:ring-2 focus:ring-blue-300"
-          style={{
-            left: '20.5%',
-            width: '57.5%',
-            top: '41.2%',
-            height: '3.6%',
-            paddingLeft: '12%',
-            paddingRight: '4%',
-          }}
+          style={{ left: '20.5%', width: '57.5%', top: '41.2%', height: '3.6%', paddingLeft: '12%', paddingRight: '4%' }}
+        />
+
+        {/* ── Password ────────────────────────────────────────── */}
+        <input
+          type={showPass ? 'text' : 'password'}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="At least 8 characters"
+          autoComplete="current-password"
+          className="absolute rounded-[14px] bg-white text-gray-800 text-[1.6vh] outline-none focus:ring-2 focus:ring-blue-300"
+          style={{ left: '20.5%', width: '57.5%', top: '49.4%', height: '3.6%', paddingLeft: '12%', paddingRight: '12%' }}
+        />
+        {/* Show / hide toggle over the drawn eye icon */}
+        <button
+          type="button"
+          aria-label="Toggle password visibility"
+          onClick={() => setShowPass((v) => !v)}
+          className="absolute"
+          style={{ left: '70%', width: '8%', top: '49.4%', height: '3.6%' }}
+        />
+
+        {/* ── Remember me (transparent clickable over the checkbox + label) ── */}
+        <button
+          type="button"
+          aria-label="Toggle remember me"
+          onClick={() => setRemember((v) => !v)}
+          className="absolute"
+          style={{ left: '20.5%', width: '28%', top: '54.4%', height: '3.2%' }}
+        />
+
+        {/* ── Forgot password ─────────────────────────────────── */}
+        <button
+          type="button"
+          aria-label="Forgot password"
+          onClick={() => { /* TODO: wire reset */ }}
+          className="absolute"
+          style={{ left: '60%', width: '18%', top: '54.4%', height: '3.2%' }}
+        />
+
+        {/* ── Log in button (transparent, over the drawn blue button) ── */}
+        <button
+          type="button"
+          aria-label="Log in"
+          onClick={() => { /* TODO: wire sign-in */ }}
+          className="absolute active:opacity-80"
+          style={{ left: '20.5%', width: '57.5%', top: '58.7%', height: '3.8%' }}
         />
       </div>
     </main>
