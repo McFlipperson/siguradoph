@@ -142,6 +142,24 @@ function RegisterForm() {
           style={{ left: '20.5%', width: '57.5%', top: '57.8%', height: '3%' }}
         />
 
+        {/* ── "Terms of Service" link (sits above the toggle) ── */}
+        <a
+          href="/terms" target="_blank" rel="noopener noreferrer"
+          aria-label="Terms of Service"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute z-10"
+          style={{ left: '33.5%', width: '16.5%', top: '57.4%', height: '3%' }}
+        />
+
+        {/* ── "Privacy Policy" link (sits above the toggle) ── */}
+        <a
+          href="/privacy" target="_blank" rel="noopener noreferrer"
+          aria-label="Privacy Policy"
+          onClick={(e) => e.stopPropagation()}
+          className="absolute z-10"
+          style={{ left: '60%', width: '17.5%', top: '57.4%', height: '3%' }}
+        />
+
         {/* ── Create Account (submit) ── */}
         <button
           type="submit" aria-label="Create account" disabled={loading}
