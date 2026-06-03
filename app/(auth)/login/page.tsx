@@ -42,7 +42,7 @@ export default function LoginPage() {
           placeholder="At least 8 characters"
           autoComplete="current-password"
           className="absolute rounded-[14px] bg-white text-gray-800 text-[1.6vh] outline-none focus:ring-2 focus:ring-blue-300"
-          style={{ left: '20.5%', width: '57.5%', top: '49.4%', height: '3.6%', paddingLeft: '12%', paddingRight: '12%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '51.6%', height: '3.6%', paddingLeft: '12%', paddingRight: '12%' }}
         />
         {/* Show / hide toggle over the drawn eye icon */}
         <button
@@ -50,7 +50,7 @@ export default function LoginPage() {
           aria-label="Toggle password visibility"
           onClick={() => setShowPass((v) => !v)}
           className="absolute"
-          style={{ left: '70%', width: '8%', top: '49.4%', height: '3.6%' }}
+          style={{ left: '70%', width: '8%', top: '51.6%', height: '3.6%' }}
         />
 
         {/* ── Remember me (transparent clickable over the checkbox + label) ── */}
@@ -60,7 +60,7 @@ export default function LoginPage() {
           aria-pressed={remember}
           onClick={() => setRemember((v) => !v)}
           className="absolute"
-          style={{ left: '20.5%', width: '28%', top: '54.4%', height: '3.2%' }}
+          style={{ left: '20.5%', width: '28%', top: '56.8%', height: '3.4%' }}
         />
 
         {/* ── Forgot password ─────────────────────────────────── */}
@@ -69,7 +69,7 @@ export default function LoginPage() {
           aria-label="Forgot password"
           onClick={() => { /* TODO: wire reset */ }}
           className="absolute"
-          style={{ left: '60%', width: '18%', top: '54.4%', height: '3.2%' }}
+          style={{ left: '58%', width: '22%', top: '56.8%', height: '3.4%' }}
         />
 
         {/* ── Log in button (transparent, over the drawn blue button) ── */}
@@ -78,7 +78,7 @@ export default function LoginPage() {
           aria-label="Log in"
           onClick={() => { /* TODO: wire sign-in */ }}
           className="absolute active:opacity-80"
-          style={{ left: '20.5%', width: '57.5%', top: '58.7%', height: '3.8%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '61.4%', height: '5.8%' }}
         />
       </div>
     </main>
