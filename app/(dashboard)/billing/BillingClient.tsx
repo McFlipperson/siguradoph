@@ -172,6 +172,9 @@ function PaymentPanel({
         {gcashNumber && (
           <p className="text-xs text-muted-foreground">or send to <strong>{gcashNumber}</strong></p>
         )}
+        <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
+          The recipient will appear as <strong>JO*****E B.</strong> — this is correct. Sigurado payments are processed through our registered GCash account.
+        </div>
       </div>
 
       {/* Reference code */}
@@ -314,6 +317,7 @@ function RenewalPanel({
               <p className="text-xs text-muted-foreground">Scan with GCash · send exactly</p>
               <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
               {gcashNumber && <p className="text-xs text-muted-foreground">{gcashNumber}</p>}
+              <p className="text-[11px] text-blue-700 leading-tight">Recipient: <strong>JO*****E B.</strong> — this is correct ✓</p>
             </div>
           </div>
 
