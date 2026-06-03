@@ -142,6 +142,14 @@ export default function OnboardingPage() {
           if (clinic.loyaltyCardTemplates.length > 0) resume = 5
           if (clinic.messengerToken) resume = 6
           setCurrentStep(Math.min(resume, 6))
+        } else {
+          // Brand-new user: prefill clinic name captured at registration
+          const pendingName = localStorage.getItem('sigurado_clinic_name')
+          if (pendingName) {
+            setClinicName(pendingName)
+            setAllData(prev => ({ ...prev, step1: { ...prev.step1, clinicName: pendingName } }))
+            localStorage.removeItem('sigurado_clinic_name')
+          }
         }
       } catch {
         // Start fresh
