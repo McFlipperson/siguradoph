@@ -118,7 +118,7 @@ function RegisterForm() {
           type="text" value={clinicName} onChange={(e) => setClinicName(e.target.value)}
           placeholder="Your Dental Clinic" autoComplete="organization"
           className="absolute rounded-[14px] bg-white text-gray-800 text-[1.6vh] outline-none focus:ring-2 focus:ring-blue-300"
-          style={{ left: '20.5%', width: '57.5%', top: '47%', height: '3.4%', paddingLeft: '12%', paddingRight: '4%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '46.5%', height: '3.4%', paddingLeft: '12%', paddingRight: '4%' }}
         />
 
         {/* ── Password ── */}
@@ -126,26 +126,26 @@ function RegisterForm() {
           type={showPass ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder="At least 8 characters" autoComplete="new-password" required
           className="absolute rounded-[14px] bg-white text-gray-800 text-[1.6vh] outline-none focus:ring-2 focus:ring-blue-300"
-          style={{ left: '20.5%', width: '57.5%', top: '55%', height: '3.4%', paddingLeft: '12%', paddingRight: '12%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '53.4%', height: '3.4%', paddingLeft: '12%', paddingRight: '12%' }}
         />
         <button
           type="button" aria-label="Toggle password visibility" onClick={() => setShowPass((v) => !v)}
           className="absolute"
-          style={{ left: '70%', width: '8%', top: '55%', height: '3.4%' }}
+          style={{ left: '70%', width: '8%', top: '53.4%', height: '3.4%' }}
         />
 
         {/* ── Terms agreement checkbox ── */}
         <button
           type="button" aria-label="Agree to terms" aria-pressed={agreed} onClick={() => setAgreed((v) => !v)}
           className="absolute"
-          style={{ left: '20.5%', width: '57.5%', top: '61%', height: '3%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '57.8%', height: '3%' }}
         />
 
         {/* ── Create Account (submit) ── */}
         <button
           type="submit" aria-label="Create account" disabled={loading}
           className="absolute flex items-center justify-center active:opacity-80"
-          style={{ left: '20.5%', width: '57.5%', top: '65%', height: '5.6%' }}
+          style={{ left: '20.5%', width: '57.5%', top: '60.8%', height: '4.2%' }}
         >
           {loading && (
             <span className="rounded-[14px] bg-blue-600 w-full h-full flex items-center justify-center text-white font-bold text-[1.7vh]">
@@ -158,14 +158,14 @@ function RegisterForm() {
         <button
           type="button" aria-label="Sign up with Google" onClick={() => handleOAuth('google')} disabled={oauthLoading !== null}
           className="absolute active:opacity-80"
-          style={{ left: '25.5%', width: '22.5%', top: '74%', height: '5%' }}
+          style={{ left: '25.5%', width: '22.5%', top: '68.1%', height: '4%' }}
         />
 
         {/* ── Apple ── */}
         <button
           type="button" aria-label="Sign up with Apple" onClick={() => handleOAuth('apple')} disabled={oauthLoading !== null}
           className="absolute active:opacity-80"
-          style={{ left: '50.5%', width: '22.5%', top: '74%', height: '5%' }}
+          style={{ left: '50.5%', width: '22.5%', top: '68.1%', height: '4%' }}
         />
       </form>
     </main>
