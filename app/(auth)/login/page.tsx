@@ -62,7 +62,8 @@ function LoginForm() {
           width={954}
           height={1635}
           priority
-          className="h-screen w-auto max-w-full object-contain"
+          className="block max-h-screen max-w-full"
+          style={{ height: 'auto', width: 'auto', maxHeight: '100vh', maxWidth: '100%' }}
         />
 
         {/* ── Status message (over the area above the email box) ── */}

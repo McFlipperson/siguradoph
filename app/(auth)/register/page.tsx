@@ -62,7 +62,7 @@ function RegisterForm() {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#cfe2f8]">
         <div className="relative h-screen">
-          <Image src="/images/register-image.png" alt="Sigurado register" width={954} height={1635} priority className="h-screen w-auto max-w-full object-contain" />
+          <Image src="/images/register-image.png" alt="Sigurado register" width={954} height={1635} priority className="block max-h-screen max-w-full" style={{ height: 'auto', width: 'auto', maxHeight: '100vh', maxWidth: '100%' }} />
           <div className="absolute left-[12%] right-[12%] top-[40%] rounded-2xl bg-white shadow-xl px-6 py-8 text-center flex flex-col items-center gap-4">
             <span className="text-6xl">📬</span>
             <h1 className="text-xl font-black text-gray-900">Check your email!</h1>
@@ -92,7 +92,8 @@ function RegisterForm() {
           width={954}
           height={1635}
           priority
-          className="h-screen w-auto max-w-full object-contain"
+          className="block max-h-screen max-w-full"
+          style={{ height: 'auto', width: 'auto', maxHeight: '100vh', maxWidth: '100%' }}
         />
 
         {/* ── Status message ── */}
