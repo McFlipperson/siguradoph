@@ -45,7 +45,7 @@ const PRO_EXTRAS = [
 export default function LandingPage() {
   return (
     <div
-      className="min-h-screen antialiased"
+      className="min-h-screen antialiased scroll-smooth"
       style={{ fontFamily: 'var(--font-geist-sans, system-ui, sans-serif)', background: '#ffffff', color: '#0B1627' }}
     >
 
@@ -61,15 +61,32 @@ export default function LandingPage() {
           Mobile: text → image stacked
           sm+: text left, dashboard screenshot right (floats up)
       ══════════════════════════════════════════════════════════ */}
-      {/* Hero is the image itself — buttons will be wired as overlay regions later */}
+      {/* Hero is the image itself; the built-in CTAs are overlaid with
+          anchor regions that scroll down to the pricing section. */}
       <section className="relative w-full">
         <Image
           src="/images/hero.png"
           alt="Sigurado — dental clinic software built for the Philippines"
-          width={1024}
-          height={608}
+          width={1692}
+          height={930}
           priority
           className="block w-full h-auto"
+        />
+
+        {/* "Start Free" → pricing */}
+        <a
+          href="#pricing"
+          aria-label="Start free — choose a plan"
+          className="absolute"
+          style={{ left: '3.4%', width: '25%', top: '56.5%', height: '11%' }}
+        />
+
+        {/* "Watch 2-min demo" → pricing (no demo yet) */}
+        <a
+          href="#pricing"
+          aria-label="See plans"
+          className="absolute"
+          style={{ left: '29.6%', width: '17%', top: '56.5%', height: '11%' }}
         />
       </section>
 
@@ -177,7 +194,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           SECTION 4 — PRICING
       ══════════════════════════════════════════════════════════ */}
-      <section className="py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
+      <section id="pricing" className="scroll-mt-4 py-14" style={{ background: '#F5F8FF', borderTop: '1px solid #EEF0F5' }}>
         <div className="px-5 mb-6">
           <h2
             className="font-black leading-tight"
