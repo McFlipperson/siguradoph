@@ -78,7 +78,7 @@ function SuccessScreen({ plan, onDone }: { plan: PlanDef; onDone: () => void }) 
         <Check className="w-10 h-10 text-emerald-600" />
       </div>
       <div className="space-y-1">
-        <h2 className="text-xl font-bold">You're all set!</h2>
+        <h2 className="text-xl font-bold">You&apos;re all set!</h2>
         <p className="text-sm text-muted-foreground">
           Your <strong>{plan.name}</strong> plan is active. All features are unlocked.
         </p>
@@ -344,7 +344,7 @@ function RenewalPanel({
             onClick={() => setOpen(true)}
             className="w-full min-h-[48px] rounded-xl bg-emerald-600 text-white font-bold text-sm active:opacity-90"
           >
-            I've sent the payment →
+            I&apos;ve sent the payment →
           </button>
         </div>
       ) : (
@@ -444,7 +444,7 @@ export default function BillingClient({
           <Check className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-emerald-800 text-sm">Payment verified!</p>
-            <p className="text-xs text-emerald-700 mt-0.5">{clinicName}'s {recentlyConfirmedPlan} plan has been confirmed by GCash.</p>
+            <p className="text-xs text-emerald-700 mt-0.5">{clinicName}&apos;s {recentlyConfirmedPlan} plan has been confirmed by GCash.</p>
           </div>
         </div>
       )}
@@ -511,7 +511,7 @@ export default function BillingClient({
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
           <div className="space-y-1.5 text-sm text-muted-foreground">
             <p>• Tap <strong className="text-foreground">Upgrade</strong>, scan the GCash QR, send the exact amount.</p>
-            <p>• Tap <strong className="text-foreground">"I've paid"</strong> — your plan activates instantly.</p>
+            <p>• Tap <strong className="text-foreground">&ldquo;I&apos;ve paid&rdquo;</strong> — your plan activates instantly.</p>
             <p>• We verify your payment in the background. No waiting, no friction.</p>
             <p>• Monthly, no auto-charge. Renew manually each month.</p>
             <p>• Pay 2–3 days early each month to avoid any disruption.</p>

@@ -16,7 +16,7 @@ export default async function AdminPage() {
   const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   const cutoff7d  = new Date(now.getTime() - 7  * 24 * 60 * 60 * 1000)
 
-  const [clinics, activity, selfReported, recentlyVerified, pendingOnly] = await Promise.all([
+  const [clinics, activity, selfReported, recentlyVerified] = await Promise.all([
     // All clinics for the plan management table
     prisma.clinic.findMany({
       select: {
@@ -47,12 +47,6 @@ export default async function AdminPage() {
       take: 20,
     }),
 
-    // Still PENDING (payment panel opened, never paid — expiring soon)
-    prisma.pendingUpgrade.findMany({
-      where: { status: 'PENDING', expiresAt: { gt: now } },
-      include: { clinic: { select: { name: true, email: true } } },
-      orderBy: { createdAt: 'desc' },
-    }),
   ])
 
   // Split self-reported into needs-attention vs awaiting-verification
