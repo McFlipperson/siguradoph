@@ -20,6 +20,7 @@ export type Step1Data = {
   email: string
   facebookPageUrl?: string
   accountantEmail?: string
+  gcashNumber?: string
   enrollmentDate: string
 }
 
@@ -161,6 +162,7 @@ export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<
         email: data.email,
         facebookPageUrl: data.facebookPageUrl || null,
         accountantEmail: data.accountantEmail || null,
+        gcashNumber: data.gcashNumber || null,
         enrollmentDate: new Date(data.enrollmentDate),
       },
     })
@@ -182,6 +184,7 @@ export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<
         email: data.email,
         facebookPageUrl: data.facebookPageUrl || null,
         accountantEmail: data.accountantEmail || null,
+        gcashNumber: data.gcashNumber || null,
         enrollmentDate: new Date(data.enrollmentDate),
         tosAcceptedAt: tosAcceptedAt ?? new Date(),
         // 30-day free trial starts the moment the clinic is created

@@ -47,6 +47,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     province: initialData.province ?? '',
     zip: initialData.zip ?? '',
     phone: initialData.phone ?? '',
+    gcashNumber: initialData.gcashNumber ?? '',
     email: initialData.email ?? '',
     facebookPageUrl: initialData.facebookPageUrl ?? '',
     accountantEmail: initialData.accountantEmail ?? '',
@@ -342,6 +343,19 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
           className="min-h-[48px]"
           placeholder="+63 912 345 6789"
         />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="gcashNumber">GCash Number (optional)</Label>
+        <Input
+          id="gcashNumber"
+          type="tel"
+          value={form.gcashNumber}
+          onChange={e => set('gcashNumber', e.target.value)}
+          className="min-h-[48px]"
+          placeholder="09xxxxxxxxx"
+        />
+        <p className="text-xs text-muted-foreground">Used to match GCash payments to your subscription. You can add this later in Settings.</p>
       </div>
 
       <div className="flex flex-col gap-2">
