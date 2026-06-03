@@ -55,7 +55,7 @@ function LoginForm() {
     <main className="min-h-screen w-full flex items-center justify-center bg-[#cfe2f8]">
       {/* Wrapper matches the rendered image size; children positioned with
           % coordinates track the image as it scales. */}
-      <form onSubmit={handleSubmit} className="relative h-screen">
+      <form onSubmit={handleSubmit} className="relative">
         <Image
           src="/images/login-image.png"
           alt="Sigurado login"

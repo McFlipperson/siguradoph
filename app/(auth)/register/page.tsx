@@ -61,7 +61,7 @@ function RegisterForm() {
   if (sent) {
     return (
       <main className="min-h-screen w-full flex items-center justify-center bg-[#cfe2f8]">
-        <div className="relative h-screen">
+        <div className="relative">
           <Image src="/images/register-image.png" alt="Sigurado register" width={954} height={1635} priority className="block max-h-screen max-w-full" style={{ height: 'auto', width: 'auto', maxHeight: '100vh', maxWidth: '100%' }} />
           <div className="absolute left-[12%] right-[12%] top-[40%] rounded-2xl bg-white shadow-xl px-6 py-8 text-center flex flex-col items-center gap-4">
             <span className="text-6xl">📬</span>
@@ -85,7 +85,7 @@ function RegisterForm() {
       {/* Wrapper matches the rendered image size; children positioned with
           % coordinates track the image as it scales.
           NOTE: vertical %s are first-pass estimates — fine-tuned live in Chrome. */}
-      <form onSubmit={handleSubmit} className="relative h-screen">
+      <form onSubmit={handleSubmit} className="relative">
         <Image
           src="/images/register-image.png"
           alt="Sigurado register"
