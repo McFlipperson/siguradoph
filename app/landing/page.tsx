@@ -392,7 +392,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link href="/register" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
+                <Link href="/register?plan=basic" className="block text-center font-bold text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
                   Get Basic
                 </Link>
               </div>
@@ -421,7 +421,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <div className="px-5 pb-5">
-                <Link href="/register" className="block text-center font-black text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
+                <Link href="/register?plan=pro" className="block text-center font-black text-sm py-3.5 rounded-xl" style={{ background: '#CE1126', color: '#ffffff' }}>
                   Get Pro
                 </Link>
               </div>

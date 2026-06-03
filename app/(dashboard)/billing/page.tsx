@@ -6,7 +6,8 @@ import { createServerClient } from '@/lib/supabase'
 import type { Plan } from '@/lib/entitlements'
 import BillingClient from './BillingClient'
 
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ upgrade?: string }> }) {
+  const { upgrade } = await searchParams
   const supabase = createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) redirect('/login')
@@ -66,6 +67,8 @@ export default async function BillingPage() {
     orderBy: { confirmedAt: 'desc' },
   })
 
+  const autoOpenPlan = upgrade === 'basic' || upgrade === 'pro' ? upgrade.toUpperCase() as 'BASIC' | 'PRO' : null
+
   return (
     <BillingClient
       currentPlan={clinic.plan as Plan}
@@ -73,6 +76,7 @@ export default async function BillingPage() {
       gcashNumber={process.env.NEXT_PUBLIC_GCASH_NUMBER ?? ''}
       recentlyConfirmedPlan={recentConfirmed?.plan as Plan | null ?? null}
       nextDueDate={nextDueDate}
+      autoOpenPlan={autoOpenPlan}
     />
   )
 }

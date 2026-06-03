@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import { Button } from '@/components/ui/button'
@@ -9,12 +10,23 @@ import { Label } from '@/components/ui/label'
 import Image from 'next/image'
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+
+  // Persist selected plan so onboarding can redirect to billing after confetti
+  useEffect(() => {
+    const plan = searchParams.get('plan')
+    if (plan === 'basic' || plan === 'pro') {
+      localStorage.setItem('sigurado_selected_plan', plan)
+    } else {
+      localStorage.removeItem('sigurado_selected_plan')
+    }
+  }, [searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

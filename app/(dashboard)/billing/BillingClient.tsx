@@ -361,8 +361,8 @@ function RenewalPanel({
 
 // ─── PlanCard ────────────────────────────────────────────────────────────────
 
-function PlanCard({ plan, currentPlan, gcashNumber }: { plan: PlanDef; currentPlan: Plan; gcashNumber: string }) {
-  const [open, setOpen] = useState(false)
+function PlanCard({ plan, currentPlan, gcashNumber, autoOpen = false }: { plan: PlanDef; currentPlan: Plan; gcashNumber: string; autoOpen?: boolean }) {
+  const [open, setOpen] = useState(autoOpen)
   const [success, setSuccess] = useState(false)
   const router = useRouter()
   const isCurrent = currentPlan === plan.id
@@ -425,12 +425,14 @@ export default function BillingClient({
   gcashNumber,
   recentlyConfirmedPlan,
   nextDueDate,
+  autoOpenPlan,
 }: {
   currentPlan: Plan
   clinicName: string
   gcashNumber: string
   recentlyConfirmedPlan: Plan | null
   nextDueDate: string | null
+  autoOpenPlan?: 'BASIC' | 'PRO' | null
 }) {
   const plansToShow = PLAN_DEFS.filter((p) => PLAN_RANK[p.id] >= PLAN_RANK[currentPlan])
   const currentPlanDef = PLAN_DEFS.find((p) => p.id === currentPlan)
@@ -491,7 +493,7 @@ export default function BillingClient({
           <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} nextDueDate={nextDueDate} />
           <p className="text-sm text-muted-foreground">Upgrade to Pro for the full compliance suite:</p>
           {plansToShow.filter(p => p.id !== 'BASIC').map((plan) => (
-            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} />
+            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} autoOpen={autoOpenPlan === plan.id} />
           ))}
         </div>
       )}
@@ -501,7 +503,7 @@ export default function BillingClient({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">Upgrade to unlock more patients and features:</p>
           {plansToShow.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} />
+            <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} autoOpen={autoOpenPlan === plan.id} />
           ))}
         </div>
       )}

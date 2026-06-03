@@ -210,16 +210,21 @@ export default function OnboardingPage() {
           await completeOnboarding(clinicId)
           toast('Setup complete! Welcome to Sigurado. 🎉')
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
+          const selectedPlan = localStorage.getItem('sigurado_selected_plan')
+          localStorage.removeItem('sigurado_selected_plan')
+          const dest = selectedPlan === 'basic' || selectedPlan === 'pro'
+            ? `/billing?upgrade=${selectedPlan}`
+            : '/patients/intake'
           const slugRes = await fetch('/api/my-clinic-slug')
           if (slugRes.ok) {
             const { slug } = await slugRes.json() as { slug: string | null }
             if (slug) {
-              window.location.href = `https://${slug}.${rootDomain}/patients/intake`
+              window.location.href = `https://${slug}.${rootDomain}${dest}`
               resolve()
               return
             }
           }
-          window.location.href = '/patients/intake'
+          window.location.href = dest
           resolve()
         } catch (err) {
           toast('Something went wrong. Please try again.')
