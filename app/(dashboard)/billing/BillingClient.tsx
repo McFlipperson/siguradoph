@@ -300,9 +300,39 @@ export default function BillingClient({
 
       {/* Plan cards */}
       {currentPlan === 'PRO' ? (
-        <div className="rounded-2xl border bg-muted/30 px-4 py-6 text-center space-y-1">
-          <p className="font-semibold">You&apos;re on the Pro plan</p>
-          <p className="text-sm text-muted-foreground">You have access to all Sigurado features.</p>
+        <div className="space-y-4">
+          <div className="rounded-2xl border-2 border-violet-300 bg-violet-50 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-violet-100 text-violet-800">Pro</span>
+              <span className="font-bold text-lg">₱999<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
+            </div>
+            <ul className="space-y-1.5">
+              {[
+                'Unlimited patients',
+                'Scheduling & appointments',
+                'Messenger reminders',
+                'Loyalty cards & SC/PWD discounts',
+                'Reports & data export',
+                'Full privacy compliance suite',
+                'Audit log & consent dashboard',
+                'Breach / ASIR incident tools',
+                'Employee management & payroll',
+              ].map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Renewing next month?</p>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>• Send <strong className="text-foreground">₱999.00</strong> to GCash <strong className="text-foreground">{gcashNumber || 'our GCash number'}</strong></p>
+              <p>• Your plan will be reactivated automatically within the hour after we receive it.</p>
+              <p>• No need to visit this page — just send the same amount each month.</p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
