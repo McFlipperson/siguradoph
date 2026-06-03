@@ -53,38 +53,8 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           NAV
       ══════════════════════════════════════════════════════════ */}
-      <nav
-        className="flex items-center justify-between px-5 py-4"
-        style={{ background: 'rgba(0,30,100,0.82)', backdropFilter: 'blur(8px)' }}
-      >
-        <div className="flex items-center">
-          <Image
-            src="/images/sig-final-ph-logo.png"
-            alt="Sigurado"
-            width={160}
-            height={87}
-            className="object-contain"
-            priority
-          />
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/register"
-            className="text-sm font-bold px-4 py-2.5 rounded-xl"
-            style={{ background: '#CE1126', color: '#ffffff' }}
-          >
-            Register
-          </Link>
-          <Link
-            href="/login"
-            className="text-sm font-semibold px-4 py-2.5 rounded-xl"
-            style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff', border: '1.5px solid rgba(255,255,255,0.3)' }}
-          >
-            Sign in
-          </Link>
-        </div>
-      </nav>
+      {/* Nav removed — hero.png is the top of the page; its built-in
+          buttons will be wired as overlay regions (same technique as auth). */}
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 1 — HERO
@@ -108,46 +78,14 @@ export default function LandingPage() {
           Full image shown (no crop), text overlaid at bottom
           on the dark/neutral area — not over the doctor
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative">
-        {/* Full image at natural ratio — no crop, no cut head */}
+      <section className="relative w-full">
         <Image
-          src="/images/joey-clinic.jpeg"
-          alt="Filipino dental clinic"
+          src="/images/section22.png"
+          alt="Built by a Filipino dentist, for Filipino dentists"
           width={1024}
-          height={768}
-          className="w-full h-auto block"
+          height={576}
+          className="block w-full h-auto"
         />
-
-        {/* Gradient overlay — dark from the bottom third only */}
-        <div
-          className="absolute inset-0 flex flex-col justify-end px-5 pb-8 sm:pb-12"
-          style={{
-            background: 'linear-gradient(to top, rgba(11,22,39,0.95) 0%, rgba(11,22,39,0.75) 30%, rgba(11,22,39,0.1) 55%, transparent 70%)',
-          }}
-        >
-          <p
-            className="font-bold leading-snug mb-4"
-            style={{
-              fontSize: 'clamp(17px, 4vw, 28px)',
-              color: '#ffffff',
-              maxWidth: 460,
-              textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-            }}
-          >
-            Your patients judge your clinic before they sit in the chair.
-            Sigurado makes sure what they see is professional.
-          </p>
-          <p
-            className="font-black"
-            style={{
-              fontSize: 'clamp(16px, 3.5vw, 22px)',
-              color: '#FCD116',
-              textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-            }}
-          >
-            Built by a dentist, for dentists.
-          </p>
-        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
