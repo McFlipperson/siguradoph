@@ -135,12 +135,30 @@ function RegisterForm() {
           style={{ left: '70%', width: '8%', top: '53.4%', height: '3.4%' }}
         />
 
-        {/* ── Terms agreement checkbox ── */}
+        {/* ── Terms agreement checkbox (tap target over the whole row) ── */}
         <button
           type="button" aria-label="Agree to terms" aria-pressed={agreed} onClick={() => setAgreed((v) => !v)}
           className="absolute"
           style={{ left: '20.5%', width: '57.5%', top: '57.8%', height: '3%' }}
         />
+
+        {/* Real checkbox visual — covers the drawn (always-checked) box and
+            reflects the actual `agreed` state. pointer-events-none so taps
+            fall through to the toggle button above. */}
+        <div
+          className="absolute flex items-center justify-center rounded-[4px] pointer-events-none transition-colors"
+          style={{
+            left: '20.7%', width: '3.6%', top: '57.5%', height: '2.1%',
+            background: agreed ? '#2563eb' : '#ffffff',
+            border: agreed ? '1px solid #2563eb' : '1.5px solid #cbd5e1',
+          }}
+        >
+          {agreed && (
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.5} className="w-[70%] h-[70%]">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+          )}
+        </div>
 
         {/* ── "Terms of Service" link (sits above the toggle) ── */}
         <a
