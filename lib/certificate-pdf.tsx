@@ -22,8 +22,7 @@ export type CertPdfData = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const s = (StyleSheet.create as (x: Record<string, any>) => Record<string, any>)({
   page: { padding: 48, fontSize: 11, fontFamily: 'Helvetica', color: '#111', lineHeight: 1.5 },
-  header: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 8 },
-  logo: { height: 56, width: 56, objectFit: 'contain' },
+  logo: { height: 72, width: 72, objectFit: 'contain', marginBottom: 12 },
   dateRight: { textAlign: 'right', marginBottom: 16 },
   title: { fontSize: 16, fontWeight: 'bold', textAlign: 'center', letterSpacing: 1, marginBottom: 18 },
   label: { fontWeight: 'bold' },
@@ -39,7 +38,7 @@ function CertDoc({ d }: { d: CertPdfData }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
-        {d.logoUrl ? <View style={s.header}><Image src={d.logoUrl} style={s.logo} /></View> : <Text />}
+        {d.logoUrl ? <Image src={d.logoUrl} style={s.logo} /> : <Text />}
         <Text style={s.dateRight}>Date: {d.dateIssued}</Text>
         <Text style={s.title}>DENTAL CERTIFICATE</Text>
 
