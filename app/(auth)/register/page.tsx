@@ -148,7 +148,7 @@ function RegisterForm() {
         <div
           className="absolute flex items-center justify-center rounded-[4px] pointer-events-none transition-colors"
           style={{
-            left: '20.7%', width: '3.6%', top: '57.5%', height: '2.1%',
+            left: '19.9%', width: '4.8%', top: '56.8%', height: '3.2%',
             background: agreed ? '#2563eb' : '#ffffff',
             border: agreed ? '1px solid #2563eb' : '1.5px solid #cbd5e1',
           }}
