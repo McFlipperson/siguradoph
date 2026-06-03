@@ -76,7 +76,7 @@ export default function AdminClient({
     startTransition(async () => {
       try {
         await confirmPendingUpgrade(upgradeId)
-        setConfirmedIds((prev) => new Set([...prev, upgradeId]))
+        setConfirmedIds((prev) => { const next = new Set(prev); next.add(upgradeId); return next })
         router.refresh()
       } catch {
         alert('Failed to confirm upgrade')
