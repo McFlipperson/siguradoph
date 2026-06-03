@@ -56,6 +56,7 @@ type ClinicData = {
   npcRegistrationDate: string | null
   prcLicenseNo: string
   signatureUrl: string | null
+  gcashNumber: string
 }
 
 type ServiceItem = {
@@ -263,6 +264,7 @@ export default function SettingsClient({
   const [npcRegistrationDate, setNpcRegistrationDate] = useState(clinic.npcRegistrationDate ?? '')
   const [prcLicenseNo, setPrcLicenseNo] = useState(clinic.prcLicenseNo)
   const [signatureUrl, setSignatureUrl] = useState<string | null>(clinic.signatureUrl)
+  const [gcashNumber, setGcashNumber] = useState(clinic.gcashNumber)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -338,6 +340,7 @@ export default function SettingsClient({
           dpoName, dpoEmail, dpoPhone, npcRegistrationNumber,
           npcRegistrationDate: npcRegistrationDate || null,
           prcLicenseNo,
+          gcashNumber,
           tin, rdoCode, corNumber, entityType,
           vatRegistered, vatRegistrationDate: vatRegistrationDate || null,
           filingMethod,
@@ -721,6 +724,25 @@ export default function SettingsClient({
             <div>
               <label className="text-xs font-medium text-muted-foreground">NPC Registration Date</label>
               <input type="date" value={npcRegistrationDate ? npcRegistrationDate.slice(0, 10) : ''} onChange={e => setNpcRegistrationDate(e.target.value)} className={`${inputClass} mt-1`} />
+            </div>
+          </div>
+
+          {/* GCash Number — used to auto-match incoming subscription payments */}
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Subscription Payment</h2>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Your GCash Number</label>
+              <input
+                value={gcashNumber}
+                onChange={e => setGcashNumber(e.target.value)}
+                inputMode="tel"
+                placeholder="e.g. 09171234567"
+                className={`${inputClass} mt-1`}
+              />
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                When you pay your Sigurado subscription via GCash, we match the payment to your
+                account using this number. Enter the number you send GCash payments from.
+              </p>
             </div>
           </div>
 

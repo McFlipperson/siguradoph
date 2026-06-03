@@ -68,6 +68,7 @@ export async function PATCH(req: NextRequest) {
     hasEmployees, sssEmployerNumber, philhealthEmployerNumber, pagibigEmployerNumber,
     accountantEmail,
     dpoName, dpoEmail, dpoPhone, npcRegistrationNumber, npcRegistrationDate, prcLicenseNo,
+    gcashNumber,
     tin, rdoCode, corNumber, entityType, vatRegistered, vatRegistrationDate, filingMethod,
   } = body
 
@@ -110,6 +111,7 @@ export async function PATCH(req: NextRequest) {
       ...(npcRegistrationNumber !== undefined && { npcRegistrationNumber: npcRegistrationNumber || null }),
       ...(npcRegistrationDate !== undefined && { npcRegistrationDate: npcRegistrationDate ? new Date(npcRegistrationDate) : null }),
       ...(prcLicenseNo !== undefined && { prcLicenseNo: prcLicenseNo || null }),
+      ...(gcashNumber !== undefined && { gcashNumber: gcashNumber || null }),
       ...(tin !== undefined && { tin }),
       ...(rdoCode !== undefined && { rdoCode }),
       ...(corNumber !== undefined && { corNumber }),

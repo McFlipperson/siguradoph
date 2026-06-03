@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { setClinicPlan } from './actions'
+import { setClinicPlan, confirmPendingUpgrade } from './actions'
 import { PLAN_LABELS, type Plan } from '@/lib/entitlements'
 
 type ClinicRow = {
@@ -23,14 +23,36 @@ type ActivityRow = {
   createdAt: string
 }
 
+type PendingUpgradeRow = {
+  id: string
+  clinicId: string
+  clinicName: string
+  clinicEmail: string
+  plan: Plan
+  referenceCode: string
+  amountCents: number
+  createdAt: string
+  expiresAt: string
+}
+
 const PLANS: Plan[] = ['FREE', 'BASIC', 'PRO']
 
-export default function AdminClient({ clinics, activity }: { clinics: ClinicRow[]; activity: ActivityRow[] }) {
+export default function AdminClient({
+  clinics,
+  activity,
+  pendingUpgrades,
+}: {
+  clinics: ClinicRow[]
+  activity: ActivityRow[]
+  pendingUpgrades: PendingUpgradeRow[]
+}) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [savingId, setSavingId] = useState<string | null>(null)
   const [savedId, setSavedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set())
 
   function changePlan(id: string, plan: Plan) {
     setSavingId(id)
@@ -45,6 +67,21 @@ export default function AdminClient({ clinics, activity }: { clinics: ClinicRow[
         alert('Failed to update plan')
       } finally {
         setSavingId(null)
+      }
+    })
+  }
+
+  function handleConfirm(upgradeId: string) {
+    setConfirmingId(upgradeId)
+    startTransition(async () => {
+      try {
+        await confirmPendingUpgrade(upgradeId)
+        setConfirmedIds((prev) => new Set([...prev, upgradeId]))
+        router.refresh()
+      } catch {
+        alert('Failed to confirm upgrade')
+      } finally {
+        setConfirmingId(null)
       }
     })
   }
@@ -107,6 +144,50 @@ export default function AdminClient({ clinics, activity }: { clinics: ClinicRow[
           <p className="text-sm text-muted-foreground text-center py-8">No clinics match.</p>
         )}
       </div>
+
+      {/* Pending upgrades — awaiting GCash payment confirmation */}
+      {pendingUpgrades.length > 0 && (
+        <div className="pt-2">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            Pending Upgrades ({pendingUpgrades.length})
+          </h2>
+          <div className="space-y-2">
+            {pendingUpgrades.map((u) => {
+              const isConfirmed = confirmedIds.has(u.id)
+              return (
+                <div key={u.id} className="rounded-2xl border bg-background p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">{u.clinicName}</p>
+                      <p className="text-xs text-muted-foreground truncate">{u.clinicEmail}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                          → {PLAN_LABELS[u.plan]}
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono">{u.referenceCode}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ₱{(u.amountCents / 100).toFixed(2)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Requested {new Date(u.createdAt).toLocaleString('en-PH')} ·
+                        expires {new Date(u.expiresAt).toLocaleDateString('en-PH')}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleConfirm(u.id)}
+                      disabled={confirmingId === u.id || isConfirmed}
+                      className="shrink-0 min-h-[40px] px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold disabled:opacity-50"
+                    >
+                      {isConfirmed ? 'Confirmed ✓' : confirmingId === u.id ? 'Saving…' : 'Confirm'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Admin activity log — tamper-evident record of plan changes */}
       <div className="pt-4">

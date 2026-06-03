@@ -15,6 +15,7 @@ import {
   CreditCard,
   Bell,
   Shield,
+  Zap,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase-browser'
 import { planAllows, type Plan, type Feature } from '@/lib/entitlements'
@@ -68,6 +69,7 @@ const MENU_SECTIONS: MenuSection[] = [
     title: 'Account',
     items: [
       { label: 'Compliance',   href: '/compliance', icon: Shield,    color: 'bg-emerald-600', feature: 'compliance' },
+      { label: 'Billing',     href: '/billing',   icon: Zap,       color: 'bg-amber-500'  },
       { label: 'Settings',    href: '/settings',  icon: Settings,  color: 'bg-slate-500'  },
     ],
   },

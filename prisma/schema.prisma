@@ -29,6 +29,12 @@ enum Plan {
   PRO
 }
 
+enum UpgradeStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
 // Sigurado's OWN security incident register (Sigurado = Personal Information
 // Processor under RA 10173). Company-level — NOT tied to any one clinic. Backs
 // the Sigurado-side 72h breach clock and the company's annual ASIR. Distinct
@@ -144,6 +150,7 @@ model Clinic {
   npcRegistrationDate      DateTime?
   prcLicenseNo             String?      // dentist's PRC license number — printed on dental certificates
   signatureUrl             String?      // dentist's saved signature image — printed on dental certificates
+  gcashNumber              String?      // clinic owner's GCash mobile number — used to match incoming payments
   tosAcceptedAt            DateTime?    // timestamp when DPA/ToS was accepted during onboarding
   trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
   createdAt                DateTime     @default(now())
@@ -170,6 +177,7 @@ model Clinic {
   recallRules                RecallRule[]
   pendingMessengerLink       PendingMessengerLink?
   incidentLogs               IncidentLog[]
+  pendingUpgrades            PendingUpgrade[]
 }
 
 // RA 10173 — Security incident & data-breach register.
@@ -626,6 +634,27 @@ model PendingMessengerLink {
   patientId String
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// Tracks a clinic's in-progress upgrade request — generated when they visit the billing page,
+// matched by reference code or sender phone when GCash payment is received.
+model PendingUpgrade {
+  id            String        @id @default(cuid())
+  clinicId      String
+  clinic        Clinic        @relation(fields: [clinicId], references: [id])
+  plan          Plan          // the plan being purchased (BASIC or PRO)
+  referenceCode String        @unique  // e.g. SIG-BSC-AB3X — shown to clinic, parsed from GCash note
+  amountCents   Int           // 49900 or 99900 (centavos)
+  status        UpgradeStatus @default(PENDING)
+  gcashTxRef    String?       // GCash's own transaction reference (from notification email)
+  senderName    String?       // GCash-registered name of the sender (from notification email)
+  createdAt     DateTime      @default(now())
+  expiresAt     DateTime      // 7 days from creation; cron expires stale ones
+  confirmedAt   DateTime?
+  confirmedBy   String?       // 'auto' (Gmail agent) or admin email (manual confirm)
+
+  @@index([clinicId, status])
+  @@index([referenceCode])
 }
 
 // Immutable audit trail for every SC/PWD discount applied (RA 9994 / RA 10754 compliance)

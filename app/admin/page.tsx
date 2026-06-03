@@ -12,7 +12,7 @@ export default async function AdminPage() {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!isAdminEmail(authUser?.email)) redirect('/')
 
-  const [clinics, activity] = await Promise.all([
+  const [clinics, activity, pendingUpgrades] = await Promise.all([
     prisma.clinic.findMany({
       select: {
         id: true,
@@ -27,6 +27,11 @@ export default async function AdminPage() {
     prisma.adminAuditLog.findMany({
       orderBy: { createdAt: 'desc' },
       take: 50,
+    }),
+    prisma.pendingUpgrade.findMany({
+      where: { status: 'PENDING', expiresAt: { gt: new Date() } },
+      include: { clinic: { select: { name: true, email: true } } },
+      orderBy: { createdAt: 'desc' },
     }),
   ])
 
@@ -46,6 +51,17 @@ export default async function AdminPage() {
         action: a.action,
         detail: a.detail,
         createdAt: a.createdAt.toISOString(),
+      }))}
+      pendingUpgrades={pendingUpgrades.map((u) => ({
+        id: u.id,
+        clinicId: u.clinicId,
+        clinicName: u.clinic.name,
+        clinicEmail: u.clinic.email,
+        plan: u.plan as Plan,
+        referenceCode: u.referenceCode,
+        amountCents: u.amountCents,
+        createdAt: u.createdAt.toISOString(),
+        expiresAt: u.expiresAt.toISOString(),
       }))}
     />
   )
