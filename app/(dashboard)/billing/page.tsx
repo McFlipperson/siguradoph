@@ -23,19 +23,37 @@ export default async function BillingPage() {
   })
   if (!clinic) redirect('/onboarding')
 
-  // Most recent payment (SELF_REPORTED or CONFIRMED) — used to compute next due date
-  const lastPayment = await prisma.pendingUpgrade.findFirst({
+  // First-ever payment — the day of month becomes their recurring due date forever
+  const firstPayment = await prisma.pendingUpgrade.findFirst({
     where: {
       clinicId: user.clinicId,
       status: { in: ['SELF_REPORTED', 'CONFIRMED'] },
     },
-    orderBy: { selfReportedAt: 'desc' },
+    orderBy: { selfReportedAt: 'asc' },
   })
 
-  // Next due = 30 days after last payment; null if never paid (grandfathered/free)
-  const lastPaidAt = lastPayment?.selfReportedAt ?? lastPayment?.confirmedAt ?? null
-  const nextDueDate = lastPaidAt
-    ? new Date(lastPaidAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  // Compute next due date: same day of month as first payment, rolling monthly
+  function nextDueDateFromFirstPayment(firstPaidAt: Date): Date {
+    const dayOfMonth = firstPaidAt.getDate() // e.g. 13
+    const now = new Date()
+    // Try this month first
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), dayOfMonth)
+    // Clamp to last day of that month (handles e.g. day 31 in a 30-day month)
+    const lastDayThisMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    thisMonth.setDate(Math.min(dayOfMonth, lastDayThisMonth))
+
+    if (thisMonth > now) return thisMonth
+
+    // Otherwise next month
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, dayOfMonth)
+    const lastDayNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0).getDate()
+    nextMonth.setDate(Math.min(dayOfMonth, lastDayNextMonth))
+    return nextMonth
+  }
+
+  const firstPaidAt = firstPayment?.selfReportedAt ?? firstPayment?.confirmedAt ?? null
+  const nextDueDate = firstPaidAt
+    ? nextDueDateFromFirstPayment(firstPaidAt).toISOString()
     : null
 
   // Banner for recently auto-verified payments
