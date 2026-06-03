@@ -77,6 +77,15 @@ export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
 
   // Email the clinic
   const planLabel = targetPlan === 'BASIC' ? 'Basic (₱499/mo)' : 'Pro (₱999/mo)'
+  const now = new Date()
+  const nextHour = new Date(now)
+  nextHour.setUTCHours(nextHour.getUTCHours() + 1, 0, 0, 0)
+  const nextWindow = nextHour.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+
   if (upgrade.clinic.email && process.env.RESEND_API_KEY) {
     try {
       const resend = new Resend(process.env.RESEND_API_KEY)
@@ -96,7 +105,11 @@ export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
               </a>
             </p>
             <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
-            <p style="font-size:12px;color:#6b7280;">
+            <p style="font-size:13px;color:#374151;">
+              <strong>Next payment processing window:</strong> ${nextWindow}<br>
+              <span style="color:#6b7280;font-size:12px;">Payments are processed once per hour. If you renew next month, your plan will be activated within the hour after we receive your GCash payment.</span>
+            </p>
+            <p style="font-size:12px;color:#6b7280;margin-top:12px;">
               Reference: ${upgrade.referenceCode}
             </p>
           </div>

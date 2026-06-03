@@ -3,6 +3,18 @@ import { prisma } from '@/lib/prisma'
 import { Resend } from 'resend'
 import { PLAN_PRICES } from '@/lib/billing-constants'
 
+// Returns a human-readable Manila-time string for the next top-of-hour processing window.
+function nextProcessingWindow(): string {
+  const now = new Date()
+  const next = new Date(now)
+  next.setUTCHours(next.getUTCHours() + 1, 0, 0, 0)
+  return next.toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    month: 'long', day: 'numeric', year: 'numeric',
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+}
+
 // Normalize a Philippine mobile number to the 10-digit form without country code.
 // Accepts: 09171234567 → 9171234567, +639171234567 → 9171234567
 function normalizePhone(raw: string): string {
@@ -172,6 +184,7 @@ export async function POST(req: NextRequest) {
 
   const planLabel = targetPlan === 'BASIC' ? 'Basic (₱499/mo)' : 'Pro (₱999/mo)'
   const clinicEmail = upgrade.clinic.email
+  const nextWindow = nextProcessingWindow()
 
   if (clinicEmail && process.env.RESEND_API_KEY) {
     try {
@@ -192,7 +205,11 @@ export async function POST(req: NextRequest) {
               </a>
             </p>
             <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;">
-            <p style="font-size:12px;color:#6b7280;">
+            <p style="font-size:13px;color:#374151;">
+              <strong>Next payment processing window:</strong> ${nextWindow}<br>
+              <span style="color:#6b7280;font-size:12px;">Payments are processed once per hour. If you renew next month, your plan will be activated within the hour after we receive your GCash payment.</span>
+            </p>
+            <p style="font-size:12px;color:#6b7280;margin-top:12px;">
               Reference: ${upgrade.referenceCode} ·
               Questions? <a href="mailto:support@sigurado.xyz">support@sigurado.xyz</a>
             </p>
