@@ -2,27 +2,16 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { WizardProgress } from '@/components/onboarding/WizardProgress'
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
+import { CelebrationStep } from '@/components/onboarding/CelebrationStep'
 import { Step1DPA } from '@/components/onboarding/Step1DPA'
 import { Step1Identity } from '@/components/onboarding/Step1Identity'
-// Step2BIR hidden — TAX_MODULE disabled. Re-enable in lib/features.ts
-// import { Step2BIR } from '@/components/onboarding/Step2BIR'
-import { Step3Employees } from '@/components/onboarding/Step3Employees'
-import { Step4Expenses } from '@/components/onboarding/Step4Expenses'
-import { Step5Equipment } from '@/components/onboarding/Step5Equipment'
-import { Step6Suppliers } from '@/components/onboarding/Step6Suppliers'
 import { Step7Services } from '@/components/onboarding/Step7Services'
 import { Step8Loyalty } from '@/components/onboarding/Step8Loyalty'
 import { Step9Messenger } from '@/components/onboarding/Step9Messenger'
-import { Step9Review } from '@/components/onboarding/Step9Review'
 import {
   getClinicForCurrentUser,
   saveStep1,
-  saveStep2,
-  saveStep3,
-  saveStep4,
-  saveStep5,
-  saveStep6,
   saveStep7,
   saveStep8,
   completeOnboarding,
@@ -30,41 +19,38 @@ import {
 import type {
   Step1Data,
   Step2Data,
-  Step3Data,
-  RecurringExpenseData,
-  EquipmentData,
-  SupplierData,
-  ServiceData,
   Step8Data,
+  ServiceData,
 } from './actions'
+
+// ─── Step config ──────────────────────────────────────────────────────────────
+// Step 1: DPA
+// Step 2: Clinic Identity
+// Step 3: Services
+// Step 4: Loyalty Cards
+// Step 5: Messenger
+// Step 6: Celebration (no shell)
+const TOTAL_STEPS = 5 // shell steps only (celebration is fullscreen, no shell)
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export type WizardState = {
   tosAcceptedAt: Date | null
   step1: Partial<Step1Data>
-  step2: Partial<Step2Data>
-  step3: Step3Data
-  step4: RecurringExpenseData[]
-  step5: EquipmentData[]
-  step6: SupplierData[]
+  step2: Partial<Step2Data>  // kept for resume compat, not shown
   step7: ServiceData[]
   step8: Step8Data
 }
-
-// TAX_MODULE disabled: Step2BIR (step 3) is hidden, so one fewer step.
-// Restore to 11 when TAX_MODULE is re-enabled in lib/features.ts.
-const TOTAL_STEPS = 10
 
 const initialState: WizardState = {
   tosAcceptedAt: null,
   step1: {},
   step2: {},
-  step3: { hasEmployees: false, employees: [] },
-  step4: [],
-  step5: [],
-  step6: [],
   step7: [],
   step8: { loyaltyCardEnabled: true, loyaltyCardPrice: 500, loyaltyValidityMonths: 24, templates: [] },
 }
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(1)
@@ -73,30 +59,30 @@ export default function OnboardingPage() {
   const [allData, setAllData] = useState<WizardState>(initialState)
   const [loading, setLoading] = useState(true)
   const [hasMessengerToken, setHasMessengerToken] = useState(false)
+  const [clinicName, setClinicName] = useState('')
 
-  // If returning from Facebook OAuth, mark messenger as connected and land on step 9
-  // (TAX_MODULE disabled reduces total steps by 1; restore to step 10 when re-enabled)
+  // Facebook OAuth return
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     if (params.get('messenger') === 'connected') {
       setHasMessengerToken(true)
-      setCurrentStep(9)
+      setCurrentStep(5)
       window.history.replaceState({}, '', '/onboarding')
     }
   }, [])
 
-  // On mount: resume from last completed step
+  // Resume from last completed step
   useEffect(() => {
     async function init() {
       try {
         const clinic = await getClinicForCurrentUser()
         if (clinic) {
           setClinicId(clinic.id)
+          setClinicName(clinic.name)
           if (clinic.messengerToken) setHasMessengerToken(true)
 
-          // Populate state from clinic
-          const s: WizardState = {
-            tosAcceptedAt: null, // already accepted — skip DPA step on resume
+          setAllData(prev => ({
+            ...prev,
             step1: {
               slug: clinic.slug ?? '',
               logoUrl: clinic.logoUrl ?? null,
@@ -127,42 +113,6 @@ export default function OnboardingPage() {
               orSeriesStart: clinic.orSeriesStart,
               filingMethod: clinic.filingMethod,
             },
-            step3: {
-              hasEmployees: clinic.hasEmployees,
-              sssEmployerNumber: clinic.sssEmployerNumber ?? '',
-              philhealthEmployerNumber: clinic.philhealthEmployerNumber ?? '',
-              pagibigEmployerNumber: clinic.pagibigEmployerNumber ?? '',
-              employees: clinic.employees.map(emp => ({
-                fullName: emp.fullName,
-                position: emp.position,
-                dateHired: new Date(emp.dateHired).toISOString().split('T')[0],
-                dailyRate: Number(emp.dailyRate),
-                sssNumber: emp.sssNumber,
-                philhealthNumber: emp.philhealthNumber,
-                pagibigNumber: emp.pagibigNumber,
-                tin: emp.tin ?? '',
-              })),
-            },
-            step4: clinic.recurringExpenses.map(e => ({
-              description: e.description,
-              category: e.category,
-              amount: Number(e.amount),
-              payeeName: '',
-              vatRegistered: false,
-            })),
-            step5: clinic.equipment.map(eq => ({
-              name: eq.name,
-              purchaseDate: new Date(eq.purchaseDate).toISOString().split('T')[0],
-              purchaseCost: Number(eq.purchaseCost),
-              usefulLifeYears: eq.usefulLifeYears,
-            })),
-            step6: clinic.suppliers.map(s => ({
-              name: s.name,
-              category: s.category,
-              vatRegistered: s.vatRegistered,
-              address: s.address ?? '',
-              tin: s.tin ?? '',
-            })),
             step7: clinic.serviceCatalog.map(sc => ({
               id: sc.id,
               name: sc.name,
@@ -180,25 +130,17 @@ export default function OnboardingPage() {
                 tier1Uses: t.tier1Uses,
                 tier1Discount: Number(t.tier1Discount),
                 tier2Uses: t.tier2Uses ?? null,
-                tier2Discount: t.tier2Discount !== null && t.tier2Discount !== undefined ? Number(t.tier2Discount) : null,
+                tier2Discount: t.tier2Discount != null ? Number(t.tier2Discount) : null,
               })),
             },
-          }
-          setAllData(s)
+          }))
 
-          // Determine furthest step (clinic exists → skip DPA step 1, start at 2+)
-          // TAX_MODULE disabled: step 3 (BIR) skipped — jump straight to 4 if tin exists.
-          // Restore `if (clinic.tin) resumeStep = 3` when TAX_MODULE is re-enabled.
-          let resumeStep = 2
-          if (clinic.tin) resumeStep = 4
-          if (clinic.tin && (clinic.hasEmployees !== undefined)) resumeStep = 4
-          if (clinic.recurringExpenses.length > 0) resumeStep = 5
-          if (clinic.equipment.length > 0) resumeStep = 6
-          if (clinic.suppliers.length > 0) resumeStep = 7
-          if (clinic.serviceCatalog.length > 0) resumeStep = 8
-          if (clinic.loyaltyCardTemplates.length > 0) resumeStep = 9
-          if (clinic.messengerToken) resumeStep = 10
-          setCurrentStep(Math.min(resumeStep, TOTAL_STEPS))
+          // Resume at the right step
+          let resume = 2
+          if (clinic.serviceCatalog.length > 0) resume = 4
+          if (clinic.loyaltyCardTemplates.length > 0) resume = 5
+          if (clinic.messengerToken) resume = 6
+          setCurrentStep(Math.min(resume, 6))
         }
       } catch {
         // Start fresh
@@ -209,184 +151,74 @@ export default function OnboardingPage() {
     init()
   }, [])
 
-  function handleBack() {
-    setCurrentStep(prev => {
-      // TAX_MODULE disabled: step 3 (BIR) is hidden — skip it in both directions.
-      // Remove the step === 4 check when TAX_MODULE is re-enabled.
-      if (prev === 4) return 2
-      return Math.max(1, prev - 1)
-    })
-  }
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
-  // DPA acceptance
   function handleAcceptDPA() {
-    const ts = new Date()
-    setAllData(prev => ({ ...prev, tosAcceptedAt: ts }))
+    setAllData(prev => ({ ...prev, tosAcceptedAt: new Date() }))
     setCurrentStep(2)
   }
 
-  function handleJumpToStep(step: number) {
-    setCurrentStep(step)
-  }
-
-  // Step 2 — Clinic Identity (creates clinic, records DPA timestamp)
-  function handleSaveStep1(data: Step1Data): Promise<string> {
+  function handleSaveIdentity(data: Step1Data): Promise<string> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           const id = await saveStep1(data, allData.tosAcceptedAt ?? undefined)
           setClinicId(id)
+          setClinicName(data.clinicName)
           setAllData(prev => ({ ...prev, step1: data }))
-          // TAX_MODULE disabled: skip step 3 (BIR). Restore setCurrentStep(3) when re-enabled.
-          setCurrentStep(4)
+          setCurrentStep(3)
           resolve(id)
-        } catch (err) {
-          reject(err)
-        }
+        } catch (err) { reject(err) }
       })
     })
   }
 
-  // Step 3 — BIR (TAX_MODULE hidden; kept for when re-enabled)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function handleSaveStep2(data: Step2Data): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep2(clinicId, data)
-          setAllData(prev => ({ ...prev, step2: data }))
-          setCurrentStep(4)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 4
-  function handleSaveStep3(data: Step3Data): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep3(clinicId, data)
-          setAllData(prev => ({ ...prev, step3: data }))
-          setCurrentStep(5)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 5
-  function handleSaveStep4(data: RecurringExpenseData[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep4(clinicId, data)
-          setAllData(prev => ({ ...prev, step4: data }))
-          setCurrentStep(6)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 6
-  function handleSaveStep5(data: EquipmentData[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep5(clinicId, data)
-          setAllData(prev => ({ ...prev, step5: data }))
-          setCurrentStep(7)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 7
-  function handleSaveStep6(data: SupplierData[]): Promise<void> {
-    return new Promise((resolve, reject) => {
-      startSaving(async () => {
-        try {
-          if (!clinicId) throw new Error('No clinic ID')
-          await saveStep6(clinicId, data)
-          setAllData(prev => ({ ...prev, step6: data }))
-          setCurrentStep(8)
-          resolve()
-        } catch (err) {
-          reject(err)
-        }
-      })
-    })
-  }
-
-  // Step 8
-  function handleSaveStep7(data: ServiceData[]): Promise<void> {
+  function handleSaveServices(data: ServiceData[]): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
           await saveStep7(clinicId, data)
           setAllData(prev => ({ ...prev, step7: data }))
-          setCurrentStep(9)
+          setCurrentStep(4)
           resolve()
-        } catch (err) {
-          reject(err)
-        }
+        } catch (err) { reject(err) }
       })
     })
   }
 
-  // Step 9
-  function handleSaveStep8(data: Step8Data): Promise<void> {
+  function handleSaveLoyalty(data: Step8Data): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
           await saveStep8(clinicId, data)
           setAllData(prev => ({ ...prev, step8: data }))
-          setCurrentStep(10)
+          setCurrentStep(5)
           resolve()
-        } catch (err) {
-          reject(err)
-        }
+        } catch (err) { reject(err) }
       })
     })
   }
 
-  // Complete
   function handleComplete(): Promise<void> {
     return new Promise((resolve, reject) => {
       startSaving(async () => {
         try {
           if (!clinicId) throw new Error('No clinic ID')
           await completeOnboarding(clinicId)
-          toast('Setup complete! Welcome to Sigurado.')
-          // Redirect to their clinic subdomain dashboard
+          toast('Setup complete! Welcome to Sigurado. 🎉')
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
           const slugRes = await fetch('/api/my-clinic-slug')
           if (slugRes.ok) {
             const { slug } = await slugRes.json() as { slug: string | null }
             if (slug) {
-              window.location.href = `https://${slug}.${rootDomain}/`
+              window.location.href = `https://${slug}.${rootDomain}/patients/intake`
               resolve()
               return
             }
           }
-          window.location.href = '/'
+          window.location.href = '/patients/intake'
           resolve()
         } catch (err) {
           toast('Something went wrong. Please try again.')
@@ -396,115 +228,76 @@ export default function OnboardingPage() {
     })
   }
 
+  function handleBack() {
+    setCurrentStep(prev => Math.max(1, prev - 1))
+  }
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <p className="text-muted-foreground text-sm">Loading…</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-700 to-blue-900">
+        <div className="text-center space-y-3">
+          <div className="text-4xl animate-pulse">🏥</div>
+          <p className="text-white/80 text-sm">Loading…</p>
+        </div>
       </div>
     )
   }
 
+  // Celebration is full-screen, no shell
+  if (currentStep === 6) {
+    return (
+      <CelebrationStep
+        clinicName={clinicName}
+        onComplete={handleComplete}
+        isSaving={isSaving}
+      />
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-2">
-      <WizardProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+    <OnboardingShell step={currentStep} totalSteps={TOTAL_STEPS}>
 
       {currentStep === 1 && (
-        <Step1DPA
-          onAccept={handleAcceptDPA}
-          isSaving={isSaving}
-        />
+        <Step1DPA onAccept={handleAcceptDPA} isSaving={isSaving} />
       )}
 
       {currentStep === 2 && (
         <Step1Identity
           initialData={allData.step1}
-          onSave={handleSaveStep1}
+          onSave={handleSaveIdentity}
           isSaving={isSaving}
         />
       )}
 
-      {/* Step 3 — Step2BIR hidden (TAX_MODULE disabled). Restore when re-enabled:
       {currentStep === 3 && clinicId && (
-        <Step2BIR clinicId={clinicId} initialData={allData.step2}
-          onSave={handleSaveStep2} onBack={handleBack} isSaving={isSaving} />
-      )} */}
+        <Step7Services
+          clinicId={clinicId}
+          initialData={allData.step7}
+          onSave={handleSaveServices}
+          onBack={handleBack}
+          isSaving={isSaving}
+        />
+      )}
 
       {currentStep === 4 && clinicId && (
-        <Step3Employees
-          initialData={allData.step3}
-          onSave={handleSaveStep3}
+        <Step8Loyalty
+          initialData={allData.step8}
+          onSave={handleSaveLoyalty}
           onBack={handleBack}
           isSaving={isSaving}
         />
       )}
 
       {currentStep === 5 && clinicId && (
-        <Step4Expenses
-          clinicId={clinicId}
-          initialData={allData.step4}
-          onSave={handleSaveStep4}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-
-      {currentStep === 6 && clinicId && (
-        <Step5Equipment
-          clinicId={clinicId}
-          initialData={allData.step5}
-          onSave={handleSaveStep5}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-
-      {currentStep === 7 && clinicId && (
-        <Step6Suppliers
-          clinicId={clinicId}
-          initialData={allData.step6}
-          onSave={handleSaveStep6}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-
-      {currentStep === 8 && clinicId && (
-        <Step7Services
-          clinicId={clinicId}
-          initialData={allData.step7}
-          onSave={handleSaveStep7}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-
-      {currentStep === 9 && clinicId && (
-        <Step8Loyalty
-          initialData={allData.step8}
-          onSave={handleSaveStep8}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-
-      {currentStep === 9 && clinicId && (
         <Step9Messenger
           hasMessengerToken={hasMessengerToken}
-          onNext={() => setCurrentStep(10)}
+          onNext={() => setCurrentStep(6)}
           onBack={handleBack}
         />
       )}
 
-      {currentStep === 10 && clinicId && (
-        <Step9Review
-          clinicId={clinicId}
-          allData={allData}
-          onJumpToStep={handleJumpToStep}
-          onComplete={handleComplete}
-          onBack={handleBack}
-          isSaving={isSaving}
-        />
-      )}
-    </div>
+    </OnboardingShell>
   )
 }
