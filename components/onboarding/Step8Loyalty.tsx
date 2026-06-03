@@ -87,18 +87,29 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
       </div>
 
       {/* Enable toggle */}
-      <div className="rounded-2xl bg-blue-700 px-5 py-4 flex items-center justify-between min-h-[64px] gap-4">
-        <div>
-          <p className="font-semibold text-white">Enable Loyalty Card Program</p>
+      <div className="rounded-2xl border-2 border-blue-700 overflow-hidden">
+        <div className="bg-blue-700 px-5 py-3">
+          <p className="font-semibold text-white text-base">Loyalty Card Program</p>
           <p className="text-xs text-blue-100 mt-0.5">
             {enabled ? 'Patients can purchase a loyalty card at checkout.' : 'Loyalty cards will not be offered at this clinic.'}
           </p>
         </div>
-        <Switch
-          checked={enabled}
-          onCheckedChange={setEnabled}
-          className="shrink-0 data-[state=checked]:bg-white data-[state=unchecked]:bg-blue-400 [&>span]:data-[state=checked]:bg-blue-700"
-        />
+        <div className="grid grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setEnabled(true)}
+            className={`min-h-[64px] text-lg font-bold transition-colors ${enabled ? 'bg-green-500 text-white' : 'bg-white text-gray-400'}`}
+          >
+            ✓ ON
+          </button>
+          <button
+            type="button"
+            onClick={() => setEnabled(false)}
+            className={`min-h-[64px] text-lg font-bold transition-colors ${!enabled ? 'bg-red-500 text-white' : 'bg-white text-gray-400'}`}
+          >
+            ✕ OFF
+          </button>
+        </div>
       </div>
 
       {enabled && (
