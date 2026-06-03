@@ -166,14 +166,13 @@ function UpgradeActionRow({
 // ─── AdminClient ──────────────────────────────────────────────────────────────
 
 export default function AdminClient({
-  clinics, activity, needsAttention, awaitingVerification, recentlyVerified, pendingOnly,
+  clinics, activity, needsAttention, awaitingVerification, recentlyVerified,
 }: {
   clinics: ClinicRow[]
   activity: ActivityRow[]
   needsAttention: UpgradeRow[]
   awaitingVerification: UpgradeRow[]
   recentlyVerified: VerifiedRow[]
-  pendingOnly: UpgradeRow[]
 }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
@@ -252,7 +251,7 @@ export default function AdminClient({
             ))}
           </div>
           <p className="text-xs text-muted-foreground px-1">
-            Gmail agent will verify these automatically within the hour. You can confirm manually if you've already seen the GCash notification.
+            Gmail agent will verify these automatically within the hour. You can confirm manually if you&apos;ve already seen the GCash notification.
           </p>
         </div>
       )}

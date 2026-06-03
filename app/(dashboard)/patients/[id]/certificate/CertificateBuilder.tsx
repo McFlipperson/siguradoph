@@ -176,6 +176,7 @@ export default function CertificateBuilder(props: Props) {
 
       {/* The certificate document */}
       <div id="cert-doc" className="bg-white text-black border rounded-lg p-6 sm:p-10 leading-relaxed text-[13px]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         {props.logoUrl && <img src={props.logoUrl} alt="Clinic logo" className="h-20 w-20 object-contain mb-4" />}
         <div className="text-right mb-6">
           Date: <input value={dateIssued} onChange={(e) => setDateIssued(e.target.value)} className={`${line} w-48 text-center`} />

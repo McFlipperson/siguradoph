@@ -38,6 +38,7 @@ function CertDoc({ d }: { d: CertPdfData }) {
   return (
     <Document>
       <Page size="A4" style={s.page}>
+        {/* eslint-disable-next-line jsx-a11y/alt-text */}
         {d.logoUrl ? <Image src={d.logoUrl} style={s.logo} /> : <Text />}
         <Text style={s.dateRight}>Date: {d.dateIssued}</Text>
         <Text style={s.title}>DENTAL CERTIFICATE</Text>
@@ -88,6 +89,7 @@ function CertDoc({ d }: { d: CertPdfData }) {
 
         <View style={{ marginTop: 28 }}>
           <Text style={{ marginBottom: 6 }}>Respectfully,</Text>
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {d.signatureUrl ? <Image src={d.signatureUrl} style={s.sig} /> : <Text />}
           <Text style={s.label}>Dr. {d.dentistName}</Text>
           <Text style={s.small}>Dentist</Text>

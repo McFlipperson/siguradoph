@@ -111,7 +111,6 @@ export default async function AdminPage() {
         confirmedAt: u.confirmedAt?.toISOString() ?? null,
         confirmedBy: u.confirmedBy ?? null,
       }))}
-      pendingOnly={pendingOnly.map(mapUpgrade)}
     />
   )
 }
