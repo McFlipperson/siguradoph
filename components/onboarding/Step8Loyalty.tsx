@@ -87,7 +87,7 @@ export function Step8Loyalty({ initialData, onSave, onBack, isSaving }: Step8Loy
       </div>
 
       {/* Enable toggle */}
-      <Card>
+      <Card className="bg-muted/40">
         <CardContent className="pt-4">
           <div className="flex items-center justify-between min-h-[48px]">
             <div>
