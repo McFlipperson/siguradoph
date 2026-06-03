@@ -91,98 +91,16 @@ export default function LandingPage() {
           Mobile: text → image stacked
           sm+: text left, dashboard screenshot right (floats up)
       ══════════════════════════════════════════════════════════ */}
-      <section
-        className="overflow-hidden relative"
-        style={{ background: '#000' }}
-      >
-        {/* ── Real Philippine flag video — fullscreen background ── */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            objectPosition: 'center',
-            opacity: 0.35,
-          }}
-        >
-          <source src="/videos/ph-flag.mp4" type="video/mp4" />
-        </video>
-        {/* Dark overlay so text stays readable */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{ background: 'rgba(0,10,30,0.55)' }}
+      {/* Hero is the image itself — buttons will be wired as overlay regions later */}
+      <section className="relative w-full">
+        <Image
+          src="/images/hero.png"
+          alt="Sigurado — dental clinic software built for the Philippines"
+          width={1024}
+          height={608}
+          priority
+          className="block w-full h-auto"
         />
-
-        <div className="flex flex-col sm:flex-row sm:items-end sm:gap-0 relative">
-
-          {/* Text side */}
-          <div className="flex-1 px-5 pt-12 pb-10 sm:pb-0">
-            {/* Hero logo */}
-            <div className="mb-6">
-              <Image
-                src="/images/sig-final-ph-logo.png"
-                alt="Sigurado"
-                width={220}
-                height={120}
-                className="object-contain"
-                priority
-              />
-            </div>
-            <h1
-              className="font-black leading-tight mb-5"
-              style={{ fontSize: 'clamp(28px, 7vw, 54px)', color: '#ffffff', letterSpacing: '-0.025em' }}
-            >
-              Dental clinic software
-              <br />built for the Philippines.
-            </h1>
-            <p className="text-base leading-relaxed mb-3" style={{ color: 'rgba(255,255,255,0.85)', maxWidth: 400 }}>
-              If you can use a smartphone, Sigurado is for you. Patient records, receipts,
-              reminders, and patient privacy — no tech background needed.
-            </p>
-            {/* Trust line — CHANGE 3 */}
-            <p className="text-sm mb-8" style={{ color: 'rgba(255,255,255,0.55)', maxWidth: 400 }}>
-              No credit card. No time limit. Cancel anytime.
-            </p>
-            <Link
-              href="/register"
-              className="inline-block font-black text-base px-7 py-4 rounded-2xl"
-              style={{ background: '#CE1126', color: '#ffffff' }}
-            >
-              Start free — no credit card needed
-            </Link>
-          </div>
-
-          {/* Dashboard screenshot — right side, floats up from bottom */}
-          <div className="flex justify-center sm:justify-end sm:flex-shrink-0 sm:self-end px-5 sm:px-8 pt-6 sm:pt-0">
-            <div
-              style={{
-                width: 200,
-                borderRadius: '20px 20px 0 0',
-                overflow: 'hidden',
-                boxShadow: '0 -6px 32px rgba(0,0,0,0.3), 0 0 0 1.5px rgba(255,255,255,0.15)',
-                background: '#ffffff',
-              }}
-            >
-              <Image
-                src="/images/Hero-Dashboard.png"
-                alt="Sigurado app dashboard"
-                width={200}
-                height={430}
-                className="object-top object-cover block"
-                priority
-              />
-            </div>
-          </div>
-
-        </div> {/* end relative inner wrapper */}
       </section>
 
       {/* ══════════════════════════════════════════════════════════
