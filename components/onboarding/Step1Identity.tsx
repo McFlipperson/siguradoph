@@ -167,7 +167,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold mb-1">Let&apos;s set up your clinic</h2>
-        <p className="text-sm text-muted-foreground">10 minutes now saves you hours every month — receipts, payroll, and BIR filings will run themselves after this.</p>
+        <p className="text-sm text-muted-foreground">Set up your services, loyalty cards, and reminders — then you&apos;re ready to add your first patient.</p>
       </div>
 
       {/* Logo upload */}
