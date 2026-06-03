@@ -173,57 +173,50 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       {/* Logo upload */}
       <div className="flex flex-col gap-2">
-        <Label>Clinic Logo (optional)</Label>
-        <div className="flex items-center gap-4">
-          {/* Preview */}
-          <div className="w-16 h-16 rounded-xl border bg-muted flex items-center justify-center overflow-hidden shrink-0">
-            {form.logoUrl ? (
-              <Image
-                src={form.logoUrl}
-                alt="Clinic logo"
-                width={64}
-                height={64}
-                className="w-full h-full object-contain"
-                unoptimized
-              />
-            ) : (
-              <span className="text-2xl text-muted-foreground select-none">🏥</span>
-            )}
-          </div>
-          <div className="flex flex-col gap-2 flex-1">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/heic, image/heif, image/svg+xml"
-              className="hidden"
-              onChange={handleLogoChange}
+        <Label className="font-bold text-base">📸 Clinic Logo <span className="font-normal text-muted-foreground text-sm">(optional)</span></Label>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png, image/jpeg, image/jpg, image/gif, image/webp, image/heic, image/heif, image/svg+xml"
+          className="hidden"
+          onChange={handleLogoChange}
+        />
+        <button
+          type="button"
+          disabled={logoUploading}
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full min-h-[120px] rounded-3xl border-4 border-dashed border-blue-300 bg-blue-50 flex flex-col items-center justify-center gap-2 active:bg-blue-100 transition-colors disabled:opacity-60"
+        >
+          {form.logoUrl ? (
+            <Image
+              src={form.logoUrl}
+              alt="Clinic logo"
+              width={80}
+              height={80}
+              className="w-20 h-20 object-contain rounded-2xl shadow"
+              unoptimized
             />
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-[48px]"
-              disabled={logoUploading}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              {logoUploading ? 'Uploading…' : form.logoUrl ? 'Change Logo' : 'Upload Logo'}
-            </Button>
-            {form.logoUrl && (
-              <Button
-                type="button"
-                variant="ghost"
-                className="min-h-[40px] text-destructive hover:text-destructive"
-                onClick={() => setForm(prev => ({ ...prev, logoUrl: null }))}
-              >
-                Remove
-              </Button>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">PNG, JPG, screenshot — anything works. Max 5 MB.</p>
+          ) : (
+            <>
+              <span className="text-5xl leading-none">{logoUploading ? '⏳' : '📷'}</span>
+              <span className="text-sm font-bold text-blue-700">{logoUploading ? 'Uploading…' : 'Tap to upload your logo'}</span>
+              <span className="text-xs text-blue-500">PNG, JPG, screenshot — anything. Max 5 MB.</span>
+            </>
+          )}
+        </button>
+        {form.logoUrl && (
+          <button
+            type="button"
+            className="text-xs text-destructive font-semibold text-center py-1"
+            onClick={() => setForm(prev => ({ ...prev, logoUrl: null }))}
+          >
+            Remove logo
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="clinicName">Clinic Name *</Label>
+        <Label htmlFor="clinicName" className="font-bold text-base">🏥 Clinic Name *</Label>
         <Input
           id="clinicName"
           value={form.clinicName}
@@ -236,7 +229,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       {/* Slug / Clinic URL */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="slug">Your Clinic Address *</Label>
+        <Label htmlFor="slug" className="font-bold text-base">🌐 Your Clinic Address *</Label>
         <p className="text-xs text-muted-foreground -mt-1">
           This is the web address your staff will use to log in. Choose something short and recognizable — like your clinic name.{' '}
           <span className="font-medium">You cannot change this later.</span>
@@ -266,7 +259,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="ownerName">Owner / Dentist Name *</Label>
+        <Label htmlFor="ownerName" className="font-bold text-base">👨‍⚕️ Owner / Dentist Name *</Label>
         <Input
           id="ownerName"
           value={form.ownerName}
@@ -278,13 +271,13 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Dentist Signature (optional)</Label>
+        <Label className="font-bold text-base">✍️ Dentist Signature <span className="font-normal text-muted-foreground text-sm">(optional)</span></Label>
         <p className="text-xs text-muted-foreground -mt-1">Sign once here — it prints on every dental certificate you issue. You can change it later in Settings.</p>
         <SignaturePad value={form.signatureUrl ?? null} onChange={(url) => set('signatureUrl', url)} />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="street">Street Address *</Label>
+        <Label htmlFor="street" className="font-bold text-base">📍 Street Address *</Label>
         <Input
           id="street"
           value={form.street}
@@ -297,7 +290,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="city">City / Municipality *</Label>
+          <Label htmlFor="city" className="font-bold text-sm">🏙️ City / Municipality *</Label>
           <Input
             id="city"
             value={form.city}
@@ -308,7 +301,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="province">Province *</Label>
+          <Label htmlFor="province" className="font-bold text-sm">🗺️ Province *</Label>
           <Input
             id="province"
             value={form.province}
@@ -321,7 +314,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="zip">ZIP Code *</Label>
+        <Label htmlFor="zip" className="font-bold text-base">📮 ZIP Code *</Label>
         <Input
           id="zip"
           value={form.zip}
@@ -333,7 +326,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="phone">Phone Number *</Label>
+        <Label htmlFor="phone" className="font-bold text-base">📞 Phone Number *</Label>
         <Input
           id="phone"
           type="tel"
@@ -346,7 +339,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="gcashNumber">GCash Number (optional)</Label>
+        <Label htmlFor="gcashNumber" className="font-bold text-base">💚 GCash Number <span className="font-normal text-muted-foreground text-sm">(optional)</span></Label>
         <Input
           id="gcashNumber"
           type="tel"
@@ -359,7 +352,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Clinic Email *</Label>
+        <Label htmlFor="email" className="font-bold text-base">✉️ Clinic Email *</Label>
         <Input
           id="email"
           type="email"
@@ -372,7 +365,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="facebookPageUrl">Facebook Page URL (optional)</Label>
+        <Label htmlFor="facebookPageUrl" className="font-bold text-base">👍 Facebook Page URL <span className="font-normal text-muted-foreground text-sm">(optional)</span></Label>
         <Input
           id="facebookPageUrl"
           type="url"
@@ -408,7 +401,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isSaving || logoUploading} className="w-full min-h-[48px]">
+      <Button type="submit" disabled={isSaving || logoUploading} className="w-full min-h-[64px] rounded-3xl font-extrabold text-lg">
         {isSaving ? 'Saving…' : 'Next →'}
       </Button>
     </form>

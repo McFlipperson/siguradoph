@@ -23,6 +23,29 @@ interface Step7ServicesProps {
 
 // ─── Master service list ───────────────────────────────────────────────────────
 
+const SVC_STYLES = `
+  @keyframes chipPop {
+    0%   { transform: scale(0.85); }
+    55%  { transform: scale(1.12); }
+    80%  { transform: scale(0.96); }
+    100% { transform: scale(1);    }
+  }
+  .chip-selected { animation: chipPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+`
+
+const CAT_EMOJI: Record<string, string> = {
+  Preventive:    '🛡️',
+  Restorative:   '🔧',
+  'Root Canal':  '🔩',
+  Surgical:      '✂️',
+  Prosthetics:   '👑',
+  Orthodontics:  '😁',
+  Cosmetic:      '✨',
+  Pediatric:     '👶',
+  Periodontic:   '🌿',
+  Custom:        '⭐',
+}
+
 type ChipDef = { name: string; category: string; preSelected: boolean }
 
 const CATEGORIES: Array<{ label: string; services: ChipDef[] }> = [
@@ -214,33 +237,37 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
     }
   }
 
+  const selectedCount = selected.size + customChips.length
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div>
-        <h2 className="text-xl font-semibold mb-1">Service Catalog</h2>
-        <p className="text-sm text-muted-foreground">
-          Tap to select the treatments your clinic offers. We&apos;ve pre-selected the most common ones.
-          You can change this anytime in Settings.
-        </p>
+      <style>{SVC_STYLES}</style>
+
+      {/* Selected count badge */}
+      <div className={`flex items-center justify-between rounded-2xl px-5 py-3 font-extrabold text-base transition-colors ${
+        selectedCount > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'
+      }`}>
+        <span>{selectedCount > 0 ? `✓ ${selectedCount} service${selectedCount !== 1 ? 's' : ''} selected` : 'Tap to select services'}</span>
+        {selectedCount > 0 && <span className="text-2xl">💪</span>}
       </div>
 
-      {/* Amber prices card */}
-      <Card className="bg-amber-50 dark:bg-amber-950/20">
-        <CardContent className="pt-4">
-          <p className="text-sm font-medium">Prices are NOT set here.</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            The secretary enters the price per patient at checkout.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Prices note */}
+      <div className="rounded-2xl bg-amber-50 border-2 border-amber-200 px-4 py-3 flex items-center gap-3">
+        <span className="text-2xl">💡</span>
+        <div>
+          <p className="font-bold text-sm text-amber-900">Prices are set at checkout</p>
+          <p className="text-xs text-amber-700">The secretary enters the price per patient when issuing a receipt.</p>
+        </div>
+      </div>
 
       {/* Chip grid per category */}
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         {CATEGORIES.map((cat) => (
           <div key={cat.label}>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
-              {cat.label}
-            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl leading-none">{CAT_EMOJI[cat.label] ?? '🦷'}</span>
+              <p className="text-sm font-extrabold text-foreground tracking-wide">{cat.label}</p>
+            </div>
             <div className="flex flex-wrap gap-2">
               {cat.services.map((svc) => {
                 const isSelected = selected.has(svc.name)
@@ -250,13 +277,13 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
                     type="button"
                     onClick={() => toggleChip(svc.name)}
                     className={[
-                      'rounded-full border px-3 py-2 text-sm font-medium min-h-[40px] transition-colors',
+                      'rounded-2xl border-2 px-4 py-2.5 text-sm font-bold min-h-[48px] transition-all duration-150 active:scale-95',
                       isSelected
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background border-border text-muted-foreground',
+                        ? 'chip-selected bg-blue-600 text-white border-blue-600 shadow-md'
+                        : 'bg-white border-gray-200 text-gray-600',
                     ].join(' ')}
                   >
-                    {svc.name}
+                    {isSelected ? `✓ ${svc.name}` : svc.name}
                   </button>
                 )
               })}
@@ -267,20 +294,21 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
         {/* Custom chips */}
         {customChips.length > 0 && (
           <div>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2">
-              Custom
-            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl leading-none">{CAT_EMOJI['Custom']}</span>
+              <p className="text-sm font-extrabold text-foreground tracking-wide">Custom</p>
+            </div>
             <div className="flex flex-wrap gap-2">
               {customChips.map((chip) => (
                 <span
                   key={chip.id}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium min-h-[40px] bg-primary text-primary-foreground border-primary"
+                  className="chip-selected inline-flex items-center gap-2 rounded-2xl border-2 px-4 py-2.5 text-sm font-bold min-h-[48px] bg-blue-600 text-white border-blue-600 shadow-md"
                 >
-                  {chip.name}
+                  ✓ {chip.name}
                   <button
                     type="button"
                     onClick={() => removeCustomChip(chip.id)}
-                    className="text-primary-foreground/70 hover:text-primary-foreground leading-none"
+                    className="text-white/70 hover:text-white leading-none text-base"
                     aria-label={`Remove ${chip.name}`}
                   >
                     ✕
@@ -294,17 +322,17 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
 
       {/* Add custom service */}
       {showCustomInput ? (
-        <div className="flex flex-col gap-3 rounded-xl border bg-background p-4">
-          <p className="text-sm font-medium">Add custom service</p>
+        <div className="flex flex-col gap-3 rounded-2xl border-2 border-dashed border-blue-300 bg-blue-50 p-4">
+          <p className="text-sm font-bold text-blue-800">Add your own service</p>
           <Input
             value={customName}
             onChange={(e) => setCustomName(e.target.value)}
             placeholder="Service name"
-            className="min-h-[48px]"
+            className="min-h-[48px] rounded-xl"
             autoFocus
           />
           <Select value={customCategory} onValueChange={(v) => { if (v) setCustomCategory(v) }}>
-            <SelectTrigger className="min-h-[48px] w-full">
+            <SelectTrigger className="min-h-[48px] w-full rounded-xl">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
@@ -314,32 +342,31 @@ export function Step7Services({ initialData, onSave, onBack, isSaving }: Step7Se
             </SelectContent>
           </Select>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={() => setShowCustomInput(false)} className="flex-1 min-h-[48px]">
+            <Button type="button" variant="outline" onClick={() => setShowCustomInput(false)} className="flex-1 min-h-[48px] rounded-xl font-bold">
               Cancel
             </Button>
-            <Button type="button" onClick={addCustomChip} disabled={!customName.trim()} className="flex-1 min-h-[48px]">
-              Add
+            <Button type="button" onClick={addCustomChip} disabled={!customName.trim()} className="flex-1 min-h-[48px] rounded-xl font-bold">
+              Add ✓
             </Button>
           </div>
         </div>
       ) : (
-        <Button
+        <button
           type="button"
-          variant="outline"
           onClick={() => setShowCustomInput(true)}
-          className="min-h-[48px]"
+          className="w-full min-h-[52px] rounded-2xl border-2 border-dashed border-gray-300 text-gray-500 font-bold text-sm active:bg-gray-50 transition-colors"
         >
-          + Add custom service
-        </Button>
+          ＋ Add a service not on the list
+        </button>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-destructive font-semibold">{error}</p>}
 
       <div className="flex gap-3">
-        <Button type="button" variant="outline" onClick={onBack} className="flex-1 min-h-[48px]">
+        <Button type="button" variant="outline" onClick={onBack} className="flex-1 min-h-[52px] rounded-2xl font-bold text-base">
           ← Back
         </Button>
-        <Button type="submit" disabled={isSaving} className="flex-1 min-h-[48px]">
+        <Button type="submit" disabled={isSaving} className="flex-1 min-h-[52px] rounded-2xl font-bold text-base">
           {isSaving ? 'Saving…' : 'Next →'}
         </Button>
       </div>

@@ -2,8 +2,6 @@
 
 import Image from 'next/image'
 
-// ─── Theme definitions ────────────────────────────────────────────────────────
-
 type Theme = 'blue' | 'gold' | 'red' | 'purple'
 
 const GRADIENTS: Record<Theme, string> = {
@@ -13,7 +11,12 @@ const GRADIENTS: Record<Theme, string> = {
   purple: 'from-blue-700 via-purple-700 to-red-700',
 }
 
-// ─── Step config ─────────────────────────────────────────────────────────────
+const BAR_COLOR: Record<Theme, string> = {
+  blue:   'bg-white',
+  gold:   'bg-blue-800',
+  red:    'bg-white',
+  purple: 'bg-white',
+}
 
 export type StepConfig = {
   theme: Theme
@@ -23,40 +26,37 @@ export type StepConfig = {
 }
 
 export const STEP_CONFIGS: Record<number, StepConfig> = {
-  1: { theme: 'blue',   emoji: '🔒', title: 'Your patients are protected',  subtitle: 'Quick privacy setup — takes 30 seconds'       },
-  2: { theme: 'gold',   emoji: '🏥', title: "Let’s build your clinic", subtitle: 'Tell us about your practice'                  },
-  3: { theme: 'red',    emoji: '🦷', title: 'What do you offer?',           subtitle: 'Tap to select — you can edit anytime'         },
-  4: { theme: 'blue',   emoji: '💳', title: 'Keep patients coming back',    subtitle: 'Set up your loyalty card program'              },
-  5: { theme: 'purple', emoji: '💬', title: 'Never miss a reminder',        subtitle: 'Connect Messenger for automatic reminders'    },
+  1: { theme: 'blue',   emoji: '🔒', title: 'Your patients are protected',  subtitle: 'Quick privacy setup — takes 30 seconds'    },
+  2: { theme: 'gold',   emoji: '🏥', title: "Let's build your clinic",      subtitle: 'Tell us about your practice'               },
+  3: { theme: 'red',    emoji: '🦷', title: 'What do you offer?',           subtitle: 'Tap to select — you can edit anytime'      },
+  4: { theme: 'blue',   emoji: '💳', title: 'Keep patients coming back',    subtitle: 'Set up your loyalty card program'          },
+  5: { theme: 'purple', emoji: '💬', title: 'Never miss a reminder',        subtitle: 'Connect Messenger for automatic reminders' },
 }
 
-// ─── Milestone dots ───────────────────────────────────────────────────────────
-
-function MilestoneDots({ current, total }: { current: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      {Array.from({ length: total }, (_, i) => {
-        const step = i + 1
-        const done = step < current
-        const active = step === current
-        return (
-          <div
-            key={step}
-            className={`transition-all duration-300 rounded-full flex items-center justify-center text-[10px] font-bold
-              ${active  ? 'w-7 h-7 bg-white text-blue-800 shadow-lg scale-110' : ''}
-              ${done    ? 'w-5 h-5 bg-white/70 text-blue-800' : ''}
-              ${!active && !done ? 'w-4 h-4 bg-white/30 text-white/60' : ''}
-            `}
-          >
-            {done ? '✓' : step}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── OnboardingShell ──────────────────────────────────────────────────────────
+const SHELL_STYLES = `
+  @keyframes emojiPop {
+    0%   { transform: scale(0.2) rotate(-15deg); opacity: 0; }
+    55%  { transform: scale(1.25) rotate(6deg);  opacity: 1; }
+    75%  { transform: scale(0.92) rotate(-3deg); }
+    90%  { transform: scale(1.05) rotate(1deg);  }
+    100% { transform: scale(1)    rotate(0deg);  opacity: 1; }
+  }
+  @keyframes emojiFloat {
+    0%, 100% { transform: translateY(0px) scale(1); }
+    50%      { transform: translateY(-14px) scale(1.06); }
+  }
+  @keyframes progressGrow {
+    from { width: 0%; }
+  }
+  @keyframes slideUpIn {
+    from { opacity: 0; transform: translateY(36px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  .ob-emoji-pop   { animation: emojiPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+  .ob-emoji-float { animation: emojiFloat 2.8s ease-in-out 0.65s infinite; }
+  .ob-progress    { animation: progressGrow 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .ob-slide-up    { animation: slideUpIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+`
 
 export function OnboardingShell({
   step,
@@ -69,35 +69,56 @@ export function OnboardingShell({
 }) {
   const config = STEP_CONFIGS[step]
   if (!config) return <>{children}</>
-  const gradient = GRADIENTS[config.theme]
+
+  const gradient  = GRADIENTS[config.theme]
+  const barColor  = BAR_COLOR[config.theme]
+  const pct       = Math.round((step / totalSteps) * 100)
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* ── Gradient hero header ── */}
-      <div className={`bg-gradient-to-br ${gradient} px-5 pt-5 pb-14 relative`}>
-        {/* Top bar: logo + milestone dots */}
-        <div className="flex items-center justify-between mb-8">
-          <Image
-            src="/images/s-logo-ph.png"
-            alt="Sigurado"
-            width={36}
-            height={36}
-            className="drop-shadow-md"
-          />
-          <MilestoneDots current={step} total={totalSteps} />
-          <span className="text-xs text-white/70 font-medium">{step}/{totalSteps}</span>
+      <style>{SHELL_STYLES}</style>
+
+      {/* ── Gradient hero ─────────────────────────────────────────── */}
+      <div className={`bg-gradient-to-br ${gradient} px-5 pt-6 pb-20 relative`}>
+
+        {/* Logo + step counter */}
+        <div className="flex items-center justify-between mb-5">
+          <Image src="/images/s-logo-ph.png" alt="Sigurado" width={38} height={38} className="drop-shadow-lg" />
+          <span className="text-white/80 text-sm font-bold tracking-wide">
+            {step} <span className="opacity-50">/</span> {totalSteps}
+          </span>
         </div>
 
-        {/* Hero content */}
-        <div className="text-center pb-2">
-          <div className="text-6xl mb-3 drop-shadow-sm">{config.emoji}</div>
-          <h1 className="text-2xl font-bold text-white leading-tight">{config.title}</h1>
-          <p className="text-white/75 mt-1.5 text-sm">{config.subtitle}</p>
+        {/* Fat progress bar */}
+        <div className="w-full h-4 rounded-full bg-white/20 overflow-hidden mb-8 shadow-inner">
+          <div
+            key={`bar-${step}`}
+            className={`h-full rounded-full ob-progress ${barColor}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        {/* Giant bouncing emoji */}
+        <div className="flex flex-col items-center text-center gap-3">
+          <div key={`emoji-${step}`} className="leading-none select-none">
+            <span className="ob-emoji-pop ob-emoji-float inline-block text-[96px] drop-shadow-2xl">
+              {config.emoji}
+            </span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-white leading-tight tracking-tight">
+            {config.title}
+          </h1>
+          <p className="text-white/80 text-sm px-6 leading-relaxed">
+            {config.subtitle}
+          </p>
         </div>
       </div>
 
-      {/* ── White content card — slides up over header ── */}
-      <div className="flex-1 bg-background rounded-t-3xl -mt-7 px-5 pt-6 pb-28 shadow-[0_-4px_24px_rgba(0,0,0,0.12)]">
+      {/* ── White content card slides up ──────────────────────────── */}
+      <div
+        key={`content-${step}`}
+        className="flex-1 bg-background rounded-t-[2rem] -mt-10 px-5 pt-7 pb-28 shadow-[0_-8px_40px_rgba(0,0,0,0.18)] ob-slide-up"
+      >
         {children}
       </div>
     </div>
