@@ -57,6 +57,7 @@ export default function LoginPage() {
         <button
           type="button"
           aria-label="Toggle remember me"
+          aria-pressed={remember}
           onClick={() => setRemember((v) => !v)}
           className="absolute"
           style={{ left: '20.5%', width: '28%', top: '54.4%', height: '3.2%' }}
