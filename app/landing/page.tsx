@@ -19,7 +19,6 @@ const FREE_FEATURES = [
   'Patient records, medical history & visit notes',
   'OR receipts & invoices',
   'Expense tracking',
-  'Messenger support 9am–4pm',
 ]
 
 const BASIC_FEATURES = [
@@ -31,7 +30,6 @@ const BASIC_FEATURES = [
   'Loyalty cards & Senior Citizen / PWD discounts',
   'Expense tracking & revenue reports',
   'Data export — patients, invoices, expenses',
-  'Messenger support 9am–4pm',
 ]
 
 const PRO_EXTRAS = [
@@ -449,7 +447,7 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
       ══════════════════════════════════════════════════════════ */}
-      <section>
+      <section style={{ background: '#E8F2FF' }}>
         <Image
           src="/images/section5.png"
           alt="Patient privacy — Sigurado keeps your records protected"
@@ -566,7 +564,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-3 text-[12px] font-semibold" style={{ color: 'rgba(11,27,63,.50)' }}>
               <span className="inline-flex items-center gap-1">
                 <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Free up to 50 patients
+                Free up to 30 patients
               </span>
               <span style={{ color: '#93C5FD' }}>·</span>
               <span>No credit card</span>
@@ -586,11 +584,11 @@ export default function LandingPage() {
           {/* Brand column */}
           <div className="col-span-2 sm:col-span-1 flex flex-col gap-4">
             <Image
-              src="/images/sig-final-ph-logo.png"
+              src="/images/hero-logo.png"
               alt="Sigurado"
-              width={130}
-              height={70}
-              className="object-contain -ml-1"
+              width={150}
+              height={44}
+              className="h-9 w-auto object-contain -ml-1"
             />
             <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,.42)' }}>
               Dental clinic software built for the Philippines. Simple enough for any secretary, powerful enough for any dentist.
@@ -626,7 +624,6 @@ export default function LandingPage() {
             <p className="text-[11px] font-bold uppercase tracking-[.12em] mb-1" style={{ color: 'rgba(255,255,255,.30)' }}>Support</p>
             {[
               { label: 'Message us on Messenger', href: 'https://m.me/sigurado', external: true },
-              { label: 'FAQs', href: '#pricing' },
             ].map(({ label, href, external }) => (
               external
                 ? <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.50)' }}>{label}</a>

@@ -67,7 +67,8 @@ export default function Hero() {
       />
 
       {/* Nav bar */}
-      <div className="absolute top-0 inset-x-0 z-[3] flex items-center justify-end px-6 sm:px-8 lg:px-12 py-5">
+      <div className="absolute top-0 inset-x-0 z-[3] flex items-center justify-between px-6 sm:px-8 lg:px-12 py-5">
+        <Image src="/images/hero-logo.png" alt="Sigurado" width={120} height={36} className="h-8 w-auto object-contain" priority draggable={false} />
         <div className="flex items-center gap-2.5">
           <Link
             href="/login"
@@ -142,11 +143,11 @@ export default function Hero() {
                 </span>
                 <svg className="arrow w-5 h-5 ml-1 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m13 6 6 6-6 6" /></svg>
               </a>
-              <a href="#pricing" className="btn btn-outline group inline-flex items-center justify-center gap-3 rounded-2xl glass px-6 py-4 ring-1 ring-[#0B1B3F]/12 text-[#0B1B3F]">
+              <a href="#get-started" className="btn btn-outline group inline-flex items-center justify-center gap-3 rounded-2xl glass px-6 py-4 ring-1 ring-[#0B1B3F]/12 text-[#0B1B3F]">
                 <span className="play-ring grid place-items-center w-9 h-9 rounded-full bg-[#0038A8] text-white shrink-0">
                   <svg className="w-4 h-4 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 </span>
-                <span className="whitespace-nowrap text-[1.02rem] font-bold">Watch 2-min demo</span>
+                <span className="whitespace-nowrap text-[1.02rem] font-bold">See how it works</span>
               </a>
             </div>
 
@@ -154,7 +155,7 @@ export default function Hero() {
             <div className="reveal d6 mt-8 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-x-3.5 gap-y-2.5 text-[13px] sm:text-sm font-semibold text-[#0B1B3F]/75">
               <span className="inline-flex items-center gap-2 whitespace-nowrap">
                 <svg className="w-[18px] h-[18px] text-[#0038A8] shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.1 14.2-3.6-3.6 1.4-1.4 2.2 2.2 4.9-4.9 1.4 1.4-6.3 6.3Z" /></svg>
-                <span>Free forever for up to <span className="text-[#0038A8] font-bold">50 patients</span></span>
+                <span>Free forever for up to <span className="text-[#0038A8] font-bold">30 patients</span></span>
               </span>
               <span className="hidden sm:inline text-[#0B1B3F]/25">·</span>
               <span className="inline-flex items-center gap-2 whitespace-nowrap">
