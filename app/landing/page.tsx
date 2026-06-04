@@ -498,7 +498,7 @@ export default function LandingPage() {
           {/* Right 3D illustration */}
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image
-            src="/images/tools.png"
+            src="/images/tools2.png"
             alt=""
             width={220}
             height={260}
