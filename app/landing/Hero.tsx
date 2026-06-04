@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 
 const jakarta = Plus_Jakarta_Sans({
@@ -64,6 +65,25 @@ export default function Hero() {
         className="absolute inset-x-0 top-0 h-32 z-[1] pointer-events-none"
         style={{ background: 'linear-gradient(to bottom, rgba(253,251,247,.55), rgba(253,251,247,0))' }}
       />
+
+      {/* Nav bar */}
+      <div className="absolute top-0 inset-x-0 z-[3] flex items-center justify-end px-6 sm:px-8 lg:px-12 py-5">
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/login"
+            className="inline-flex items-center px-4 py-2 rounded-xl text-[13.5px] font-semibold text-[#0B1B3F]/80 hover:text-[#0B1B3F] transition-colors glass ring-1 ring-black/8"
+          >
+            Sign In
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex items-center px-4 py-2 rounded-xl text-[13.5px] font-bold text-white transition-transform hover:-translate-y-0.5"
+            style={{ background: '#0038A8', boxShadow: '0 6px 18px -6px rgba(0,56,168,.55)' }}
+          >
+            Register Free
+          </Link>
+        </div>
+      </div>
 
       {/* Content */}
       <div className="relative z-[2] mx-auto w-full max-w-[1280px] px-6 sm:px-8 lg:px-12 py-10 sm:py-12 lg:py-0 min-h-[100svh] flex items-center">

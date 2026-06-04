@@ -476,7 +476,7 @@ export default function LandingPage() {
           SECTION 5B — PAPERWORK HOURS
       ══════════════════════════════════════════════════════════ */}
       <section className="py-10 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8" style={{ background: '#E8F2FF' }}>
-        <div className="max-w-[1280px] mx-auto relative rounded-[2.2rem] overflow-hidden bg-white ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] px-6 sm:px-12 lg:px-20 py-10 sm:py-14 flex flex-col items-center text-center">
+        <div className="max-w-[1280px] mx-auto relative rounded-[2.2rem] bg-white ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] px-6 sm:px-12 lg:px-20 pt-10 sm:pt-14 pb-28 sm:pb-36 flex flex-col items-center text-center">
 
           {/* Decorative sparkles */}
           <div className="absolute top-8 left-12 text-[#1E5BE6] text-[18px] pointer-events-none select-none" aria-hidden="true">✦</div>
@@ -485,25 +485,25 @@ export default function LandingPage() {
           <div className="absolute top-16 right-[12%] text-[#1E5BE6] text-[14px] pointer-events-none select-none" aria-hidden="true">✦</div>
 
           {/* Left 3D illustration */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image
             src="/images/plant.png"
             alt=""
             width={220}
             height={260}
-            aria-hidden
             draggable={false}
-            className="absolute bottom-0 left-0 w-[140px] sm:w-[180px] lg:w-[220px] h-auto object-contain select-none pointer-events-none"
+            className="absolute bottom-0 left-0 w-[120px] sm:w-[160px] lg:w-[200px] h-auto object-contain select-none pointer-events-none"
           />
 
           {/* Right 3D illustration */}
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image
             src="/images/tools.png"
             alt=""
             width={220}
             height={260}
-            aria-hidden
             draggable={false}
-            className="absolute bottom-0 right-0 w-[140px] sm:w-[180px] lg:w-[220px] h-auto object-contain select-none pointer-events-none"
+            className="absolute bottom-0 right-0 w-[120px] sm:w-[160px] lg:w-[200px] h-auto object-contain select-none pointer-events-none"
           />
 
           {/* Clock icon */}
