@@ -109,74 +109,14 @@ export default function LandingPage() {
           SECTION 3 — HOW IT WORKS
           Heading → 3 steps → Messenger callout → lifestyle image
       ══════════════════════════════════════════════════════════ */}
-      <section>
-        <div className="px-5 py-14" style={{ background: '#ffffff' }}>
-          <h2
-            className="font-black leading-tight mb-10"
-            style={{ fontSize: 'clamp(24px, 6vw, 40px)', color: '#0B1627', letterSpacing: '-0.02em' }}
-          >
-            Register and you&apos;re ready to go.
-          </h2>
-
-          <div className="flex flex-col gap-6 mb-8">
-            {[
-              { n: '1', title: 'Create your clinic account — takes less than 5 minutes.' },
-              { n: '2', title: 'Add your patients, services, and staff. We guide you through every step.' },
-              { n: '3', title: 'Start seeing patients. Sigurado handles the records, receipts, and reports.' },
-            ].map((step) => (
-              <div
-                key={step.n}
-                className="flex gap-4 p-5 rounded-2xl"
-                style={{ background: '#F5F8FF', border: '1px solid #E0E8F8' }}
-              >
-                <div
-                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center font-black text-base"
-                  style={{ background: '#0038A8', color: '#ffffff' }}
-                >
-                  {step.n}
-                </div>
-                <p className="text-sm leading-relaxed font-medium pt-1.5" style={{ color: '#2A3A56' }}>
-                  {step.title}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Messenger callout — prominent, confidence-building */}
-          <a
-            href="https://m.me/sigurado"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-4 p-5 rounded-2xl"
-            style={{ background: '#0038A8', textDecoration: 'none' }}
-          >
-            <div
-              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-xl"
-              style={{ background: 'rgba(255,255,255,0.15)' }}
-            >
-              💬
-            </div>
-            <div>
-              <p className="font-black text-base leading-tight mb-0.5" style={{ color: '#ffffff' }}>
-                Questions? We&apos;re on Messenger.
-              </p>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.7)' }}>
-                9am–4pm — real support, real people. You&apos;re not alone.
-              </p>
-            </div>
-            <span className="ml-auto text-xl" style={{ color: 'rgba(255,255,255,0.5)' }}>→</span>
-          </a>
-        </div>
-
-        {/* Lifestyle image at the bottom of this section */}
-        <div className="relative w-full" style={{ height: 280 }}>
-          <Image
-            src="/images/section3.png"
-            alt="Using Sigurado on a smartphone"
-            fill
-            className="object-cover object-center"
-          />
-        </div>
+      <section className="relative w-full">
+        <Image
+          src="/images/section33.png"
+          alt="How Sigurado works — register and you're ready to go"
+          width={1536}
+          height={1024}
+          className="block w-full h-auto"
+        />
       </section>
 
       {/* ══════════════════════════════════════════════════════════
