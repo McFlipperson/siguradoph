@@ -471,29 +471,6 @@ export default function LandingPage() {
           height={1024}
           className="w-full h-auto block"
         />
-        <div className="px-5 py-12" style={{ background: '#0B1627' }}>
-          <div className="mb-6">
-            <Image
-              src="/images/sig-final-ph-logo.png"
-              alt="Sigurado"
-              width={160}
-              height={87}
-              className="object-contain"
-            />
-          </div>
-          <h2
-            className="font-black leading-tight mb-4"
-            style={{ fontSize: 'clamp(22px, 5vw, 36px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 500 }}
-          >
-            Patient records must be kept private by law.
-          </h2>
-          <p className="text-base leading-relaxed mb-6" style={{ color: 'rgba(255,255,255,0.75)', maxWidth: 500 }}>
-            Sigurado handles that for you. Consent records, access logs, and incident reporting — all built in.
-          </p>
-          <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.4)', maxWidth: 500 }}>
-            Sigurado was built inside a real Philippine dental clinic. We know it works. That&apos;s why the free tier has no time limit — we&apos;re confident enough to let the product speak for itself.
-          </p>
-        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
