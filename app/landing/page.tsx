@@ -621,36 +621,95 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           FOOTER
       ══════════════════════════════════════════════════════════ */}
-      <footer className="px-5 py-10 flex flex-col gap-4" style={{ background: '#060E1F' }}>
-        <div className="flex items-center">
-          <Image
-            src="/images/sig-final-ph-logo.png"
-            alt="Sigurado"
-            width={140}
-            height={76}
-            className="object-contain"
-          />
+      <footer style={{ background: '#060E1F' }}>
+        {/* Main footer grid */}
+        <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-12 pt-14 pb-10 grid grid-cols-2 sm:grid-cols-4 gap-10">
+
+          {/* Brand column */}
+          <div className="col-span-2 sm:col-span-1 flex flex-col gap-4">
+            <Image
+              src="/images/sig-final-ph-logo.png"
+              alt="Sigurado"
+              width={130}
+              height={70}
+              className="object-contain -ml-1"
+            />
+            <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,.42)' }}>
+              Dental clinic software built for the Philippines. Simple enough for any secretary, powerful enough for any dentist.
+            </p>
+            {/* PH flag badge */}
+            <div className="inline-flex items-center gap-2 self-start">
+              <svg viewBox="0 0 24 16" className="w-5 h-[14px] rounded-sm ring-1 ring-white/10 shrink-0">
+                <rect width="24" height="8" fill="#0038A8"/>
+                <rect y="8" width="24" height="8" fill="#CE1126"/>
+                <polygon points="0,0 11,8 0,16" fill="#fff"/>
+                <circle cx="3.2" cy="8" r="1.5" fill="#FCD116"/>
+              </svg>
+              <span className="text-[11.5px] font-semibold" style={{ color: 'rgba(255,255,255,.35)' }}>Made in the Philippines</span>
+            </div>
+          </div>
+
+          {/* Product */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] mb-1" style={{ color: 'rgba(255,255,255,.30)' }}>Product</p>
+            {[
+              { label: 'Features', href: '#about' },
+              { label: 'Pricing', href: '#pricing' },
+              { label: 'How It Works', href: '#get-started' },
+              { label: 'Register Free', href: '/register' },
+              { label: 'Sign In', href: '/login' },
+            ].map(({ label, href }) => (
+              <Link key={label} href={href} className="text-[13.5px] font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.50)' }}>{label}</Link>
+            ))}
+          </div>
+
+          {/* Support */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] mb-1" style={{ color: 'rgba(255,255,255,.30)' }}>Support</p>
+            {[
+              { label: 'Message us on Messenger', href: 'https://m.me/sigurado', external: true },
+              { label: 'FAQs', href: '#pricing' },
+            ].map(({ label, href, external }) => (
+              external
+                ? <a key={label} href={href} target="_blank" rel="noopener noreferrer" className="text-[13.5px] font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.50)' }}>{label}</a>
+                : <Link key={label} href={href} className="text-[13.5px] font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.50)' }}>{label}</Link>
+            ))}
+            <div className="mt-1 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.08)' }}>
+              <p className="text-[12px] font-medium" style={{ color: 'rgba(255,255,255,.30)' }}>Support hours</p>
+              <p className="text-[12px] font-semibold mt-0.5" style={{ color: 'rgba(255,255,255,.50)' }}>Mon–Sat, 9am–4pm PHT</p>
+            </div>
+          </div>
+
+          {/* Legal */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-bold uppercase tracking-[.12em] mb-1" style={{ color: 'rgba(255,255,255,.30)' }}>Legal</p>
+            {[
+              { label: 'Privacy Policy', href: '/privacy' },
+              { label: 'Terms of Service', href: '/terms' },
+            ].map(({ label, href }) => (
+              <Link key={label} href={href} className="text-[13.5px] font-medium transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.50)' }}>{label}</Link>
+            ))}
+            <div className="mt-1 pt-3 border-t" style={{ borderColor: 'rgba(255,255,255,.08)' }}>
+              <p className="text-[12px] leading-relaxed" style={{ color: 'rgba(255,255,255,.28)' }}>
+                Compliant with Philippine RA 10173 (Data Privacy Act) and BIR VAT regulations.
+              </p>
+            </div>
+          </div>
+
         </div>
-        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          © {new Date().getFullYear()} Sigurado. Built for Philippine dental clinics.
-        </p>
-        <div className="flex gap-4">
-          <a
-            href="https://m.me/sigurado"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs underline"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
-          >
-            Contact us on Messenger
-          </a>
-          <Link
-            href="/privacy"
-            className="text-xs underline"
-            style={{ color: 'rgba(255,255,255,0.35)' }}
-          >
-            Privacy Policy
-          </Link>
+
+        {/* Bottom bar */}
+        <div className="border-t" style={{ borderColor: 'rgba(255,255,255,.07)' }}>
+          <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-12 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-[12px]" style={{ color: 'rgba(255,255,255,.28)' }}>
+              © {new Date().getFullYear()} Sigurado. All rights reserved. Dental clinic management software for the Philippines.
+            </p>
+            <div className="flex items-center gap-4">
+              <Link href="/privacy" className="text-[12px] transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.35)' }}>Privacy</Link>
+              <Link href="/terms" className="text-[12px] transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.35)' }}>Terms</Link>
+              <a href="https://m.me/sigurado" target="_blank" rel="noopener noreferrer" className="text-[12px] transition-colors hover:text-white" style={{ color: 'rgba(255,255,255,.35)' }}>Contact</a>
+            </div>
+          </div>
         </div>
       </footer>
 
