@@ -461,7 +461,6 @@ export default function LandingPage() {
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 5 — PRIVACY CALLOUT
-          Image + text block below — CHANGE 5
       ══════════════════════════════════════════════════════════ */}
       <section>
         <Image
@@ -471,6 +470,126 @@ export default function LandingPage() {
           height={1024}
           className="w-full h-auto block"
         />
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 5B — PAPERWORK HOURS
+      ══════════════════════════════════════════════════════════ */}
+      <section className="py-10 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8" style={{ background: '#E8F2FF' }}>
+        <div className="max-w-[1280px] mx-auto relative rounded-[2.2rem] overflow-hidden bg-white ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] px-6 sm:px-12 lg:px-20 py-10 sm:py-14 flex flex-col items-center text-center">
+
+          {/* Decorative sparkles */}
+          <div className="absolute top-8 left-12 text-[#1E5BE6] text-[18px] pointer-events-none select-none" aria-hidden="true">✦</div>
+          <div className="absolute top-12 left-[15%] w-[6px] h-[6px] rounded-full pointer-events-none" style={{ background: '#1E5BE6', opacity: .35 }} />
+          <div className="absolute top-6 right-14 text-[#FCD116] text-[22px] pointer-events-none select-none" aria-hidden="true">✦</div>
+          <div className="absolute top-16 right-[12%] text-[#1E5BE6] text-[14px] pointer-events-none select-none" aria-hidden="true">✦</div>
+
+          {/* Left 3D illustration */}
+          <Image
+            src="/images/plant.png"
+            alt=""
+            width={220}
+            height={260}
+            aria-hidden
+            draggable={false}
+            className="absolute bottom-0 left-0 w-[140px] sm:w-[180px] lg:w-[220px] h-auto object-contain select-none pointer-events-none"
+          />
+
+          {/* Right 3D illustration */}
+          <Image
+            src="/images/tools.png"
+            alt=""
+            width={220}
+            height={260}
+            aria-hidden
+            draggable={false}
+            className="absolute bottom-0 right-0 w-[140px] sm:w-[180px] lg:w-[220px] h-auto object-contain select-none pointer-events-none"
+          />
+
+          {/* Clock icon */}
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
+            <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <path d="M12 7v5l3 2"/>
+            </svg>
+          </div>
+
+          {/* Headline */}
+          <h2 className="font-extrabold tracking-tight leading-[1.07] max-w-[680px]" style={{ fontSize: 'clamp(1.9rem,4.5vw,3.2rem)', color: '#0B1B3F' }}>
+            How many hours did paperwork{' '}
+            <span style={{ color: '#1E5BE6' }}>steal</span> this month?
+          </h2>
+
+          {/* Icon flow */}
+          <div className="mt-8 mb-2 flex flex-wrap items-center justify-center gap-x-1 gap-y-4">
+            {[
+              { label: 'Appointments', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/></svg> },
+              { label: 'Receipts', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/><path d="M8 7h.01"/></svg> },
+              { label: 'Reports', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 17v-4M12 17v-8M16 17v-6"/></svg> },
+              { label: 'Records', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/><path d="M8 10h8M8 14h5"/></svg> },
+              { label: 'Follow-ups', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
+            ].map(({ label, icon }, i) => (
+              <div key={label} className="flex items-center gap-1">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center shadow-sm ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
+                    {icon}
+                  </div>
+                  <span className="text-[11.5px] font-semibold text-[#0B1B3F]/70 whitespace-nowrap">{label}</span>
+                </div>
+                {i < 4 && (
+                  <div className="flex items-center mb-4 mx-1">
+                    <svg viewBox="0 0 40 8" className="w-8 h-2" fill="none">
+                      <line x1="0" y1="4" x2="40" y2="4" stroke="#93C5FD" strokeWidth="2" strokeDasharray="4 3"/>
+                    </svg>
+                  </div>
+                )}
+              </div>
+            ))}
+            {/* Arrow + Sigurado */}
+            <div className="flex items-center gap-2 mb-4 ml-1">
+              <svg viewBox="0 0 32 16" className="w-7 h-4" fill="none">
+                <path d="M2 8 C8 8 16 4 28 8" stroke="#1E5BE6" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                <path d="M24 4l6 4-6 4" stroke="#1E5BE6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              </svg>
+            </div>
+            <div className="flex flex-col items-center gap-1.5 mb-4">
+              <div className="w-[68px] h-[68px] rounded-2xl flex items-center justify-center shadow-md ring-1 ring-blue-200" style={{ background: '#ffffff' }}>
+                <Image src="/images/s-logo-ph.png" alt="Sigurado" width={44} height={44} className="w-[44px] h-[44px] object-contain" />
+              </div>
+              <span className="text-[12px] font-bold text-[#0B1B3F]">Sigurado</span>
+            </div>
+          </div>
+
+          {/* Subtext */}
+          <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed font-medium max-w-[480px]" style={{ color: 'rgba(11,27,63,.60)' }}>
+            The small tasks that take a few minutes each day can quietly become{' '}
+            <span className="font-bold" style={{ color: '#1E5BE6' }}>dozens of hours</span> every month.
+          </p>
+
+          {/* CTA Button */}
+          <Link
+            href="/register"
+            className="mt-8 inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-[17px] font-bold text-white transition-transform hover:-translate-y-0.5"
+            style={{ background: '#1E5BE6', boxShadow: '0 14px 30px -10px rgba(30,91,230,.55)' }}
+          >
+            See How Simple It Is
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+          </Link>
+
+          {/* Trust badges */}
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] font-semibold" style={{ color: 'rgba(11,27,63,.55)' }}>
+            <span className="inline-flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Free forever up to 50 patients
+            </span>
+            <span className="text-[#1E5BE6] opacity-40">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+              No credit card required
+            </span>
+          </div>
+
+        </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
