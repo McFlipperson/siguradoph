@@ -233,27 +233,30 @@ function LoginForm() {
           </p>
         </div>
 
-        {/* Mascot characters — bottom of card */}
-        {/* Drop login-nurse.png and login-doc.png into public/images/ when ready */}
-        <div className="relative w-full h-[160px] mt-2 overflow-hidden pointer-events-none select-none">
-          {/* Left mascot placeholder */}
-          {/* <Image src="/images/login-nurse.png" alt="" width={140} height={180} className="absolute bottom-0 left-4 h-[155px] w-auto object-contain" draggable={false} /> */}
-          {/* Right mascot placeholder */}
-          {/* <Image src="/images/login-doc.png" alt="" width={140} height={180} className="absolute bottom-0 right-4 h-[155px] w-auto object-contain" draggable={false} /> */}
+        {/* Mascot image — clips white top, shows characters + clinic scene */}
+        <div className="relative w-full overflow-hidden pointer-events-none select-none" style={{ height: 230 }}>
+          <Image
+            src="/images/login2DOCS.png"
+            alt=""
+            fill
+            className="object-cover object-bottom"
+            sizes="(max-width: 480px) 100vw, 420px"
+            draggable={false}
+          />
         </div>
+      </div>
 
-        {/* Bottom privacy strip */}
-        <div className="flex items-center justify-center gap-2 px-6 pb-5 -mt-6">
-          <svg viewBox="0 0 30 20" className="w-5 h-[14px] rounded-sm ring-1 ring-black/10 shrink-0" fill="none">
-            <rect width="30" height="10" fill="#0038A8"/>
-            <rect y="10" width="30" height="10" fill="#CE1126"/>
-            <polygon points="0,0 14,10 0,20" fill="white"/>
-            <circle cx="4.5" cy="10" r="2.2" fill="#FCD116"/>
-          </svg>
-          <p className="text-[11px] font-medium text-[#0B1B3F]/40 text-center">
-            Your data is protected under <span className="font-bold text-[#0B1B3F]/60">RA 10173</span> — Philippines Data Privacy Act of 2012.
-          </p>
-        </div>
+      {/* Bottom privacy strip — outside card, on gradient bg */}
+      <div className="flex items-center justify-center gap-2 px-6 pt-4 pb-2">
+        <svg viewBox="0 0 30 20" className="w-5 h-[13px] rounded-sm ring-1 ring-white/30 shrink-0" fill="none">
+          <rect width="30" height="10" fill="#0038A8"/>
+          <rect y="10" width="30" height="10" fill="#CE1126"/>
+          <polygon points="0,0 14,10 0,20" fill="white"/>
+          <circle cx="4.5" cy="10" r="2.2" fill="#FCD116"/>
+        </svg>
+        <p className="text-[11px] font-medium text-[#0B1B3F]/50 text-center">
+          Your data is protected under <span className="font-semibold text-[#0B1B3F]/70">RA 10173</span> — Philippines Data Privacy Act of 2012.
+        </p>
       </div>
     </main>
   )
