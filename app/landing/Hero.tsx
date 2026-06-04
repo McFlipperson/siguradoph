@@ -93,14 +93,14 @@ export default function Hero() {
           {/* LEFT */}
           <div className="lg:col-span-6 xl:col-span-5 flex flex-col items-start text-left order-1">
 
-            {/* Logo */}
+            {/* Logo — hidden on mobile (nav bar covers it); visible lg+ */}
             <Image
               src="/images/hero-logo.png"
               alt="Sigurado"
               width={1166}
               height={348}
               priority
-              className="reveal d1 h-[52px] sm:h-[58px] w-auto -ml-1 select-none"
+              className="reveal d1 hidden lg:block h-[52px] sm:h-[58px] w-auto -ml-1 select-none"
               draggable={false}
             />
 
