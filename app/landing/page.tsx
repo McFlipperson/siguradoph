@@ -69,7 +69,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2">
 
             {/* LEFT: Doctor photo — fills full column height */}
-            <div className="relative overflow-hidden" style={{ background: '#E4F0FF', minHeight: 500 }}>
+            <div className="relative overflow-hidden order-2 lg:order-1" style={{ background: '#E4F0FF', minHeight: 500 }}>
               <div className="absolute w-[500px] h-[500px] rounded-full -top-32 -left-32 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(190,218,255,.75) 0%,transparent 65%)' }} />
               <div className="absolute top-8 right-9 text-[#1E5BE6] text-[22px] leading-none select-none pointer-events-none" style={{ fontWeight: 900 }} aria-hidden="true">✦</div>
               <div className="absolute top-20 right-24 w-3 h-3 rounded-full pointer-events-none" style={{ background: 'rgba(206,17,38,.65)' }} />
@@ -107,7 +107,7 @@ export default function LandingPage() {
             </div>
 
             {/* RIGHT: Headline + description + cards + banner */}
-            <div className="flex flex-col p-7 sm:p-9 lg:p-10 gap-5">
+            <div className="flex flex-col p-7 sm:p-9 lg:p-10 gap-5 order-1 lg:order-2">
               <div className="flex items-start justify-between">
                 <Image src="/images/hero-logo.png" alt="Sigurado" width={160} height={40} className="h-[36px] w-auto object-contain -ml-1" draggable={false} />
                 <div className="flex gap-2 mt-1" aria-hidden="true">
