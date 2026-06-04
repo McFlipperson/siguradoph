@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import Hero from './Hero'
 
 export const metadata: Metadata = {
   title: 'Sigurado — Dental Clinic Software Built for the Philippines',
@@ -57,38 +58,10 @@ export default function LandingPage() {
           buttons will be wired as overlay regions (same technique as auth). */}
 
       {/* ══════════════════════════════════════════════════════════
-          SECTION 1 — HERO
-          Mobile: text → image stacked
-          sm+: text left, dashboard screenshot right (floats up)
+          SECTION 1 — HERO (real responsive component from Claude Design)
+          CTAs scroll to #pricing.
       ══════════════════════════════════════════════════════════ */}
-      {/* Hero is the image itself; the built-in CTAs are overlaid with
-          anchor regions that scroll down to the pricing section. */}
-      <section className="relative w-full">
-        <Image
-          src="/images/hero.png"
-          alt="Sigurado — dental clinic software built for the Philippines"
-          width={1692}
-          height={930}
-          priority
-          className="block w-full h-auto"
-        />
-
-        {/* "Start Free" → pricing */}
-        <a
-          href="#pricing"
-          aria-label="Start free — choose a plan"
-          className="absolute"
-          style={{ left: '3.4%', width: '25%', top: '56.5%', height: '11%' }}
-        />
-
-        {/* "Watch 2-min demo" → pricing (no demo yet) */}
-        <a
-          href="#pricing"
-          aria-label="See plans"
-          className="absolute"
-          style={{ left: '29.6%', width: '17%', top: '56.5%', height: '11%' }}
-        />
-      </section>
+      <Hero />
 
       {/* ══════════════════════════════════════════════════════════
           SECTION 2 — EGO + TRUST
