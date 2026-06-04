@@ -91,7 +91,7 @@ export default function LandingPage() {
           </div>
 
           {/* MIDDLE: Doctor photo — full width, fixed height */}
-          <div className="relative w-full overflow-hidden" style={{ height: 420, background: '#E4F0FF' }}>
+          <div className="relative w-full overflow-hidden" style={{ height: 580, background: '#E4F0FF' }}>
             <div className="absolute w-[600px] h-[600px] rounded-full -top-40 -left-40 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(190,218,255,.75) 0%,transparent 65%)' }} />
             <div className="absolute w-[320px] h-[320px] rounded-full -bottom-12 right-0 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(190,218,255,.55) 0%,transparent 65%)' }} />
             <div className="absolute top-8 right-10 text-[#1E5BE6] text-[22px] leading-none select-none pointer-events-none" style={{ fontWeight: 900 }} aria-hidden="true">✦</div>
@@ -101,7 +101,7 @@ export default function LandingPage() {
               alt="Dr. Omega-Brunet, Founder of Sigurado"
               fill
               className="object-cover select-none"
-              style={{ objectPosition: '50% 15%' }}
+              style={{ objectPosition: '50% 0%' }}
               draggable={false}
             />
             {/* Name card */}
