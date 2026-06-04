@@ -476,7 +476,7 @@ export default function LandingPage() {
           SECTION 5B — PAPERWORK HOURS
       ══════════════════════════════════════════════════════════ */}
       <section className="py-10 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8" style={{ background: '#E8F2FF' }}>
-        <div className="max-w-[1280px] mx-auto relative rounded-[2.2rem] bg-white ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] px-6 sm:px-12 lg:px-20 pt-10 sm:pt-14 pb-28 sm:pb-36 flex flex-col items-center text-center">
+        <div className="max-w-[1280px] mx-auto relative rounded-[2.2rem] bg-white ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] px-6 sm:px-12 lg:px-20 pt-8 pb-20 sm:pb-24 flex flex-col items-center text-center">
 
           {/* Decorative sparkles */}
           <div className="absolute top-8 left-12 text-[#1E5BE6] text-[18px] pointer-events-none select-none" aria-hidden="true">✦</div>
@@ -507,21 +507,21 @@ export default function LandingPage() {
           />
 
           {/* Clock icon */}
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
-            <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4 ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
+            <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="9"/>
               <path d="M12 7v5l3 2"/>
             </svg>
           </div>
 
           {/* Headline */}
-          <h2 className="font-extrabold tracking-tight leading-[1.07] max-w-[680px]" style={{ fontSize: 'clamp(1.9rem,4.5vw,3.2rem)', color: '#0B1B3F' }}>
+          <h2 className="font-extrabold tracking-tight leading-[1.07] max-w-[680px]" style={{ fontSize: 'clamp(1.5rem,3.5vw,2.4rem)', color: '#0B1B3F' }}>
             How many hours did paperwork{' '}
             <span style={{ color: '#1E5BE6' }}>steal</span> this month?
           </h2>
 
           {/* Icon flow */}
-          <div className="mt-8 mb-2 flex flex-wrap items-center justify-center gap-x-1 gap-y-4">
+          <div className="mt-5 mb-1 flex flex-wrap items-center justify-center gap-x-1 gap-y-3">
             {[
               { label: 'Appointments', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M8 18h.01M12 18h.01"/></svg> },
               { label: 'Receipts', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/><path d="M8 7h.01"/></svg> },
@@ -530,15 +530,15 @@ export default function LandingPage() {
               { label: 'Follow-ups', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none" stroke="#1E5BE6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> },
             ].map(({ label, icon }, i) => (
               <div key={label} className="flex items-center gap-1">
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="w-[60px] h-[60px] rounded-2xl flex items-center justify-center shadow-sm ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
+                <div className="flex flex-col items-center gap-1">
+                  <div className="w-[50px] h-[50px] rounded-xl flex items-center justify-center shadow-sm ring-1 ring-blue-100" style={{ background: '#EEF6FF' }}>
                     {icon}
                   </div>
-                  <span className="text-[11.5px] font-semibold text-[#0B1B3F]/70 whitespace-nowrap">{label}</span>
+                  <span className="text-[10.5px] font-semibold text-[#0B1B3F]/60 whitespace-nowrap">{label}</span>
                 </div>
                 {i < 4 && (
-                  <div className="flex items-center mb-4 mx-1">
-                    <svg viewBox="0 0 40 8" className="w-8 h-2" fill="none">
+                  <div className="flex items-center mb-4 mx-0.5">
+                    <svg viewBox="0 0 40 8" className="w-6 h-2" fill="none">
                       <line x1="0" y1="4" x2="40" y2="4" stroke="#93C5FD" strokeWidth="2" strokeDasharray="4 3"/>
                     </svg>
                   </div>
@@ -546,76 +546,47 @@ export default function LandingPage() {
               </div>
             ))}
             {/* Arrow + Sigurado */}
-            <div className="flex items-center gap-2 mb-4 ml-1">
-              <svg viewBox="0 0 32 16" className="w-7 h-4" fill="none">
+            <div className="flex items-center mb-4 ml-0.5">
+              <svg viewBox="0 0 32 16" className="w-6 h-3.5" fill="none">
                 <path d="M2 8 C8 8 16 4 28 8" stroke="#1E5BE6" strokeWidth="2" strokeLinecap="round" fill="none"/>
                 <path d="M24 4l6 4-6 4" stroke="#1E5BE6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
               </svg>
             </div>
-            <div className="flex flex-col items-center gap-1.5 mb-4">
-              <div className="w-[68px] h-[68px] rounded-2xl flex items-center justify-center shadow-md ring-1 ring-blue-200" style={{ background: '#ffffff' }}>
-                <Image src="/images/s-logo-ph.png" alt="Sigurado" width={44} height={44} className="w-[44px] h-[44px] object-contain" />
+            <div className="flex flex-col items-center gap-1 mb-4">
+              <div className="w-[56px] h-[56px] rounded-xl flex items-center justify-center shadow-md ring-1 ring-blue-200" style={{ background: '#ffffff' }}>
+                <Image src="/images/s-logo-ph.png" alt="Sigurado" width={36} height={36} className="w-9 h-9 object-contain" />
               </div>
-              <span className="text-[12px] font-bold text-[#0B1B3F]">Sigurado</span>
+              <span className="text-[10.5px] font-bold text-[#0B1B3F]">Sigurado</span>
             </div>
           </div>
 
           {/* Subtext */}
-          <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed font-medium max-w-[480px]" style={{ color: 'rgba(11,27,63,.60)' }}>
+          <p className="mt-2 text-[14px] sm:text-[15px] leading-relaxed font-medium max-w-[440px]" style={{ color: 'rgba(11,27,63,.58)' }}>
             The small tasks that take a few minutes each day can quietly become{' '}
             <span className="font-bold" style={{ color: '#1E5BE6' }}>dozens of hours</span> every month.
           </p>
 
-          {/* CTA Button */}
-          <Link
-            href="/register"
-            className="mt-8 inline-flex items-center justify-center gap-3 rounded-2xl px-8 py-4 text-[17px] font-bold text-white transition-transform hover:-translate-y-0.5"
-            style={{ background: '#1E5BE6', boxShadow: '0 14px 30px -10px rgba(30,91,230,.55)' }}
-          >
-            See How Simple It Is
-            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
-          </Link>
-
-          {/* Trust badges */}
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] font-semibold" style={{ color: 'rgba(11,27,63,.55)' }}>
-            <span className="inline-flex items-center gap-1.5">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              Free forever up to 50 patients
-            </span>
-            <span className="text-[#1E5BE6] opacity-40">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
-              No credit card required
-            </span>
+          {/* CTA + trust inline */}
+          <div className="mt-5 flex flex-col sm:flex-row items-center gap-4">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2.5 rounded-xl px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-0.5"
+              style={{ background: '#1E5BE6', boxShadow: '0 10px 24px -8px rgba(30,91,230,.50)' }}
+            >
+              See How Simple It Is
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </Link>
+            <div className="flex items-center gap-3 text-[12px] font-semibold" style={{ color: 'rgba(11,27,63,.50)' }}>
+              <span className="inline-flex items-center gap-1">
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0 text-[#1E5BE6]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Free up to 50 patients
+              </span>
+              <span style={{ color: '#93C5FD' }}>·</span>
+              <span>No credit card</span>
+            </div>
           </div>
 
         </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════
-          SECTION 6 — FINAL CTA
-      ══════════════════════════════════════════════════════════ */}
-      <section
-        className="px-5 py-16 flex flex-col items-center text-center"
-        style={{ background: '#0038A8' }}
-      >
-        <h2
-          className="font-black leading-tight mb-3"
-          style={{ fontSize: 'clamp(26px, 7vw, 46px)', color: '#ffffff', letterSpacing: '-0.02em', maxWidth: 420 }}
-        >
-          Ready to run your clinic the modern way?
-        </h2>
-        {/* Subtext — CHANGE 7 */}
-        <p className="text-sm mb-9" style={{ color: 'rgba(255,255,255,0.65)', maxWidth: 380 }}>
-          Join the first dental clinics in the Philippines running on Sigurado. Founding member pricing — locked in forever.
-        </p>
-        <Link
-          href="/register"
-          className="inline-block font-black text-base px-7 py-4 rounded-2xl"
-          style={{ background: '#CE1126', color: '#ffffff' }}
-        >
-          Start free — no credit card needed
-        </Link>
       </section>
 
       {/* ══════════════════════════════════════════════════════════
