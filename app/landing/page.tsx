@@ -143,26 +143,6 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              {/* Blue benefits banner */}
-              <div className="rounded-2xl overflow-hidden grid grid-cols-2 mt-auto" style={{ background: 'linear-gradient(110deg,#0038A8 0%,#1353CE 55%,#1E5BE6 100%)' }}>
-                {[
-                  { icon: <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, title: 'Automatic daily backups', sub: 'Your data is safe. Always.' },
-                  { icon: <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 8 L12 12 L15 14"/></svg>, title: 'Save 5+ hours a week', sub: 'Less admin, more time for patients.' },
-                  { icon: <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8 L16 8 M8 12 L16 12 M8 16 L12 16"/></svg>, title: 'Clear reports that matter', sub: 'See your clinic grow with confidence.' },
-                  { icon: <svg viewBox="0 0 24 24" className="w-[14px] h-[14px]" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M4 20 C4 16.7 7.6 14 12 14 C16.4 14 20 16.7 20 20"/></svg>, title: 'Real human support', sub: "We're here when you need us." },
-                ].map(({ icon, title, sub }, i) => (
-                  <div key={title} className={`flex flex-col gap-2 p-4${i % 2 === 0 ? ' border-r border-white/10' : ''}${i < 2 ? ' border-b border-white/10' : ''}`}>
-                    <div className="relative w-7 h-7 shrink-0">
-                      <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center">{icon}</div>
-                      <div className="absolute -bottom-0.5 -right-0.5 w-[13px] h-[13px] rounded-full bg-emerald-400 flex items-center justify-center" style={{ outline: '1.5px solid #1353CE' }}>
-                        <svg viewBox="0 0 10 10" fill="none" className="w-2 h-2"><path d="M2 5.2L3.8 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </div>
-                    </div>
-                    <div className="text-[12px] font-bold text-white leading-tight">{title}</div>
-                    <div className="text-[11px] text-white/60 leading-snug">{sub}</div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
