@@ -157,8 +157,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="px-5 overflow-x-auto pb-6">
-          <div className="flex gap-4" style={{ minWidth: 'max-content' }}>
+        <div className="px-5 pb-6">
+          <div className="flex flex-col items-center sm:flex-row sm:flex-wrap sm:justify-center gap-4">
 
             {/* FREE */}
             <div
