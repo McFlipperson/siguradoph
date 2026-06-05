@@ -161,7 +161,11 @@ export default function CheckoutClient({ visitData }: Props) {
             orNumber: res.orNumber,
             transactionDate: new Date(),
             patientName: visitData.patientName,
+            patientAddress: visitData.patientAddress || undefined,
             serviceDescription: visitData.treatment,
+            procedureItems: visitData.procedures
+              .filter(p => p.amount != null && p.amount > 0)
+              .map(p => ({ name: p.name, amount: p.amount! })),
             toothNumber: visitData.toothNumber,
             netAmount: res.totalAmount,
             vatAmount: 0,
@@ -197,7 +201,11 @@ export default function CheckoutClient({ visitData }: Props) {
         orNumber: result.orNumber,
         transactionDate: new Date(),
         patientName: visitData.patientName,
+        patientAddress: visitData.patientAddress || undefined,
         serviceDescription: visitData.treatment,
+        procedureItems: visitData.procedures
+          .filter(p => p.amount != null && p.amount > 0)
+          .map(p => ({ name: p.name, amount: p.amount! })),
         toothNumber: visitData.toothNumber,
         netAmount: result.totalAmount,
         vatAmount: 0,

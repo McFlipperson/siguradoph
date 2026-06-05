@@ -23,6 +23,11 @@ export type IntakeStep1Data = {
   isMinor: boolean
   guardianName?: string
   guardianRelationship?: string
+  // SC / PWD — captured at intake for receipt pre-population
+  isSeniorCitizen?: boolean
+  scIdNumber?: string
+  isPwd?: boolean
+  pwdIdNumber?: string
   // RA 10173: consent is captured from the data subject's actual action on the
   // intake device — never assumed. noticeVersion records WHICH privacy notice
   // they agreed to, for evidentiary purposes.
@@ -77,6 +82,10 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
           phone: data.phone.trim(),
           email: data.email?.trim() || null,
           philsysId: data.philsysId?.trim() || null,
+          isSeniorCitizen: data.isSeniorCitizen ?? false,
+          scIdNumber: data.isSeniorCitizen ? (data.scIdNumber?.trim() || null) : null,
+          isPwd: data.isPwd ?? false,
+          pwdIdNumber: data.isPwd ? (data.pwdIdNumber?.trim() || null) : null,
           medicalHistory: data.medicalHistory.trim(),
           medications: data.medications.trim(),
           allergies: data.allergies.trim(),

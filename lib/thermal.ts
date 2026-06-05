@@ -18,7 +18,10 @@ export type ReceiptData = {
   orNumber: string
   transactionDate: Date
   patientName: string
+  patientAddress?: string
   serviceDescription: string
+  // Itemized line items — if provided, printed individually before totals
+  procedureItems?: Array<{ name: string; amount: number }>
   toothNumber?: string
   netAmount: number
   vatAmount: number
@@ -140,7 +143,20 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
     .line(dash)
     .align('left')
     .line(`Patient: ${data.patientName}`.slice(0, W))
-    .line(`Service: ${data.serviceDescription}`.slice(0, W))
+
+  if (data.patientAddress) {
+    e = e.line(`Address: ${data.patientAddress}`.slice(0, W))
+  }
+
+  // Itemized procedure amounts — print individually if available
+  if (data.procedureItems && data.procedureItems.length > 0) {
+    e = e.line(dash)
+    for (const item of data.procedureItems) {
+      e = e.line(padLine(item.name.slice(0, W - 12), `P${fmtMoney(item.amount)}`, W))
+    }
+  } else {
+    e = e.line(`Service: ${data.serviceDescription}`.slice(0, W))
+  }
 
   if (data.toothNumber) {
     e = e.line(`Tooth:   ${data.toothNumber}`)
@@ -151,8 +167,13 @@ export async function buildReceiptBytes(data: ReceiptData): Promise<Uint8Array> 
     .line(padLine('VAT-EXEMPT SALE', 'NIRC §109', W))
 
   if (data.scPwdType) {
-    const raLabel = data.scPwdType === 'SC' ? 'RA 9994 SC 20%' : 'RA 10754 PWD 20%'
-    e = e.line(padLine(raLabel, data.scPwdIdNumber ? `ID:${data.scPwdIdNumber}`.slice(0, 16) : '', W))
+    const raLabel = data.scPwdType === 'SC'
+      ? '20% Senior Citizen Discount - RA 9994'
+      : '20% PWD Discount - RA 10754'
+    e = e.line(raLabel.slice(0, W))
+    if (data.scPwdIdNumber) {
+      e = e.line(`  ID No: ${data.scPwdIdNumber}`.slice(0, W))
+    }
   }
 
   if (data.discountAmount > 0) {

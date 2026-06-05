@@ -59,6 +59,10 @@ export function IntakeForm({
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [philsysId, setPhilsysId] = useState('')
+  const [isSeniorCitizen, setIsSeniorCitizen] = useState(false)
+  const [scIdNumber, setScIdNumber] = useState('')
+  const [isPwd, setIsPwd] = useState(false)
+  const [pwdIdNumber, setPwdIdNumber] = useState('')
   const [medicalHistory, setMedicalHistory] = useState('')
   const [medications, setMedications] = useState('')
   const [allergies, setAllergies] = useState('')
@@ -91,6 +95,10 @@ export function IntakeForm({
       phone,
       email: email || undefined,
       philsysId: philsysId || undefined,
+      isSeniorCitizen,
+      scIdNumber: isSeniorCitizen ? (scIdNumber || undefined) : undefined,
+      isPwd,
+      pwdIdNumber: isPwd ? (pwdIdNumber || undefined) : undefined,
       medicalHistory, medications, allergies,
       isMinor,
       guardianName: isMinor ? guardianName : undefined,
@@ -133,7 +141,9 @@ export function IntakeForm({
 
   function handleReset() {
     setFirstName(''); setMiddleName(''); setLastName(''); setDateOfBirth(''); setAddress(''); setAddressLine2('')
-    setPhone(''); setEmail(''); setPhilsysId(''); setMedicalHistory(''); setMedications('')
+    setPhone(''); setEmail(''); setPhilsysId('')
+    setIsSeniorCitizen(false); setScIdNumber(''); setIsPwd(false); setPwdIdNumber('')
+    setMedicalHistory(''); setMedications('')
     setAllergies(''); setIsMinor(false); setGuardianName('')
     setGuardianRelationship(''); setConsentGiven(false)
     setPatientId(null); setChannel(null); setStep('form')
@@ -360,6 +370,40 @@ export function IntakeForm({
             inputMode="numeric"
           />
           <p className="text-xs text-muted-foreground">Philippine Identification System number printed on the physical PhilSys card.</p>
+        </div>
+
+        {/* Senior Citizen */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <input id="isSC" type="checkbox" checked={isSeniorCitizen}
+              onChange={e => { setIsSeniorCitizen(e.target.checked); if (!e.target.checked) setScIdNumber('') }}
+              className="h-5 w-5 rounded" />
+            <Label htmlFor="isSC">Senior Citizen (60 years old and above) — RA 9994</Label>
+          </div>
+          {isSeniorCitizen && (
+            <div className="flex flex-col gap-1.5 pl-8">
+              <Label htmlFor="scId">SC ID Number <span className="text-destructive">*</span></Label>
+              <Input id="scId" value={scIdNumber} onChange={e => setScIdNumber(e.target.value)}
+                required={isSeniorCitizen} className="min-h-[48px]" placeholder="e.g. 123-456-789" />
+            </div>
+          )}
+        </div>
+
+        {/* PWD */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <input id="isPWD" type="checkbox" checked={isPwd}
+              onChange={e => { setIsPwd(e.target.checked); if (!e.target.checked) setPwdIdNumber('') }}
+              className="h-5 w-5 rounded" />
+            <Label htmlFor="isPWD">Person with Disability (PWD) — RA 10754</Label>
+          </div>
+          {isPwd && (
+            <div className="flex flex-col gap-1.5 pl-8">
+              <Label htmlFor="pwdId">PWD ID Number <span className="text-destructive">*</span></Label>
+              <Input id="pwdId" value={pwdIdNumber} onChange={e => setPwdIdNumber(e.target.value)}
+                required={isPwd} className="min-h-[48px]" placeholder="e.g. PWD-123-456" />
+            </div>
+          )}
         </div>
       </section>
 

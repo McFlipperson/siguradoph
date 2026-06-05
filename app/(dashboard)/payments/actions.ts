@@ -316,7 +316,13 @@ export async function confirmPayment(data: ConfirmPaymentData): Promise<ConfirmP
   const cardFeeWaived = visit.waiveCardFee
 
   const clinic = visit.clinic
-  const orNumber = String(clinic.orSeriesCurrentNumber).padStart(clinic.orSeriesStart.length, '0')
+  // Preserve the full OR series string from orSeriesStart (e.g. "OR-000001").
+  // Extract any non-numeric prefix, then pad the current counter to match the
+  // numeric portion length, and re-attach the prefix.
+  const orSeriesMatch = clinic.orSeriesStart.match(/^([A-Za-z\-]*)(\d+)$/)
+  const orPrefix = orSeriesMatch ? orSeriesMatch[1] : ''
+  const orNumLen = orSeriesMatch ? orSeriesMatch[2].length : clinic.orSeriesStart.length
+  const orNumber = `${orPrefix}${String(clinic.orSeriesCurrentNumber).padStart(orNumLen, '0')}`
   const originalGross = Number(visit.grossAmount)
 
   const scPwdDiscountAmount = data.applyScPwdDiscount
