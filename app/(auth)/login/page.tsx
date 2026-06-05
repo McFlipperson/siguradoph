@@ -34,7 +34,18 @@ function LoginForm() {
     e.preventDefault()
     setError(null); setResetSent(false); setLoading(true)
     const { error: authError } = await signIn(email, password)
-    if (authError) { setError('Incorrect email or password.'); setLoading(false); return }
+    if (authError) {
+      const msg = authError.toLowerCase()
+      if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
+        setError('Please confirm your email first — check your inbox for the verification link.')
+      } else if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong password')) {
+        setError('Incorrect email or password.')
+      } else {
+        setError(authError)
+      }
+      setLoading(false)
+      return
+    }
     try {
       const res = await fetch('/api/my-clinic-slug')
       if (res.ok) {
