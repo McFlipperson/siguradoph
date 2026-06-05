@@ -16,7 +16,9 @@ export type ReceiptEmailData = {
   orNumber: string
   transactionDate: Date
   patientName: string
+  patientAddress?: string
   serviceDescription: string
+  procedureItems?: Array<{ name: string; amount: number }>
   toothNumber?: string
   netAmount: number
   vatAmount: number
@@ -96,8 +98,8 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
   const scPwdRow = data.scPwdType
     ? `<tr>
         <td style="padding:4px 0;color:#374151;font-size:12px;">
-          ${data.scPwdType === 'SC' ? 'Senior Citizen (RA 9994)' : 'PWD (RA 10754)'}
-          ${data.scPwdIdNumber ? ` — ID: ${data.scPwdIdNumber}` : ''}
+          ${data.scPwdType === 'SC' ? '20% Senior Citizen Discount — RA 9994' : '20% PWD Discount — RA 10754'}
+          ${data.scPwdIdNumber ? `<br><span style="color:#6b7280;">ID No: ${data.scPwdIdNumber}</span>` : ''}
         </td>
         <td style="padding:4px 0;text-align:right;font-size:12px;color:#374151;">VAT-Exempt</td>
       </tr>`
@@ -183,7 +185,8 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
           <tr>
             <td style="padding:20px 28px;border-bottom:1px solid #e5e7eb;">
               <p style="margin:0 0 2px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;">Patient</p>
-              <p style="margin:0 0 14px;font-size:16px;font-weight:600;color:#111827;">${data.patientName}</p>
+              <p style="margin:0 0 2px;font-size:16px;font-weight:600;color:#111827;">${data.patientName}</p>
+              ${data.patientAddress ? `<p style="margin:0 0 14px;font-size:13px;color:#6b7280;">${data.patientAddress}</p>` : '<p style="margin:0 0 14px;"></p>'}
               <p style="margin:0 0 2px;font-size:12px;color:#9ca3af;text-transform:uppercase;letter-spacing:0.06em;">Service</p>
               <p style="margin:0 0 4px;font-size:15px;color:#111827;">${data.serviceDescription}</p>
               ${toothRow}
@@ -194,10 +197,18 @@ function buildReceiptHtml(data: ReceiptEmailData): string {
           <tr>
             <td style="padding:20px 28px;border-bottom:1px solid #e5e7eb;">
               <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td style="padding:4px 0;color:#374151;">Service</td>
-                  <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(data.grossAmount + data.discountAmount)}</td>
-                </tr>
+                ${data.procedureItems && data.procedureItems.length > 0
+                  ? data.procedureItems.map(p =>
+                      `<tr>
+                        <td style="padding:4px 0;color:#374151;">${p.name}</td>
+                        <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(p.amount)}</td>
+                      </tr>`
+                    ).join('')
+                  : `<tr>
+                      <td style="padding:4px 0;color:#374151;">Service</td>
+                      <td style="padding:4px 0;text-align:right;color:#374151;">₱${fmt(data.grossAmount + data.discountAmount)}</td>
+                    </tr>`
+                }
                 <tr>
                   <td style="padding:4px 0;font-size:12px;color:#16a34a;">VAT-Exempt (NIRC §109)</td>
                   <td style="padding:4px 0;text-align:right;font-size:12px;color:#16a34a;">₱0.00</td>
