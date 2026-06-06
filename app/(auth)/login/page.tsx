@@ -27,17 +27,21 @@ function LoginForm() {
   const [loading, setLoading]       = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
   const [error, setError]           = useState<string | null>(null)
+  const [unconfirmed, setUnconfirmed] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
   const [resetSent, setResetSent]   = useState(false)
   const [resetLoading, setResetLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null); setResetSent(false); setLoading(true)
+    setError(null); setResetSent(false); setUnconfirmed(false); setResendSent(false); setLoading(true)
     const { error: authError } = await signIn(email, password)
     if (authError) {
       const msg = authError.toLowerCase()
       if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
-        setError('Please confirm your email first — check your inbox for the verification link.')
+        setError('Your email isn\'t confirmed yet. Check your inbox or resend the link.')
+        setUnconfirmed(true)
       } else if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong password')) {
         setError('Incorrect email or password.')
       } else {
@@ -68,6 +72,15 @@ function LoginForm() {
     setOauthLoading(true)
     const supabase = createClient()
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/confirm` } })
+  }
+
+  async function handleResend() {
+    if (!email) return
+    setResendLoading(true)
+    const supabase = createClient()
+    await supabase.auth.resend({ type: 'signup', email })
+    setResendSent(true)
+    setResendLoading(false)
   }
 
   return (
@@ -109,10 +122,22 @@ function LoginForm() {
           </p>
 
           {/* Error / success message */}
-          {(error || resetSent) && (
+          {(error || resetSent || resendSent) && (
             <div className={`mt-4 w-full rounded-xl px-4 py-2.5 text-[13px] font-semibold text-center ${error ? 'bg-red-50 text-red-600 ring-1 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'}`}>
-              {error ?? 'Reset email sent — check your inbox.'}
+              {resendSent ? 'Confirmation email resent — check your inbox.' : error ?? 'Reset email sent — check your inbox.'}
             </div>
+          )}
+          {/* Resend confirmation — shown when email not confirmed */}
+          {unconfirmed && !resendSent && (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resendLoading}
+              className="mt-2 w-full rounded-xl py-2.5 text-[13px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ background: '#1E5BE6' }}
+            >
+              {resendLoading ? 'Sending…' : 'Resend confirmation email'}
+            </button>
           )}
 
           {/* Form */}
