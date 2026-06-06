@@ -65,85 +65,83 @@ export default function LandingPage() {
           SECTION 2 — FOUNDER / ABOUT
       ══════════════════════════════════════════════════════════ */}
       <section id="about" className="py-10 sm:py-12 lg:py-16 px-4 sm:px-6 lg:px-8" style={{ background: '#E8F2FF' }}>
-        <div className="max-w-[1280px] mx-auto rounded-[2.2rem] overflow-hidden ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)] flex flex-col" style={{ background: '#EEF6FF' }}>
+        <div className="max-w-[1280px] mx-auto rounded-[2.2rem] overflow-hidden ring-1 ring-blue-200/60 shadow-[0_8px_60px_-16px_rgba(0,56,168,.16)]" style={{ background: '#EEF6FF' }}>
+          <div className="grid grid-cols-1 lg:grid-cols-2">
 
-          {/* 1 — Logo + Headline */}
-          <div className="px-7 sm:px-9 lg:px-10 pt-8 pb-5 flex flex-col gap-4">
-            <div className="flex items-start justify-between">
-              <Image src="/images/hero-logo.png" alt="Sigurado" width={160} height={40} className="h-[36px] w-auto object-contain -ml-1" draggable={false} />
-              <div className="flex gap-2 mt-1" aria-hidden="true">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(30,91,230,.45)' }} />
-                <div className="w-2 h-2 rounded-full mt-0.5" style={{ background: 'rgba(30,91,230,.25)' }} />
-                <div className="w-3 h-3 rounded-full -mt-0.5" style={{ background: 'rgba(206,17,38,.50)' }} />
-              </div>
-            </div>
-            <div>
-              <h2 className="font-extrabold tracking-tight leading-[1.07]" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.8rem)' }}>
-                <span className="text-[#0B1B3F]">Built by a Filipino dentist</span><br/>
-                <span style={{ color: '#1E5BE6' }}>for Filipino dentists.</span>
-                <span className="ml-1.5 text-[#CE1126]" style={{ fontWeight: 400, fontSize: '.8em', lineHeight: 1 }}>♡</span>
-              </h2>
-              <div className="mt-2.5 h-[3.5px] w-40 rounded-full" style={{ background: 'linear-gradient(90deg,#1E5BE6,#93C5FD)' }} />
-            </div>
-          </div>
-
-          {/* 2 — Doctor photo */}
-          <div className="relative w-full overflow-hidden" style={{ height: 420, background: '#E4F0FF' }}>
-            <div className="absolute w-[500px] h-[500px] rounded-full -top-32 -left-32 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(190,218,255,.75) 0%,transparent 65%)' }} />
-            <div className="absolute top-8 right-9 text-[#1E5BE6] text-[22px] leading-none select-none pointer-events-none" style={{ fontWeight: 900 }} aria-hidden="true">✦</div>
-            <div className="absolute top-20 right-24 w-3 h-3 rounded-full pointer-events-none" style={{ background: 'rgba(206,17,38,.65)' }} />
-            <Image
-              src="/images/doc-omega.png"
-              alt="Dr. Omega-Brunet, Founder of Sigurado"
-              fill
-              className="object-cover object-top select-none"
-              draggable={false}
-            />
-            {/* Name card */}
-            <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-20 bg-white rounded-2xl p-3.5 flex items-center gap-3.5 shadow-[0_10px_30px_rgba(0,56,168,.2)] ring-1 ring-blue-100/80" style={{ minWidth: 240 }}>
-              <div className="shrink-0 w-[44px] h-[44px] rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#1E5BE6,#0038A8)' }}>
-                <svg viewBox="0 0 28 28" className="w-[26px] h-[26px]" fill="none">
-                  <ellipse cx="14" cy="10" rx="8.5" ry="6" fill="white"/>
-                  <rect x="9" y="15" width="4" height="6.5" rx="2" fill="white"/>
-                  <rect x="15" y="15" width="4" height="6.5" rx="2" fill="white"/>
-                  <circle cx="20.5" cy="5" r="2.2" fill="#FCD116"/>
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-extrabold text-[#0B1B3F] text-[14px] leading-tight">Dr. Omega-Brunet</div>
-                <div className="font-semibold text-[12.5px] mt-0.5" style={{ color: '#1E5BE6' }}>Founder &amp; Dentist</div>
-                <div className="flex items-center gap-1.5 mt-1.5">
-                  <svg viewBox="0 0 30 20" className="w-[20px] h-[13px] rounded-sm overflow-hidden ring-1 ring-black/10 shrink-0" fill="none">
-                    <rect width="30" height="10" fill="#0038A8"/>
-                    <rect y="10" width="30" height="10" fill="#CE1126"/>
-                    <polygon points="0,0 14,10 0,20" fill="white"/>
-                    <circle cx="4.5" cy="10" r="2.2" fill="#FCD116"/>
+            {/* LEFT: Doctor photo — fills full column height naturally, no crop */}
+            <div className="relative overflow-hidden" style={{ background: '#E4F0FF', minHeight: 480 }}>
+              <div className="absolute w-[500px] h-[500px] rounded-full -top-32 -left-32 pointer-events-none" style={{ background: 'radial-gradient(circle,rgba(190,218,255,.75) 0%,transparent 65%)' }} />
+              <div className="absolute top-8 right-9 text-[#1E5BE6] text-[22px] leading-none select-none pointer-events-none" style={{ fontWeight: 900 }} aria-hidden="true">✦</div>
+              <div className="absolute top-20 right-24 w-3 h-3 rounded-full pointer-events-none" style={{ background: 'rgba(206,17,38,.65)' }} />
+              <Image
+                src="/images/doc-omega.png"
+                alt="Dr. Omega-Brunet, Founder of Sigurado"
+                fill
+                className="object-cover object-top select-none"
+                draggable={false}
+              />
+              {/* Name card */}
+              <div className="absolute bottom-4 left-4 right-4 sm:right-auto z-20 bg-white rounded-2xl p-3.5 flex items-center gap-3.5 shadow-[0_10px_30px_rgba(0,56,168,.2)] ring-1 ring-blue-100/80" style={{ minWidth: 240 }}>
+                <div className="shrink-0 w-[44px] h-[44px] rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#1E5BE6,#0038A8)' }}>
+                  <svg viewBox="0 0 28 28" className="w-[26px] h-[26px]" fill="none">
+                    <ellipse cx="14" cy="10" rx="8.5" ry="6" fill="white"/>
+                    <rect x="9" y="15" width="4" height="6.5" rx="2" fill="white"/>
+                    <rect x="15" y="15" width="4" height="6.5" rx="2" fill="white"/>
+                    <circle cx="20.5" cy="5" r="2.2" fill="#FCD116"/>
                   </svg>
-                  <span className="text-[11px] font-semibold text-[#0B1B3F]/60 whitespace-nowrap">Proudly Filipino</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-extrabold text-[#0B1B3F] text-[14px] leading-tight">Dr. Omega-Brunet</div>
+                  <div className="font-semibold text-[12.5px] mt-0.5" style={{ color: '#1E5BE6' }}>Founder &amp; Dentist</div>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <svg viewBox="0 0 30 20" className="w-[20px] h-[13px] rounded-sm overflow-hidden ring-1 ring-black/10 shrink-0" fill="none">
+                      <rect width="30" height="10" fill="#0038A8"/>
+                      <rect y="10" width="30" height="10" fill="#CE1126"/>
+                      <polygon points="0,0 14,10 0,20" fill="white"/>
+                      <circle cx="4.5" cy="10" r="2.2" fill="#FCD116"/>
+                    </svg>
+                    <span className="text-[11px] font-semibold text-[#0B1B3F]/60 whitespace-nowrap">Proudly Filipino</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* 3 — Description + feature cards */}
-          <div className="px-7 sm:px-9 lg:px-10 py-7 flex flex-col gap-5">
-            <p className="text-[14.5px] leading-[1.72] font-medium" style={{ color: 'rgba(11,27,63,.62)' }}>
-              Sigurado was created by Dr. Omega-Brunet — a practicing dentist who{' '}
-              <span className="font-semibold underline decoration-dotted underline-offset-[3px]" style={{ color: '#0B1B3F', textDecorationColor: '#1E5BE6' }}>understands</span>
-              {' '}the real challenges of running a clinic in the Philippines.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              {[
-                { grad: 'linear-gradient(135deg,#60A5FA,#2563EB)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect x="2" y="2" width="20" height="14" rx="5" fill="white" opacity=".95"/><polygon points="2,16 8,20 8,16" fill="white" opacity=".95"/><circle cx="8" cy="9" r="1.6" fill="#2563EB"/><circle cx="12" cy="9" r="1.6" fill="#2563EB"/><circle cx="16" cy="9" r="1.6" fill="#2563EB"/></svg>, label: 'Built from real clinic experience' },
-                { grad: 'linear-gradient(135deg,#4ADE80,#16A34A)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect x="5" y="5" width="14" height="16" rx="2" fill="white" opacity=".95"/><rect x="9" y="3" width="6" height="4" rx="1.5" fill="white" opacity=".9"/><path d="M8 11 L10.5 13.5 L16 8" stroke="#16A34A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 15.5 L10.5 18 L16 12.5" stroke="#16A34A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Designed for local workflows & regulations' },
-                { grad: 'linear-gradient(135deg,#FDE68A,#F59E0B)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><path d="M12 2 L20 6 L20 13.5 C20 17.8 16.5 21 12 22.5 C7.5 21 4 17.8 4 13.5 L4 6 Z" fill="white" opacity=".95"/><rect x="9.5" y="12" width="5" height="5" rx="1.5" fill="#F59E0B"/><path d="M10.5 12 L10.5 10.5 C10.5 9.4 11.2 8.5 12 8.5 C12.8 8.5 13.5 9.4 13.5 10.5 L13.5 12" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" fill="none"/></svg>, label: 'Secure & compliant with PH data privacy laws' },
-                { grad: 'linear-gradient(135deg,#FCA5A5,#EF4444)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="white"><path d="M12 20.5 C12 20.5 3 14 3 8.5 C3 5.9 5.2 4 8 4 C9.8 4 11.2 4.9 12 6.1 C12.8 4.9 14.2 4 16 4 C18.8 4 21 5.9 21 8.5 C21 14 12 20.5 12 20.5 Z"/></svg>, label: 'Made to help you focus on your patients' },
-              ].map(({ grad, icon, label }) => (
-                <div key={label} className="bg-white rounded-2xl p-3.5 flex flex-col items-center text-center gap-2 shadow-sm ring-1 ring-blue-100/80">
-                  <div className="w-[46px] h-[46px] rounded-xl flex items-center justify-center" style={{ background: grad }}>{icon}</div>
-                  <p className="text-[12px] font-semibold text-[#0B1B3F] leading-tight">{label}</p>
+            {/* RIGHT: Headline + description + feature cards */}
+            <div className="flex flex-col p-7 sm:p-9 lg:p-10 gap-5">
+              <div className="flex items-start justify-between">
+                <Image src="/images/hero-logo.png" alt="Sigurado" width={160} height={40} className="h-[36px] w-auto object-contain -ml-1" draggable={false} />
+                <div className="flex gap-2 mt-1" aria-hidden="true">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: 'rgba(30,91,230,.45)' }} />
+                  <div className="w-2 h-2 rounded-full mt-0.5" style={{ background: 'rgba(30,91,230,.25)' }} />
+                  <div className="w-3 h-3 rounded-full -mt-0.5" style={{ background: 'rgba(206,17,38,.50)' }} />
                 </div>
-              ))}
+              </div>
+              <div>
+                <h2 className="font-extrabold tracking-tight leading-[1.07]" style={{ fontSize: 'clamp(1.6rem,2.8vw,2.5rem)' }}>
+                  <span className="text-[#0B1B3F]">Built by a Filipino dentist</span><br/>
+                  <span style={{ color: '#1E5BE6' }}>for Filipino dentists.</span>
+                  <span className="ml-1.5 text-[#CE1126]" style={{ fontWeight: 400, fontSize: '.8em', lineHeight: 1 }}>♡</span>
+                </h2>
+                <div className="mt-2.5 h-[3.5px] w-40 rounded-full" style={{ background: 'linear-gradient(90deg,#1E5BE6,#93C5FD)' }} />
+              </div>
+              <p className="text-[14.5px] leading-[1.72] font-medium" style={{ color: 'rgba(11,27,63,.62)' }}>
+                Sigurado was created by Dr. Omega-Brunet — a practicing dentist who{' '}
+                <span className="font-semibold underline decoration-dotted underline-offset-[3px]" style={{ color: '#0B1B3F', textDecorationColor: '#1E5BE6' }}>understands</span>
+                {' '}the real challenges of running a clinic in the Philippines.
+              </p>
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { grad: 'linear-gradient(135deg,#60A5FA,#2563EB)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect x="2" y="2" width="20" height="14" rx="5" fill="white" opacity=".95"/><polygon points="2,16 8,20 8,16" fill="white" opacity=".95"/><circle cx="8" cy="9" r="1.6" fill="#2563EB"/><circle cx="12" cy="9" r="1.6" fill="#2563EB"/><circle cx="16" cy="9" r="1.6" fill="#2563EB"/></svg>, label: 'Built from real clinic experience' },
+                  { grad: 'linear-gradient(135deg,#4ADE80,#16A34A)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><rect x="5" y="5" width="14" height="16" rx="2" fill="white" opacity=".95"/><rect x="9" y="3" width="6" height="4" rx="1.5" fill="white" opacity=".9"/><path d="M8 11 L10.5 13.5 L16 8" stroke="#16A34A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/><path d="M8 15.5 L10.5 18 L16 12.5" stroke="#16A34A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>, label: 'Designed for local workflows & regulations' },
+                  { grad: 'linear-gradient(135deg,#FDE68A,#F59E0B)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none"><path d="M12 2 L20 6 L20 13.5 C20 17.8 16.5 21 12 22.5 C7.5 21 4 17.8 4 13.5 L4 6 Z" fill="white" opacity=".95"/><rect x="9.5" y="12" width="5" height="5" rx="1.5" fill="#F59E0B"/><path d="M10.5 12 L10.5 10.5 C10.5 9.4 11.2 8.5 12 8.5 C12.8 8.5 13.5 9.4 13.5 10.5 L13.5 12" stroke="#F59E0B" strokeWidth="1.8" strokeLinecap="round" fill="none"/></svg>, label: 'Secure & compliant with PH data privacy laws' },
+                  { grad: 'linear-gradient(135deg,#FCA5A5,#EF4444)', icon: <svg viewBox="0 0 24 24" className="w-6 h-6" fill="white"><path d="M12 20.5 C12 20.5 3 14 3 8.5 C3 5.9 5.2 4 8 4 C9.8 4 11.2 4.9 12 6.1 C12.8 4.9 14.2 4 16 4 C18.8 4 21 5.9 21 8.5 C21 14 12 20.5 12 20.5 Z"/></svg>, label: 'Made to help you focus on your patients' },
+                ].map(({ grad, icon, label }) => (
+                  <div key={label} className="bg-white rounded-2xl p-3.5 flex flex-col items-center text-center gap-2 shadow-sm ring-1 ring-blue-100/80">
+                    <div className="w-[46px] h-[46px] rounded-xl flex items-center justify-center" style={{ background: grad }}>{icon}</div>
+                    <p className="text-[12px] font-semibold text-[#0B1B3F] leading-tight">{label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
