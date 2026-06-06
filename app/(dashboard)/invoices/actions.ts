@@ -91,6 +91,8 @@ export async function getInvoice(id: string) {
     sellerTin: inv.sellerTin,
     buyerName: inv.buyerName ?? null,
     buyerAddress: inv.buyerAddress ?? null,
+    scPwdDiscountType: inv.scPwdDiscountType ?? null,
+    scPwdIdNumber: inv.scPwdIdNumber ?? null,
   }
 }
 

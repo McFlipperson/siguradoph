@@ -52,6 +52,8 @@ type Invoice = {
   sellerTin: string
   buyerName: string | null
   buyerAddress: string | null
+  scPwdDiscountType: string | null
+  scPwdIdNumber: string | null
 }
 
 type Props = {
