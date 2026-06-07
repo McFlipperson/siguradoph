@@ -40,13 +40,11 @@ function LoginForm() {
     if (authError) {
       const msg = authError.toLowerCase()
       if (msg.includes('email not confirmed') || msg.includes('not confirmed')) {
-        setError('Your email isn\'t confirmed yet. Check your inbox or resend the link.')
-        setUnconfirmed(true)
-      } else if (msg.includes('invalid login') || msg.includes('invalid credentials') || msg.includes('wrong password')) {
-        setError('Incorrect email or password.')
+        setError('Your email isn\'t confirmed yet. Check your inbox or resend the link below.')
       } else {
-        setError(authError)
+        setError('Incorrect email or password. If you just registered, check your inbox for a confirmation email first.')
       }
+      setUnconfirmed(true) // always show resend — harmless if already confirmed
       setLoading(false)
       return
     }

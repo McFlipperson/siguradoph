@@ -83,9 +83,11 @@ function RegisterForm() {
               <h1 className="text-[1.5rem] font-extrabold text-[#0B1B3F] tracking-tight">Check your email!</h1>
               <p className="mt-2 text-[14px] font-medium text-[#0B1B3F]/55 leading-relaxed">
                 We sent a confirmation link to<br />
-                <span className="font-bold text-[#0B1B3F]/80">{email}</span>.<br />
-                Click it to activate your account.
+                <span className="font-bold text-[#0B1B3F]/80">{email}</span>.
               </p>
+              <div className="w-full rounded-xl px-4 py-3 text-[13px] font-semibold text-center bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+                ⚠️ You must click the link in that email <strong>before</strong> you can log in. Check your spam folder if you don&apos;t see it.
+              </div>
             </div>
             <Link
               href="/login"
