@@ -168,10 +168,10 @@ function RegisterForm() {
 
             {/* Clinic name */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[13px] font-semibold text-[#0B1B3F]/70">Clinic name <span className="font-normal text-[#0B1B3F]/35">(optional)</span></label>
+              <label className="text-[13px] font-semibold text-[#0B1B3F]/70">Clinic name</label>
               <input
                 type="text" value={clinicName} onChange={e => setClinicName(e.target.value)}
-                placeholder="Your Dental Clinic" autoComplete="organization"
+                placeholder="Your Dental Clinic" autoComplete="organization" required
                 className="w-full rounded-xl px-4 py-3 text-[14px] text-[#0B1B3F] font-medium outline-none focus:ring-2 focus:ring-[#1E5BE6]/40 transition-shadow"
                 style={{ background: '#EEF6FF', border: '1.5px solid #BFDBFE' }}
               />

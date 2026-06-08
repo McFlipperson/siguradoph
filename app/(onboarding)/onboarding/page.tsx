@@ -77,6 +77,11 @@ export default function OnboardingPage() {
       try {
         const clinic = await getClinicForCurrentUser()
         if (clinic) {
+          // Already onboarded — boot to dashboard instead of showing their own data
+          if (clinic.onboardingComplete) {
+            window.location.href = '/'
+            return
+          }
           setClinicId(clinic.id)
           setClinicName(clinic.name)
           if (clinic.messengerToken) setHasMessengerToken(true)
