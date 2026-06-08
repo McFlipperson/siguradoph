@@ -45,11 +45,17 @@ function RegisterForm() {
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
     if (clinicName.trim()) localStorage.setItem('sigurado_clinic_name', clinicName.trim())
+    const plan = searchParams.get('plan')
+    const selectedPlan = (plan === 'basic' || plan === 'pro') ? plan : null
     const supabase = createClient()
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        // Store plan in user metadata so it survives closed browsers and different devices
+        data: { selectedPlan: selectedPlan ?? '' },
+      },
     })
     if (authError) { setError(authError.message); setLoading(false); return }
     if (data.user && data.user.identities?.length === 0) {

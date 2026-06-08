@@ -77,9 +77,10 @@ type Props = {
   clinicName: string
   onComplete: () => Promise<void>
   isSaving: boolean
+  selectedPlan?: string | null
 }
 
-export function CelebrationStep({ clinicName, onComplete, isSaving }: Props) {
+export function CelebrationStep({ clinicName, onComplete, isSaving, selectedPlan }: Props) {
   const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
@@ -156,7 +157,9 @@ export function CelebrationStep({ clinicName, onComplete, isSaving }: Props) {
           disabled={isSaving}
           className="w-full min-h-[56px] rounded-2xl bg-amber-400 text-blue-900 font-bold text-lg flex items-center justify-center gap-2 shadow-2xl active:opacity-90 disabled:opacity-50 transition-opacity"
         >
-          {isSaving ? 'Setting up…' : (
+          {isSaving ? 'Setting up…' : (selectedPlan === 'basic' || selectedPlan === 'pro') ? (
+            <>Complete your upgrade <ArrowRight className="w-5 h-5" /></>
+          ) : (
             <>Add your first patient <ArrowRight className="w-5 h-5" /></>
           )}
         </button>

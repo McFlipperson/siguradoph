@@ -60,6 +60,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [hasMessengerToken, setHasMessengerToken] = useState(false)
   const [clinicName, setClinicName] = useState('')
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
   // Facebook OAuth return
   useEffect(() => {
@@ -75,6 +76,20 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function init() {
       try {
+        // Load plan from user metadata (reliable) or localStorage (fallback)
+        try {
+          const { createClient } = await import('@/lib/supabase-browser')
+          const sb = createClient()
+          const { data: { user } } = await sb.auth.getUser()
+          const meta = user?.user_metadata?.selectedPlan
+          if (meta === 'basic' || meta === 'pro') {
+            setSelectedPlan(meta)
+          } else {
+            const ls = localStorage.getItem('sigurado_selected_plan')
+            if (ls === 'basic' || ls === 'pro') setSelectedPlan(ls)
+          }
+        } catch { /* ignore */ }
+
         const clinic = await getClinicForCurrentUser()
         if (clinic) {
           // Already onboarded — boot to dashboard instead of showing their own data
@@ -223,8 +238,21 @@ export default function OnboardingPage() {
           await completeOnboarding(clinicId)
           toast('Setup complete! Welcome to Sigurado. 🎉')
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
-          const selectedPlan = localStorage.getItem('sigurado_selected_plan')
+
+          // Read plan from user metadata (set at registration — survives closed browsers).
+          // Fall back to localStorage for users who registered before this fix.
+          let selectedPlan: string | null = localStorage.getItem('sigurado_selected_plan')
           localStorage.removeItem('sigurado_selected_plan')
+          if (!selectedPlan) {
+            try {
+              const { createClient } = await import('@/lib/supabase-browser')
+              const sb = createClient()
+              const { data: { user } } = await sb.auth.getUser()
+              const meta = user?.user_metadata?.selectedPlan
+              if (meta === 'basic' || meta === 'pro') selectedPlan = meta
+            } catch { /* ignore */ }
+          }
+
           const dest = selectedPlan === 'basic' || selectedPlan === 'pro'
             ? `/billing?upgrade=${selectedPlan}`
             : '/patients/intake'
@@ -271,6 +299,7 @@ export default function OnboardingPage() {
         clinicName={clinicName}
         onComplete={handleComplete}
         isSaving={isSaving}
+        selectedPlan={selectedPlan}
       />
     )
   }
