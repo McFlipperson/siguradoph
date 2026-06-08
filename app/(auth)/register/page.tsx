@@ -54,7 +54,7 @@ function RegisterForm() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        emailRedirectTo: `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'sigurado.xyz'}/auth/confirm`,
         // Store plan in user metadata so it survives closed browsers and different devices
         data: { selectedPlan: selectedPlan ?? '' },
       },
@@ -71,7 +71,7 @@ function RegisterForm() {
   async function handleOAuth() {
     setOauthLoading(true)
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/confirm` } })
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'sigurado.xyz'}/auth/confirm` } })
   }
 
   const bgStyle = { background: 'linear-gradient(160deg, #C8E4F8 0%, #E8F2FF 40%, #EEF6FF 100%)' }
