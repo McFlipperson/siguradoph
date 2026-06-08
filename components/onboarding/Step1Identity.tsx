@@ -215,24 +215,6 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
         />
       </div>
 
-      {/* Auto-resolved URL preview — no input needed */}
-      {form.clinicName.length >= 3 && (
-        <div className="flex flex-col gap-1">
-          <Label className="font-bold text-base">🌐 Your Clinic URL</Label>
-          <div className="flex items-center gap-2 bg-muted rounded-xl px-4 min-h-[48px]">
-            {slugStatus === 'checking' ? (
-              <span className="text-sm text-muted-foreground animate-pulse">Setting up your URL…</span>
-            ) : form.slug ? (
-              <span className="text-sm font-mono font-semibold text-foreground">
-                {form.slug}.{ROOT_DOMAIN}
-              </span>
-            ) : null}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            This is set automatically — no action needed. You can customize it later in Settings.
-          </p>
-        </div>
-      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="ownerName" className="font-bold text-base">👨‍⚕️ Owner / Dentist Name *</Label>
