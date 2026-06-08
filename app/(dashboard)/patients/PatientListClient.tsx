@@ -153,13 +153,6 @@ export default function PatientListClient({
         </button>
       )}
 
-      {/* FAB */}
-      <Link
-        href="/patients/intake"
-        className="fixed bottom-6 right-4 z-50 flex items-center justify-center min-h-[56px] rounded-full bg-primary text-primary-foreground shadow-lg font-semibold text-sm px-6"
-      >
-        + New Patient
-      </Link>
     </div>
   )
 }
