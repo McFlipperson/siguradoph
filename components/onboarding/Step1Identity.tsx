@@ -58,6 +58,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
   const [error, setError] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
   const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const lastCheckedSlug = useRef<string>('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function set(field: keyof Step1Data, value: string | null) {
@@ -82,7 +83,9 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       try {
         const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(slug)}`)
         const data = await res.json() as { available: boolean }
-        setSlugStatus(data.available ? 'available' : 'taken')
+        const status = data.available ? 'available' : 'taken'
+        setSlugStatus(status)
+        if (status === 'available') lastCheckedSlug.current = slug
       } catch {
         setSlugStatus('idle')
       }
@@ -97,7 +100,7 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
   }
 
   function handleSlugBlur() {
-    if (!slugLocked) checkSlug(form.slug)
+    if (!slugLocked && form.slug !== lastCheckedSlug.current) checkSlug(form.slug)
   }
 
   const slugHint: { text: string; color: string } | null = (() => {

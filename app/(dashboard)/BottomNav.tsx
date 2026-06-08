@@ -75,6 +75,14 @@ const MENU_SECTIONS: MenuSection[] = [
   },
 ]
 
+// Routes a SECRETARY cannot access — hidden from nav and guarded at page level
+const SECRETARY_BLOCKED: Set<string> = new Set([
+  '/employees',
+  '/reports',
+  '/compliance',
+  '/settings',
+])
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isActive(pathname: string, href: string): boolean {
@@ -84,16 +92,21 @@ function isActive(pathname: string, href: string): boolean {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function BottomNav({ plan }: { plan: Plan }) {
+export default function BottomNav({ plan, role }: { plan: Plan; role: string }) {
   const router   = useRouter()
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
-  // Only show menu items the clinic's plan unlocks (items with no feature are always shown).
+  const isSecretary = role === 'SECRETARY'
+
+  // Filter by plan entitlements AND role permissions
   const visibleSections = MENU_SECTIONS
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => !item.feature || planAllows(plan, item.feature)),
+      items: section.items.filter((item) =>
+        (!item.feature || planAllows(plan, item.feature)) &&
+        !(isSecretary && SECRETARY_BLOCKED.has(item.href))
+      ),
     }))
     .filter((section) => section.items.length > 0)
 

@@ -16,18 +16,26 @@ export default async function SettingsPage() {
     include: { clinic: true },
   })
   if (!user?.clinic) redirect('/onboarding')
+  if (user.role === 'SECRETARY') redirect('/')
   const clinic = user.clinic
 
-  const [services, suppliers] = await withClinicDb(clinic.id, (tx) => Promise.all([
-    tx.serviceCatalog.findMany({
-      where: { clinicId: clinic.id },
-      orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }],
+  const [[services, suppliers], staff] = await Promise.all([
+    withClinicDb(clinic.id, (tx) => Promise.all([
+      tx.serviceCatalog.findMany({
+        where: { clinicId: clinic.id },
+        orderBy: [{ isActive: 'desc' }, { sortOrder: 'asc' }],
+      }),
+      tx.supplier.findMany({
+        where: { clinicId: clinic.id },
+        orderBy: { name: 'asc' },
+      }),
+    ])),
+    prisma.user.findMany({
+      where: { clinicId: clinic.id, role: 'SECRETARY' },
+      select: { id: true, email: true, isActive: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
     }),
-    tx.supplier.findMany({
-      where: { clinicId: clinic.id },
-      orderBy: { name: 'asc' },
-    }),
-  ]))
+  ])
 
   return (
     <SettingsClient
@@ -83,6 +91,12 @@ export default async function SettingsPage() {
         tin: s.tin ?? null,
         vatRegistered: s.vatRegistered,
         category: s.category,
+      }))}
+      initialStaff={staff.map(s => ({
+        id: s.id,
+        email: s.email,
+        isActive: s.isActive,
+        createdAt: s.createdAt.toISOString(),
       }))}
     />
   )

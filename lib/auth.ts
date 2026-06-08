@@ -29,8 +29,10 @@ export async function getSessionUser() {
   if (!authUser?.email) return null
   const user = await prisma.user.findUnique({
     where: { email: authUser.email },
-    select: { id: true, email: true, role: true, clinicId: true },
+    select: { id: true, email: true, role: true, clinicId: true, isActive: true },
   })
+  // Deactivated staff are treated as unauthenticated
+  if (!user?.isActive) return null
   return user
 }
 

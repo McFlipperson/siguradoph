@@ -19,6 +19,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     include: { clinic: true },
   })
 
+  // Deactivated staff — boot to login
+  if (!user?.isActive) redirect('/login')
+
   if (!user?.clinic?.onboardingComplete) redirect('/onboarding')
 
   // NOTE: No time-based lockout. The Free tier is "free forever" (see landing page),
@@ -34,7 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen bg-background pb-20">
       {needsDPA && <DPAAcceptanceBanner />}
       <main className="max-w-screen-sm mx-auto px-4 py-6">{children}</main>
-      <BottomNav plan={plan} />
+      <BottomNav plan={plan} role={user.role} />
     </div>
   )
 }

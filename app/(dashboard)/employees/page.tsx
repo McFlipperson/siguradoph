@@ -12,6 +12,7 @@ export const dynamic = 'force-dynamic'
 export default async function EmployeesPage() {
   const user = await getSessionUser()
   if (!user?.clinicId) redirect('/login')
+  if (user.role === 'SECRETARY') redirect('/')
   const clinicId = user.clinicId
 
   const plan = await getClinicPlan(clinicId)

@@ -76,6 +76,13 @@ type SupplierItem = {
   category: string
 }
 
+type StaffMember = {
+  id: string
+  email: string
+  isActive: boolean
+  createdAt: string
+}
+
 type SupplierFormData = {
   name: string
   address: string
@@ -226,12 +233,14 @@ export default function SettingsClient({
   clinic,
   initialServices,
   initialSuppliers,
+  initialStaff,
 }: {
   clinic: ClinicData
   initialServices: ServiceItem[]
   initialSuppliers: SupplierItem[]
+  initialStaff: StaffMember[]
 }) {
-  const [tab, setTab] = useState<'clinic' | 'services' | 'suppliers' | 'devices'>('clinic')
+  const [tab, setTab] = useState<'clinic' | 'services' | 'suppliers' | 'devices' | 'staff'>('clinic')
 
   // ── Clinic tab state ──
   const [clinicName, setClinicName] = useState(clinic.name)
@@ -439,6 +448,51 @@ export default function SettingsClient({
     }
   }
 
+  // ── Staff tab state ──
+  const [staff, setStaff] = useState<StaffMember[]>(initialStaff)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [inviteSheetOpen, setInviteSheetOpen] = useState(false)
+
+  async function handleInvite() {
+    if (!inviteEmail.trim()) return
+    setInviting(true)
+    try {
+      const res = await fetch('/api/staff/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteEmail.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { toast.error(data.error ?? 'Failed to send invite'); return }
+      toast.success(`Invite sent to ${inviteEmail.trim()}`)
+      setInviteEmail('')
+      setInviteSheetOpen(false)
+      // Refresh list
+      const listRes = await fetch('/api/staff')
+      if (listRes.ok) setStaff(await listRes.json())
+    } catch {
+      toast.error('Failed to send invite')
+    } finally {
+      setInviting(false)
+    }
+  }
+
+  async function handleToggleStaff(member: StaffMember) {
+    try {
+      const res = await fetch(`/api/staff/${member.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !member.isActive }),
+      })
+      if (!res.ok) throw new Error('Failed to update')
+      setStaff(prev => prev.map(s => s.id === member.id ? { ...s, isActive: !s.isActive } : s))
+      toast.success(member.isActive ? 'Access removed' : 'Access restored')
+    } catch {
+      toast.error('Failed to update staff access')
+    }
+  }
+
   // ── Suppliers tab state ──
   const [suppliers, setSuppliers] = useState<SupplierItem[]>(initialSuppliers)
   const [supplierSheetOpen, setSupplierSheetOpen] = useState(false)
@@ -508,13 +562,13 @@ export default function SettingsClient({
 
       {/* Tab selector */}
       <div className="flex rounded-xl border overflow-hidden">
-        {(['clinic', 'services', 'suppliers', 'devices'] as const).map(t => (
+        {(['clinic', 'services', 'suppliers', 'devices', 'staff'] as const).map(t => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-xs font-medium transition-colors capitalize ${tab === t ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'}`}
+            className={`flex-1 py-2.5 text-[11px] font-medium transition-colors capitalize ${tab === t ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'}`}
           >
-            {t === 'clinic' ? 'Clinic' : t === 'services' ? 'Services' : t === 'suppliers' ? 'Suppliers' : 'Devices'}
+            {t === 'clinic' ? 'Clinic' : t === 'services' ? 'Services' : t === 'suppliers' ? 'Suppliers' : t === 'devices' ? 'Devices' : 'Staff'}
           </button>
         ))}
       </div>
@@ -962,6 +1016,81 @@ export default function SettingsClient({
             clinicAddress={`${street}, ${city}, ${province} ${zip}`}
             clinicTin={tin}
           />
+        </div>
+      )}
+
+      {/* ── STAFF TAB ── */}
+      {tab === 'staff' && (
+        <div className="space-y-3">
+          <div className="rounded-lg bg-muted/40 border px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+            Staff members get access to patients, visits, payments, loyalty cards, scheduling, reminders, and expenses.
+            They cannot view reports, payroll, compliance, or settings.
+          </div>
+
+          <button
+            onClick={() => setInviteSheetOpen(true)}
+            className="w-full min-h-[48px] rounded-xl border-2 border-dashed border-primary text-primary text-sm font-medium flex items-center justify-center gap-2"
+          >
+            + Invite Staff
+          </button>
+
+          {staff.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No staff invited yet.</p>
+          ) : (
+            staff.map(member => (
+              <div key={member.id} className={`rounded-xl border p-4 flex items-center gap-3 ${!member.isActive ? 'opacity-50' : ''}`}>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{member.email}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {member.isActive ? 'Active' : 'Deactivated'} · Invited {new Date(member.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggleStaff(member)}
+                  className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors ${member.isActive ? 'bg-primary' : 'bg-muted'}`}
+                  title={member.isActive ? 'Remove access' : 'Restore access'}
+                >
+                  <span className={`inline-block h-5 w-5 mt-0.5 rounded-full bg-white shadow transition-transform ${member.isActive ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+            ))
+          )}
+
+          {/* Invite sheet */}
+          {inviteSheetOpen && (
+            <div className="fixed inset-0 z-50 flex flex-col justify-end">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setInviteSheetOpen(false)} />
+              <div className="relative rounded-t-2xl bg-background">
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                </div>
+                <div className="flex items-center justify-between px-4 pb-3">
+                  <h2 className="text-base font-semibold">Invite Staff</h2>
+                  <button onClick={() => setInviteSheetOpen(false)} className="p-2 text-muted-foreground min-h-[44px] min-w-[44px] flex items-center justify-center">✕</button>
+                </div>
+                <div className="px-4 pb-8 space-y-3">
+                  <p className="text-sm text-muted-foreground">They&apos;ll receive an email to set their password and get access to the clinic app.</p>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleInvite() }}
+                    placeholder="secretary@email.com"
+                    className="w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleInvite}
+                    disabled={!inviteEmail.trim() || inviting}
+                    className="w-full min-h-[48px] rounded-xl bg-primary text-primary-foreground font-medium text-sm disabled:opacity-50"
+                  >
+                    {inviting ? 'Sending…' : 'Send Invite'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

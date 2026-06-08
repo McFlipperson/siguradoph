@@ -123,9 +123,10 @@ export default async function ReportsPage() {
 
   const user = await prisma.user.findUnique({
     where: { email: authUser.email! },
-    select: { clinicId: true },
+    select: { clinicId: true, role: true },
   })
   if (!user?.clinicId) redirect('/onboarding')
+  if (user.role === 'SECRETARY') redirect('/')
   const clinicId = user.clinicId
 
   const plan = await getClinicPlan(clinicId)

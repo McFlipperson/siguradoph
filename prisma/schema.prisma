@@ -222,6 +222,7 @@ model User {
   role      UserRole
   clinicId  String?
   clinic    Clinic?  @relation(fields: [clinicId], references: [id])
+  isActive  Boolean  @default(true)  // false = deactivated by CLINIC_OWNER; blocks login
   createdAt DateTime @default(now())
 
   cpaAssignments CpaClinicAssignment[]

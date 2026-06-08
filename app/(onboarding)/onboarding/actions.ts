@@ -141,6 +141,12 @@ export async function saveStep1(data: Step1Data, tosAcceptedAt?: Date): Promise<
     include: { clinic: true },
   })
 
+  // Validate slug availability server-side before write
+  if (data.slug && !(user?.clinic?.slug)) {
+    const existing = await prisma.clinic.findUnique({ where: { slug: data.slug }, select: { id: true } })
+    if (existing) throw new Error('That clinic address is already taken. Please choose a different one.')
+  }
+
   let clinicId: string
 
   if (user?.clinic) {

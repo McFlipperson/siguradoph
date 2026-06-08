@@ -80,6 +80,15 @@ const patients = await prisma.patient.findMany({ where: { clinicId } })
 - SECRETARY: daily operations (patients, visits, payments)
 - CPA: read-only access to assigned clinics' financial data
 
+## Key project documents — read these before starting any task
+- **`philippines-digital-research/siguradoph/ROADMAP.md`** — all pending work.
+  The "Security & Code Quality Backlog" section at the bottom lists known bugs
+  and security issues ordered by priority. Pick from the top.
+- **`docs/AUDIT_2026-06-07.md`** — full security audit with context and reasoning
+  behind each roadmap item. Read this before fixing anything in the backlog.
+- **`HANDOVER.md`** — ops guide: admin tools, plans, RLS status, known gaps.
+- **`docs/RLS_ACTIVATION_RUNBOOK.md`** — steps to activate/verify Postgres RLS.
+
 ## Philippine tax context
 - VAT: 12% on all services, quarterly filing (BIR 2550Q)
   due 25th day after quarter end
