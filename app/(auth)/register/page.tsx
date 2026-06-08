@@ -19,6 +19,9 @@ export default function RegisterPage() {
 
 function RegisterForm() {
   const searchParams = useSearchParams()
+  const plan = searchParams.get('plan')
+  const isPaid = plan === 'basic' || plan === 'pro'
+  const planLabel = plan === 'pro' ? 'Pro — ₱999/mo' : 'Basic — ₱499/mo'
   const [email, setEmail]           = useState('')
   const [clinicName, setClinicName] = useState('')
   const [password, setPassword]     = useState('')
@@ -45,8 +48,7 @@ function RegisterForm() {
     if (password.length < 8) { setError('Password must be at least 8 characters.'); return }
     setLoading(true)
     if (clinicName.trim()) localStorage.setItem('sigurado_clinic_name', clinicName.trim())
-    const plan = searchParams.get('plan')
-    const selectedPlan = (plan === 'basic' || plan === 'pro') ? plan : null
+    const selectedPlan = isPaid ? plan : null
     const supabase = createClient()
     const { data, error: authError } = await supabase.auth.signUp({
       email,
@@ -143,13 +145,29 @@ function RegisterForm() {
           <Image src="/images/hero-logo.png" alt="Sigurado" width={160} height={48} className="h-10 w-auto object-contain mb-5" priority draggable={false} />
 
           {/* Headline */}
-          <h1 className="text-[1.55rem] font-extrabold tracking-tight text-[#0B1B3F] text-center leading-tight">
-            Start for free
-            <span className="ml-1.5 text-[1.1rem]" aria-hidden="true">🎉</span>
-          </h1>
-          <p className="mt-1.5 text-[14px] font-medium text-center text-[#0B1B3F]/55 max-w-[270px] leading-snug">
-            Set up your clinic in under 5 minutes. No credit card needed.
-          </p>
+          {isPaid ? (
+            <>
+              <h1 className="text-[1.55rem] font-extrabold tracking-tight text-[#0B1B3F] text-center leading-tight">
+                Create your account
+              </h1>
+              <div className="mt-2 px-4 py-2 rounded-xl bg-blue-50 ring-1 ring-blue-200 text-center">
+                <p className="text-[13px] font-semibold text-[#1E5BE6]">
+                  You&apos;re signing up for <span className="font-extrabold">{planLabel}</span>
+                </p>
+                <p className="text-[12px] text-[#0B1B3F]/50 mt-0.5">You&apos;ll complete payment after setup</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-[1.55rem] font-extrabold tracking-tight text-[#0B1B3F] text-center leading-tight">
+                Start for free
+                <span className="ml-1.5 text-[1.1rem]" aria-hidden="true">🎉</span>
+              </h1>
+              <p className="mt-1.5 text-[14px] font-medium text-center text-[#0B1B3F]/55 max-w-[270px] leading-snug">
+                Set up your clinic in under 5 minutes. No credit card needed.
+              </p>
+            </>
+          )}
 
           {/* Error message */}
           {error && (
@@ -223,7 +241,7 @@ function RegisterForm() {
             >
               {loading ? 'Creating account…' : (
                 <>
-                  Create free account
+                  {isPaid ? 'Create account & continue' : 'Create free account'}
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
                 </>
               )}
