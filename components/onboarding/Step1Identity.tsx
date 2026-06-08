@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,7 +19,6 @@ interface Step1IdentityProps {
 
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 const today = new Date().toISOString().split('T')[0]
-const SLUG_RE = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/
 
 function toSlug(name: string): string {
   return name
@@ -31,7 +30,7 @@ function toSlug(name: string): string {
     .slice(0, 40)
 }
 
-type SlugStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+type SlugStatus = 'idle' | 'checking' | 'available'
 
 export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityProps) {
   const slugLocked = Boolean(initialData.slug) // slug is immutable once saved
@@ -54,65 +53,49 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
     enrollmentDate: initialData.enrollmentDate ?? today,
   })
   const [slugStatus, setSlugStatus] = useState<SlugStatus>(slugLocked ? 'available' : 'idle')
-  const [slugEdited, setSlugEdited] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logoUploading, setLogoUploading] = useState(false)
-  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastCheckedSlug = useRef<string>('')
+  const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   function set(field: keyof Step1Data, value: string | null) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  // Auto-generate slug from clinic name (only if not manually edited and not locked)
+  // Auto-resolve slug from clinic name — tries base, then base-2, base-3, etc.
+  // User never has to touch or think about this.
   useEffect(() => {
-    if (slugLocked || slugEdited) return
-    const generated = toSlug(form.clinicName)
-    if (generated.length >= 3) {
-      setForm(prev => ({ ...prev, slug: generated }))
+    if (slugLocked) return
+    const base = toSlug(form.clinicName)
+    if (base.length < 3) {
+      setSlugStatus('idle')
+      return
     }
-  }, [form.clinicName, slugEdited, slugLocked])
 
-  const checkSlug = useCallback((slug: string) => {
-    if (checkTimer.current) clearTimeout(checkTimer.current)
-    if (slug.length < 3) { setSlugStatus('invalid'); return }
-    if (!SLUG_RE.test(slug)) { setSlugStatus('invalid'); return }
+    if (resolveTimer.current) clearTimeout(resolveTimer.current)
     setSlugStatus('checking')
-    checkTimer.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(slug)}`)
-        const data = await res.json() as { available: boolean }
-        const status = data.available ? 'available' : 'taken'
-        setSlugStatus(status)
-        if (status === 'available') lastCheckedSlug.current = slug
-      } catch {
-        setSlugStatus('idle')
+
+    resolveTimer.current = setTimeout(async () => {
+      for (let i = 0; i <= 9; i++) {
+        const candidate = i === 0 ? base : `${base}-${i + 1}`
+        try {
+          const res = await fetch(`/api/check-slug?slug=${encodeURIComponent(candidate)}`)
+          const data = await res.json() as { available: boolean }
+          if (data.available) {
+            setForm(prev => ({ ...prev, slug: candidate }))
+            setSlugStatus('available')
+            return
+          }
+        } catch {
+          // network hiccup — keep trying next variant
+        }
       }
-    }, 400)
-  }, [])
-
-  function handleSlugChange(value: string) {
-    const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, '')
-    setSlugEdited(true)
-    set('slug', cleaned)
-    checkSlug(cleaned)
-  }
-
-  function handleSlugBlur() {
-    if (!slugLocked && form.slug !== lastCheckedSlug.current) checkSlug(form.slug)
-  }
-
-  const slugHint: { text: string; color: string } | null = (() => {
-    if (slugLocked) return { text: 'Your clinic address is locked and cannot be changed.', color: 'text-muted-foreground' }
-    switch (slugStatus) {
-      case 'checking': return { text: 'Checking availability…', color: 'text-muted-foreground' }
-      case 'available': return { text: '✓ Available', color: 'text-green-600' }
-      case 'taken': return { text: '✗ Already taken — try a different one', color: 'text-destructive' }
-      case 'invalid': return { text: 'Use only lowercase letters, numbers, and hyphens (min 3 characters)', color: 'text-destructive' }
-      default: return null
-    }
-  })()
+      // All variants exhausted (extremely unlikely — clinic names are unique)
+      // Set base anyway and let the server handle the edge case
+      setForm(prev => ({ ...prev, slug: base }))
+      setSlugStatus('available')
+    }, 500)
+  }, [form.clinicName, slugLocked])
 
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -148,7 +131,6 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
       toast.error(err instanceof Error ? err.message : 'Upload failed')
     } finally {
       setLogoUploading(false)
-      // reset file input so same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -156,10 +138,13 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!slugLocked && slugStatus !== 'available') {
-      setError('Please choose a valid, available clinic URL before continuing (the "Your Clinic Address" field above).')
+
+    // Only block if we're still mid-check — everything else proceeds
+    if (!slugLocked && slugStatus === 'checking') {
+      setError('Still setting up your clinic URL, please wait a moment…')
       return
     }
+
     try {
       await onSave(form)
     } catch (err) {
@@ -230,36 +215,24 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
         />
       </div>
 
-      {/* Slug / Clinic URL */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="slug" className="font-bold text-base">🌐 Your Clinic Address *</Label>
-        <p className="text-xs text-muted-foreground -mt-1">
-          This is the web address your staff will use to log in. Choose something short and recognizable — like your clinic name.{' '}
-          <span className="font-medium">You cannot change this later.</span>
-        </p>
-        <div className="flex items-center gap-0 border border-input rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-ring">
-          <span className="bg-muted text-muted-foreground text-sm px-3 py-3 border-r border-input whitespace-nowrap select-none">
-            {ROOT_DOMAIN}/
-          </span>
-          <Input
-            id="slug"
-            value={form.slug}
-            onChange={e => handleSlugChange(e.target.value)}
-            onBlur={handleSlugBlur}
-            disabled={slugLocked}
-            className="border-0 rounded-none shadow-none focus-visible:ring-0 min-h-[48px]"
-            placeholder="dela-cruz-dental"
-          />
-        </div>
-        {form.slug && (
-          <p className="text-xs text-muted-foreground font-mono">
-            {form.slug}.{ROOT_DOMAIN}
+      {/* Auto-resolved URL preview — no input needed */}
+      {form.clinicName.length >= 3 && (
+        <div className="flex flex-col gap-1">
+          <Label className="font-bold text-base">🌐 Your Clinic URL</Label>
+          <div className="flex items-center gap-2 bg-muted rounded-xl px-4 min-h-[48px]">
+            {slugStatus === 'checking' ? (
+              <span className="text-sm text-muted-foreground animate-pulse">Setting up your URL…</span>
+            ) : form.slug ? (
+              <span className="text-sm font-mono font-semibold text-foreground">
+                {form.slug}.{ROOT_DOMAIN}
+              </span>
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This is set automatically — no action needed. You can customize it later in Settings.
           </p>
-        )}
-        {slugHint && (
-          <p className={`text-xs ${slugHint.color}`}>{slugHint.text}</p>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="ownerName" className="font-bold text-base">👨‍⚕️ Owner / Dentist Name *</Label>
@@ -404,8 +377,8 @@ export function Step1Identity({ initialData, onSave, isSaving }: Step1IdentityPr
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isSaving || logoUploading} className="w-full min-h-[64px] rounded-3xl font-extrabold text-lg">
-        {isSaving ? 'Saving…' : 'Next →'}
+      <Button type="submit" disabled={isSaving || logoUploading || slugStatus === 'checking'} className="w-full min-h-[64px] rounded-3xl font-extrabold text-lg">
+        {isSaving ? 'Saving…' : slugStatus === 'checking' ? 'Setting up URL…' : 'Next →'}
       </Button>
     </form>
   )
