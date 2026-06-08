@@ -17,7 +17,7 @@ export default function SetPasswordPage() {
   const [showPass, setShowPass]   = useState(false)
   const [error, setError]         = useState<string | null>(null)
   const [loading, setLoading]     = useState(false)
-  const [done, setDone]           = useState(false)
+  const [done]                    = useState(false)
 
   const bgStyle = { background: 'linear-gradient(160deg, #C8E4F8 0%, #E8F2FF 40%, #EEF6FF 100%)' }
 
