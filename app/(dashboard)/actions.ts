@@ -22,7 +22,8 @@ export async function getDashboardData() {
   const yearStart = startOfYear(now)
   const yearEnd = endOfYear(now)
 
-  const [
+  // All 8 queries in a single transaction — one round trip to the DB instead of 8.
+  const {
     patientsSeen,
     todayRevenue,
     todayAppointments,
@@ -30,67 +31,77 @@ export async function getDashboardData() {
     todayQueue,
     recentInvoices,
     monthlyRevenue,
-  ] = await Promise.all([
-    db((tx) => tx.visit.count({
-      where: { clinicId, createdAt: { gte: todayStart, lte: todayEnd } },
-    })),
-    db((tx) => tx.invoice.aggregate({
-      where: {
-        clinicId,
-        status: 'ISSUED',
-        transactionDate: { gte: todayStart, lte: todayEnd },
-      },
-      _sum: { grossAmount: true },
-    })),
-    db((tx) => tx.appointment.count({
-      where: {
-        clinicId,
-        scheduledAt: { gte: todayStart, lte: todayEnd },
-        status: { in: ['SCHEDULED', 'CONFIRMED'] },
-      },
-    })),
-    db((tx) => tx.patient.findMany({
-      where: {
-        clinicId,
-        enrolledAt: { gte: todayStart, lte: todayEnd },
-        visits: { none: { visitDate: { gte: todayStart, lte: todayEnd } } },
-      },
-    })),
-    db((tx) => tx.appointment.findMany({
-      where: {
-        clinicId,
-        scheduledAt: { gte: todayStart, lte: todayEnd },
-      },
-      include: { patient: true },
-      orderBy: { scheduledAt: 'asc' },
-    })),
-    db((tx) => tx.invoice.findMany({
-      where: { clinicId, status: 'ISSUED' },
-      orderBy: { transactionDate: 'desc' },
-      take: 5,
-      include: { visit: { include: { patient: true } } },
-    })),
-    db((tx) => tx.invoice.findMany({
-      where: {
-        clinicId,
-        status: 'ISSUED',
-        transactionDate: { gte: yearStart, lte: yearEnd },
-      },
-      select: { transactionDate: true, grossAmount: true },
-    })),
-  ])
-
-  // All visits created today. Using createdAt (wall-clock server time) instead
-  // of visitDate (a date string stored as UTC midnight) avoids timezone
-  // mismatch between how the date is saved and how todayStart/todayEnd are computed.
-  const walkIns = await db((tx) => tx.visit.findMany({
-    where: {
-      clinicId,
-      createdAt: { gte: todayStart, lte: todayEnd },
-    },
-    include: { patient: true },
-    orderBy: { createdAt: 'asc' },
-  }))
+    walkIns,
+  } = await db(async (tx) => {
+    const [
+      patientsSeen,
+      todayRevenue,
+      todayAppointments,
+      todayPendingPatients,
+      todayQueue,
+      recentInvoices,
+      monthlyRevenue,
+      walkIns,
+    ] = await Promise.all([
+      tx.visit.count({
+        where: { clinicId, createdAt: { gte: todayStart, lte: todayEnd } },
+      }),
+      tx.invoice.aggregate({
+        where: {
+          clinicId,
+          status: 'ISSUED',
+          transactionDate: { gte: todayStart, lte: todayEnd },
+        },
+        _sum: { grossAmount: true },
+      }),
+      tx.appointment.count({
+        where: {
+          clinicId,
+          scheduledAt: { gte: todayStart, lte: todayEnd },
+          status: { in: ['SCHEDULED', 'CONFIRMED'] },
+        },
+      }),
+      tx.patient.findMany({
+        where: {
+          clinicId,
+          enrolledAt: { gte: todayStart, lte: todayEnd },
+          visits: { none: { visitDate: { gte: todayStart, lte: todayEnd } } },
+        },
+      }),
+      tx.appointment.findMany({
+        where: {
+          clinicId,
+          scheduledAt: { gte: todayStart, lte: todayEnd },
+        },
+        include: { patient: true },
+        orderBy: { scheduledAt: 'asc' },
+      }),
+      tx.invoice.findMany({
+        where: { clinicId, status: 'ISSUED' },
+        orderBy: { transactionDate: 'desc' },
+        take: 5,
+        include: { visit: { include: { patient: true } } },
+      }),
+      tx.invoice.findMany({
+        where: {
+          clinicId,
+          status: 'ISSUED',
+          transactionDate: { gte: yearStart, lte: yearEnd },
+        },
+        select: { transactionDate: true, grossAmount: true },
+      }),
+      // Walk-ins: all visits created today
+      tx.visit.findMany({
+        where: {
+          clinicId,
+          createdAt: { gte: todayStart, lte: todayEnd },
+        },
+        include: { patient: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    ])
+    return { patientsSeen, todayRevenue, todayAppointments, todayPendingPatients, todayQueue, recentInvoices, monthlyRevenue, walkIns }
+  })
 
   const byMonth: number[] = Array(12).fill(0)
   for (const inv of monthlyRevenue) {

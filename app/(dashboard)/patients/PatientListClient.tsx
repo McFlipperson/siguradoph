@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import type { PatientSummary } from './actions'
+import { getPatients, type PatientSummary } from './actions'
 
 function computeAge(dob: Date): number {
   return Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -63,14 +63,30 @@ type Tab = 'all' | 'today'
 
 export default function PatientListClient({
   initialPatients,
+  initialHasMore,
 }: {
   initialPatients: PatientSummary[]
+  initialHasMore: boolean
 }) {
+  const [patients, setPatients] = useState<PatientSummary[]>(initialPatients)
+  const [hasMore, setHasMore] = useState(initialHasMore)
+  const [page, setPage] = useState(0)
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<Tab>('all')
+  const [isPending, startTransition] = useTransition()
+
+  function loadMore() {
+    const nextPage = page + 1
+    startTransition(async () => {
+      const result = await getPatients(nextPage)
+      setPatients((prev) => [...prev, ...result.patients])
+      setHasMore(result.hasMore)
+      setPage(nextPage)
+    })
+  }
 
   const filtered = useMemo(() => {
-    let list = initialPatients
+    let list = patients
     if (tab === 'today') {
       list = list.filter((p) => isToday(p.enrolledAt))
     }
@@ -84,7 +100,7 @@ export default function PatientListClient({
       )
     }
     return list
-  }, [initialPatients, query, tab])
+  }, [patients, query, tab])
 
   return (
     <div className="flex flex-col gap-4 pb-24">
@@ -125,6 +141,17 @@ export default function PatientListClient({
           filtered.map((p) => <PatientCard key={p.id} patient={p} />)
         )}
       </div>
+
+      {/* Load more — only show on All tab with no search query */}
+      {hasMore && !query && tab === 'all' && (
+        <button
+          onClick={loadMore}
+          disabled={isPending}
+          className="w-full min-h-[48px] rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/80 disabled:opacity-50 transition-colors"
+        >
+          {isPending ? 'Loading…' : 'Load more patients'}
+        </button>
+      )}
 
       {/* FAB */}
       <Link

@@ -17,11 +17,14 @@ export type PatientSummary = {
   hasActiveLoyaltyCard: boolean
 }
 
-export async function getPatients(): Promise<PatientSummary[]> {
+export async function getPatients(page = 0): Promise<{ patients: PatientSummary[]; hasMore: boolean }> {
+  const PAGE_SIZE = 30
   const { clinicId, db } = await getActorDb()
   const patients = await db((tx) => tx.patient.findMany({
     where: { clinicId },
     orderBy: { createdAt: 'desc' },
+    skip: page * PAGE_SIZE,
+    take: PAGE_SIZE + 1, // fetch one extra to know if there's a next page
     include: {
       visits: {
         orderBy: { visitDate: 'desc' },
@@ -35,8 +38,12 @@ export async function getPatients(): Promise<PatientSummary[]> {
       },
     },
   }))
+  const hasMore = patients.length > PAGE_SIZE
+  const page_patients = patients.slice(0, PAGE_SIZE)
 
-  return patients.map((p) => ({
+  return {
+    hasMore,
+    patients: page_patients.map((p) => ({
     id: p.id,
     firstName: p.firstName,
     middleName: p.middleName ?? null,
@@ -46,7 +53,8 @@ export async function getPatients(): Promise<PatientSummary[]> {
     enrolledAt: p.enrolledAt,
     lastVisitDate: p.visits[0]?.visitDate ?? null,
     hasActiveLoyaltyCard: p.loyaltyCards.length > 0,
-  }))
+  })),
+  }
 }
 
 // NOTE: The legacy createPatient() action was removed. It fabricated consent

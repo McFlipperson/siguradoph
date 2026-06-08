@@ -8,12 +8,12 @@ export default async function PatientsPage() {
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser) redirect('/login')
 
-  const patients = await getPatients()
+  const { patients, hasMore } = await getPatients(0)
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-xl font-bold font-heading">Patients</h1>
-      <PatientListClient initialPatients={patients} />
+      <PatientListClient initialPatients={patients} initialHasMore={hasMore} />
     </div>
   )
 }
