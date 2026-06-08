@@ -55,7 +55,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(dest)
     }
 
-    const redirectUrl = type === 'invite' ? new URL('/', origin) : new URL(next, origin)
+    // Invite links must land on set-password, not the root — staff have no password yet
+    const redirectUrl = type === 'invite'
+      ? new URL('/set-password?invited=1', origin)
+      : new URL(next, origin)
     const response = NextResponse.redirect(redirectUrl)
 
     const supabase = createServerClient(
