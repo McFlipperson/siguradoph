@@ -239,20 +239,6 @@ export default function OnboardingPage() {
           toast('Setup complete! Welcome to Sigurado. 🎉')
           const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 
-          // Read plan from user metadata (set at registration — survives closed browsers).
-          // Fall back to localStorage for users who registered before this fix.
-          let selectedPlan: string | null = localStorage.getItem('sigurado_selected_plan')
-          localStorage.removeItem('sigurado_selected_plan')
-          if (!selectedPlan) {
-            try {
-              const { createClient } = await import('@/lib/supabase-browser')
-              const sb = createClient()
-              const { data: { user } } = await sb.auth.getUser()
-              const meta = user?.user_metadata?.selectedPlan
-              if (meta === 'basic' || meta === 'pro') selectedPlan = meta
-            } catch { /* ignore */ }
-          }
-
           const dest = selectedPlan === 'basic' || selectedPlan === 'pro'
             ? `/billing?upgrade=${selectedPlan}`
             : '/patients/intake'
