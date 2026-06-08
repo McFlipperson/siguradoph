@@ -9,8 +9,11 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { email: authUser.email },
-    select: { clinic: { select: { slug: true } } },
+    select: { clinic: { select: { slug: true, onboardingComplete: true } } },
   })
 
-  return NextResponse.json({ slug: user?.clinic?.slug ?? null })
+  return NextResponse.json({
+    slug: user?.clinic?.slug ?? null,
+    onboardingComplete: user?.clinic?.onboardingComplete ?? false,
+  })
 }

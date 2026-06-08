@@ -51,8 +51,10 @@ function LoginForm() {
     try {
       const res = await fetch('/api/my-clinic-slug')
       if (res.ok) {
-        const { slug } = await res.json() as { slug: string | null }
-        if (slug) { window.location.href = `https://${slug}.${ROOT_DOMAIN}/`; return }
+        const { slug, onboardingComplete } = await res.json() as { slug: string | null; onboardingComplete: boolean }
+        // Only route to the clinic subdomain once onboarding is fully done.
+        // Incomplete users always land on /onboarding regardless of slug state.
+        if (slug && onboardingComplete) { window.location.href = `https://${slug}.${ROOT_DOMAIN}/`; return }
       }
     } catch { /* fall through */ }
     window.location.href = '/onboarding'

@@ -36,10 +36,12 @@ export async function GET(request: NextRequest) {
     if (email) {
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { clinic: { select: { slug: true } } },
+        select: { clinic: { select: { slug: true, onboardingComplete: true } } },
       })
       const slug = user?.clinic?.slug
-      if (slug) destUrl = new URL(`https://${slug}.${ROOT_DOMAIN}/`)
+      const onboardingComplete = user?.clinic?.onboardingComplete ?? false
+      // Only route to clinic subdomain once onboarding is fully done.
+      if (slug && onboardingComplete) destUrl = new URL(`https://${slug}.${ROOT_DOMAIN}/`)
     }
 
     const res = NextResponse.redirect(destUrl)
