@@ -17,7 +17,6 @@ interface Step1IdentityProps {
   isSaving: boolean
 }
 
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'sigurado.xyz'
 const today = new Date().toISOString().split('T')[0]
 
 function toSlug(name: string): string {
