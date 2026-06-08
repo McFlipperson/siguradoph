@@ -9,6 +9,7 @@ export async function getInvoices() {
   const invoices = await db((tx) => tx.invoice.findMany({
     where: { clinicId },
     orderBy: { transactionDate: 'desc' },
+    take: 100,
     include: {
       visit: {
         include: { patient: true },

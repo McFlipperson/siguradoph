@@ -16,7 +16,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const user = await prisma.user.findUnique({
     where: { email: authUser.email! },
-    include: { clinic: true },
+    select: {
+      isActive: true,
+      role: true,
+      clinic: {
+        select: {
+          onboardingComplete: true,
+          tosAcceptedAt: true,
+          plan: true,
+        },
+      },
+    },
   })
 
   // Deactivated staff — boot to login

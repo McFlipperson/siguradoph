@@ -1,13 +1,7 @@
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase'
 import { getPatients } from './actions'
 import PatientListClient from './PatientListClient'
 
 export default async function PatientsPage() {
-  const supabase = createServerClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser) redirect('/login')
-
   const { patients, hasMore } = await getPatients(0)
 
   return (

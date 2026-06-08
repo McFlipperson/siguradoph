@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { createServerClient } from '@/lib/supabase'
 import { prisma } from '@/lib/prisma'
 import { withClinicDb, type TxClient } from '@/lib/clinic-db'
@@ -23,7 +24,11 @@ export async function assertFeature(clinicId: string, feature: Feature): Promise
   }
 }
 
-export async function getSessionUser() {
+/**
+ * Memoized with React cache() — if the layout AND a page server component both
+ * call this in the same request, Supabase + Prisma are only hit once.
+ */
+export const getSessionUser = cache(async () => {
   const supabase = createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser?.email) return null
@@ -34,13 +39,13 @@ export async function getSessionUser() {
   // Deactivated staff are treated as unauthenticated
   if (!user?.isActive) return null
   return user
-}
+})
 
 /**
  * Returns the authenticated user's clinicId and email in a single DB call.
- * Use this in server actions that need both for audit logging.
+ * Memoized — multiple calls per request are collapsed into one.
  */
-export async function getActor(): Promise<{ clinicId: string; userEmail: string }> {
+export const getActor = cache(async (): Promise<{ clinicId: string; userEmail: string }> => {
   const supabase = createServerClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
   if (!authUser?.email) throw new Error('Not authenticated')
@@ -50,7 +55,7 @@ export async function getActor(): Promise<{ clinicId: string; userEmail: string 
   })
   if (!user?.clinicId) throw new Error('No clinic')
   return { clinicId: user.clinicId, userEmail: authUser.email }
-}
+})
 
 /**
  * Like getActor() but also returns `db` — a function that runs queries
