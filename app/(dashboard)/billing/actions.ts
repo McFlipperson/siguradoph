@@ -120,7 +120,7 @@ export async function selfReportPayment(
       prisma.clinic.update({
         where: { id: clinicId },
         data: { plan },
-        select: { name: true, email: true },
+        select: { name: true, email: true, slug: true },
       }),
       prisma.adminAuditLog.create({
         data: {
@@ -156,7 +156,7 @@ export async function selfReportPayment(
               <p>Thanks for subscribing to the <strong>${planLabel}</strong> plan. Your account is active and all features are available right now.</p>
               <p>We'll verify your GCash payment in the background — no action needed from you.</p>
               <p style="margin-top:24px;">
-                <a href="https://mine.sigurado.xyz" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+                <a href="https://${clinic.slug}.${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'sigurado.xyz'}" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
                   Open Sigurado
                 </a>
               </p>
