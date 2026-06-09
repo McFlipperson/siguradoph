@@ -69,6 +69,43 @@ const PLAN_DEFS: PlanDef[] = [
 
 const PLAN_RANK: Record<Plan, number> = { FREE: 0, BASIC: 1, PRO: 2 }
 
+// ─── Shared: tap-to-copy phone number button ──────────────────────────────────
+
+function GCashNumberButton({ gcashNumber }: { gcashNumber: string }) {
+  const [copied, setCopied] = useState(false)
+  function copy() {
+    navigator.clipboard.writeText(gcashNumber).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <button
+      onClick={copy}
+      className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 active:bg-primary/10"
+    >
+      <span className="text-sm font-bold text-primary">{gcashNumber}</span>
+      <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
+        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+        {copied ? 'Copied!' : 'Tap to copy'}
+      </span>
+    </button>
+  )
+}
+
+// ─── Shared: QR block ─────────────────────────────────────────────────────────
+
+function GCashQR() {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="rounded-2xl overflow-hidden border shadow-sm w-full max-w-[220px]">
+        <Image src="/gcash-qr.jpeg" alt="GCash QR code" width={220} height={325} className="w-full h-auto" />
+      </div>
+      <p className="text-xs text-muted-foreground text-center">Screenshot this and upload to GCash</p>
+    </div>
+  )
+}
+
 // ─── Success screen ───────────────────────────────────────────────────────────
 
 function SuccessScreen({ plan, onDone }: { plan: PlanDef; onDone: () => void }) {
@@ -112,7 +149,7 @@ function PaymentPanel({
 }) {
   const [loadingRef, setLoadingRef] = useState(true)
   const [refCode, setRefCode] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copiedRef, setCopiedRef] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const amountPesos = PLAN_PRICES[plan.id] / 100
@@ -131,8 +168,8 @@ function PaymentPanel({
   function copyRef() {
     if (!refCode) return
     navigator.clipboard.writeText(refCode).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedRef(true)
+      setTimeout(() => setCopiedRef(false), 2000)
     })
   }
 
@@ -164,17 +201,20 @@ function PaymentPanel({
         <p className="text-3xl font-bold text-primary">₱{amountPesos.toFixed(2)}</p>
       </div>
 
-      {/* QR + number */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="rounded-2xl overflow-hidden border shadow-sm w-48">
-          <Image src="/gcash-qr.jpeg" alt="GCash QR code" width={192} height={284} className="w-full h-auto" />
+      {/* QR code */}
+      <GCashQR />
+
+      {/* Phone number */}
+      {gcashNumber && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground text-center">or send to this number</p>
+          <GCashNumberButton gcashNumber={gcashNumber} />
         </div>
-        {gcashNumber && (
-          <p className="text-xs text-muted-foreground">or send to <strong>{gcashNumber}</strong></p>
-        )}
-        <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
-          The recipient will appear as <strong>JO*****E B.</strong> — this is correct. Sigurado payments are processed through our registered GCash account.
-        </div>
+      )}
+
+      {/* Recipient note */}
+      <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
+        The recipient will appear as <strong>JO*****E B.</strong> — this is correct. Sigurado payments are processed through our registered GCash account.
       </div>
 
       {/* Reference code */}
@@ -189,8 +229,8 @@ function PaymentPanel({
           >
             <span className="text-xl font-bold tracking-widest text-primary">{refCode}</span>
             <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? 'Copied!' : 'Copy'}
+              {copiedRef ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copiedRef ? 'Copied!' : 'Copy'}
             </span>
           </button>
         ) : null}
@@ -238,11 +278,11 @@ function RenewalPanel({
   gcashNumber: string
   nextDueDate: string | null
 }) {
-  const [open, setOpen] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [loadingRef, setLoadingRef] = useState(true)
   const [refCode, setRefCode] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copiedRef, setCopiedRef] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -258,9 +298,21 @@ function RenewalPanel({
   function copyRef() {
     if (!refCode) return
     navigator.clipboard.writeText(refCode).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      setCopiedRef(true)
+      setTimeout(() => setCopiedRef(false), 2000)
     })
+  }
+
+  async function handleIvePaid() {
+    setSubmitting(true)
+    const res = await selfReportPayment(plan.id)
+    setSubmitting(false)
+    if (res.ok) {
+      setSuccess(true)
+      router.refresh()
+    } else {
+      toast.error(res.error ?? 'Something went wrong. Please try again.')
+    }
   }
 
   if (success) {
@@ -281,7 +333,7 @@ function RenewalPanel({
   return (
     <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-4">
 
-      {/* Next due date — big and prominent */}
+      {/* Next due date */}
       {nextDueDate && (
         <div className={`rounded-xl px-4 py-3 flex items-start gap-3 ${isUrgent ? 'bg-red-50 border border-red-200' : 'bg-amber-50 border border-amber-200'}`}>
           <CalendarClock className={`w-5 h-5 shrink-0 mt-0.5 ${isUrgent ? 'text-red-500' : 'text-amber-500'}`} />
@@ -306,55 +358,59 @@ function RenewalPanel({
         {nextDueDate ? 'Pay your renewal' : 'Renewing next month?'}
       </p>
 
-      {!open ? (
-        <div className="space-y-4">
-          {/* QR + amount side by side */}
-          <div className="flex items-center gap-4">
-            <div className="rounded-xl overflow-hidden border shadow-sm shrink-0 w-24">
-              <Image src="/gcash-qr.jpeg" alt="GCash QR code" width={96} height={142} className="w-full h-auto" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Scan with GCash · send exactly</p>
-              <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
-              {gcashNumber && <p className="text-xs text-muted-foreground">{gcashNumber}</p>}
-              <p className="text-[11px] text-blue-700 leading-tight">Recipient: <strong>JO*****E B.</strong> — this is correct ✓</p>
-            </div>
-          </div>
+      {/* Amount */}
+      <div className="rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 text-center">
+        <p className="text-xs text-muted-foreground mb-0.5">Send exactly</p>
+        <p className="text-3xl font-bold text-primary">{plan.amountLabel}</p>
+      </div>
 
-          {/* Reference code */}
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Include in GCash notes (speeds up verification)</p>
-            {loadingRef ? (
-              <div className="h-11 rounded-xl bg-muted animate-pulse" />
-            ) : refCode ? (
-              <button
-                onClick={copyRef}
-                className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 active:bg-primary/10"
-              >
-                <span className="text-lg font-bold tracking-widest text-primary">{refCode}</span>
-                <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
-                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </span>
-              </button>
-            ) : null}
-          </div>
+      {/* QR code — large and centered */}
+      <GCashQR />
 
-          <button
-            onClick={() => setOpen(true)}
-            className="w-full min-h-[48px] rounded-xl bg-emerald-600 text-white font-bold text-sm active:opacity-90"
-          >
-            I&apos;ve sent the payment →
-          </button>
+      {/* Phone number */}
+      {gcashNumber && (
+        <div className="space-y-1.5">
+          <p className="text-xs text-muted-foreground text-center">or send to this number</p>
+          <GCashNumberButton gcashNumber={gcashNumber} />
         </div>
-      ) : (
-        <PaymentPanel
-          plan={plan}
-          gcashNumber={gcashNumber}
-          onClose={() => setOpen(false)}
-          onSuccess={() => { setSuccess(true); router.refresh() }}
-        />
       )}
+
+      {/* Recipient note */}
+      <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
+        Recipient: <strong>JO*****E B.</strong> — this is correct ✓
+      </div>
+
+      {/* Reference code */}
+      <div className="space-y-1.5">
+        <p className="text-xs text-muted-foreground text-center">Include in GCash notes (speeds up verification)</p>
+        {loadingRef ? (
+          <div className="h-11 rounded-xl bg-muted animate-pulse" />
+        ) : refCode ? (
+          <button
+            onClick={copyRef}
+            className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 active:bg-primary/10"
+          >
+            <span className="text-lg font-bold tracking-widest text-primary">{refCode}</span>
+            <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
+              {copiedRef ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              {copiedRef ? 'Copied!' : 'Copy'}
+            </span>
+          </button>
+        ) : null}
+      </div>
+
+      {/* Confirm button */}
+      <button
+        onClick={handleIvePaid}
+        disabled={submitting}
+        className="w-full min-h-[52px] rounded-xl bg-emerald-600 text-white font-bold text-base flex items-center justify-center gap-2 active:opacity-90 disabled:opacity-50"
+      >
+        {submitting ? 'Confirming…' : "✓ I've paid — confirm renewal"}
+      </button>
+
+      <p className="text-[11px] text-muted-foreground text-center">
+        We trust you. Your renewal activates immediately. We verify the GCash payment in the background.
+      </p>
     </div>
   )
 }
