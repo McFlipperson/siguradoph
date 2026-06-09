@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
