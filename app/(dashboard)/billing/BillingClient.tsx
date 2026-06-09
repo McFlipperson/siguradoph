@@ -200,7 +200,6 @@ function PaymentPanel({
         {[
           'Open GCash and scan the QR (or tap Send Money → enter number)',
           `Send exactly ₱${amountPesos.toFixed(2)}`,
-          'Optionally paste the reference code in GCash notes',
           'Come back here and tap the button below',
         ].map((step, i) => (
           <li key={i} className="flex gap-3 items-start text-sm">
