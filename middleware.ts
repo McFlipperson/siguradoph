@@ -21,10 +21,13 @@ export async function middleware(req: NextRequest) {
           return req.cookies.getAll()
         },
         setAll(cookiesToSet) {
+          const cookieDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN
+            ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`
+            : undefined
           cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
           res = NextResponse.next({ request: req })
           cookiesToSet.forEach(({ name, value, options }) =>
-            res.cookies.set(name, value, options)
+            res.cookies.set(name, value, { ...options, domain: cookieDomain })
           )
         },
       },

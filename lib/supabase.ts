@@ -14,7 +14,12 @@ export function createServerClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, {
+                ...options,
+                domain: process.env.NEXT_PUBLIC_ROOT_DOMAIN
+                  ? `.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`
+                  : undefined,
+              })
             )
           } catch {
             // Called from a Server Component — middleware handles session refresh

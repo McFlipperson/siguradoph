@@ -42,7 +42,5 @@ export const prismaTenant =
   globalForPrisma.prismaTenant ??
   createPrismaClient(process.env.TENANT_DATABASE_URL ?? process.env.DATABASE_URL)
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-  globalForPrisma.prismaTenant = prismaTenant
-}
+globalForPrisma.prisma = prisma
+globalForPrisma.prismaTenant = prismaTenant

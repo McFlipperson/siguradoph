@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
 import { CelebrationStep } from '@/components/onboarding/CelebrationStep'
@@ -271,7 +272,7 @@ export default function OnboardingPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-700 to-blue-900">
         <div className="text-center space-y-3">
-          <div className="text-4xl animate-pulse">🏥</div>
+          <Image src="/images/s-logo-ph-transparent.png" alt="Sigurado" width={72} height={72} className="animate-pulse drop-shadow-2xl" />
           <p className="text-white/80 text-sm">Loading…</p>
         </div>
       </div>

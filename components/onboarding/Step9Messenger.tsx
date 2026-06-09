@@ -33,7 +33,7 @@ const MESSENGER_STYLES = `
 `
 
 const BENEFITS = [
-  { emoji: '⏰', label: 'Auto reminders', body: 'Sigurado texts patients the day before — no more no-shows.' },
+  { emoji: '⏰', label: 'Auto reminders', body: 'Patients get automatic reminders the day before their appointment.' },
   { emoji: '💝', label: 'Care follow-ups', body: '"Hope you\'re healing well 🙏" sent automatically after procedures.' },
   { emoji: '⚡', label: 'One tap at intake', body: 'Link each patient to their Facebook in seconds.' },
 ]
