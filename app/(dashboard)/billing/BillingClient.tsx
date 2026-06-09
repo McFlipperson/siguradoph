@@ -198,7 +198,7 @@ function PaymentPanel({
       {/* Steps */}
       <ol className="space-y-2">
         {[
-          'Open GCash and scan the QR (or tap Send Money → enter number)',
+          'Screenshot the QR code, then open GCash → Pay QR → Upload QR (or tap Send Money → enter the number)',
           `Send exactly ₱${amountPesos.toFixed(2)}`,
           'Come back here and tap the button below',
         ].map((step, i) => (
