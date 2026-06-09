@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
-import { getOrCreatePendingUpgrade, selfReportPayment } from './actions'
+import { selfReportPayment } from './actions'
 import { PLAN_PRICES } from '@/lib/billing-constants'
 import { Check, Copy, Zap, ArrowRight, CalendarClock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -147,31 +147,9 @@ function PaymentPanel({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const [loadingRef, setLoadingRef] = useState(true)
-  const [refCode, setRefCode] = useState<string | null>(null)
-  const [copiedRef, setCopiedRef] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const amountPesos = PLAN_PRICES[plan.id] / 100
-
-  useEffect(() => {
-    let cancelled = false
-    setLoadingRef(true)
-    getOrCreatePendingUpgrade(plan.id)
-      .then((r) => { if (!cancelled) setRefCode(r.referenceCode) })
-      .catch(() => { if (!cancelled) toast.error('Could not generate reference. Try again.') })
-      .finally(() => { if (!cancelled) setLoadingRef(false) })
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id])
-
-  function copyRef() {
-    if (!refCode) return
-    navigator.clipboard.writeText(refCode).then(() => {
-      setCopiedRef(true)
-      setTimeout(() => setCopiedRef(false), 2000)
-    })
-  }
 
   async function handleIvePaid() {
     setSubmitting(true)
@@ -215,25 +193,6 @@ function PaymentPanel({
       {/* Recipient note */}
       <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
         The recipient will appear as <strong>JO*****E B.</strong> — this is correct. Sigurado payments are processed through our registered GCash account.
-      </div>
-
-      {/* Reference code */}
-      <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground text-center">Include in GCash notes to speed up verification</p>
-        {loadingRef ? (
-          <div className="h-12 rounded-xl bg-muted animate-pulse" />
-        ) : refCode ? (
-          <button
-            onClick={copyRef}
-            className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-3 active:bg-primary/10"
-          >
-            <span className="text-xl font-bold tracking-widest text-primary">{refCode}</span>
-            <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
-              {copiedRef ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copiedRef ? 'Copied!' : 'Copy'}
-            </span>
-          </button>
-        ) : null}
       </div>
 
       {/* Steps */}
@@ -280,28 +239,7 @@ function RenewalPanel({
 }) {
   const [success, setSuccess] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [loadingRef, setLoadingRef] = useState(true)
-  const [refCode, setRefCode] = useState<string | null>(null)
-  const [copiedRef, setCopiedRef] = useState(false)
   const router = useRouter()
-
-  useEffect(() => {
-    let cancelled = false
-    getOrCreatePendingUpgrade(plan.id)
-      .then((r) => { if (!cancelled) setRefCode(r.referenceCode) })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoadingRef(false) })
-    return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.id])
-
-  function copyRef() {
-    if (!refCode) return
-    navigator.clipboard.writeText(refCode).then(() => {
-      setCopiedRef(true)
-      setTimeout(() => setCopiedRef(false), 2000)
-    })
-  }
 
   async function handleIvePaid() {
     setSubmitting(true)
@@ -378,25 +316,6 @@ function RenewalPanel({
       {/* Recipient note */}
       <div className="rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800 text-center leading-relaxed">
         Recipient: <strong>JO*****E B.</strong> — this is correct ✓
-      </div>
-
-      {/* Reference code */}
-      <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground text-center">Include in GCash notes (speeds up verification)</p>
-        {loadingRef ? (
-          <div className="h-11 rounded-xl bg-muted animate-pulse" />
-        ) : refCode ? (
-          <button
-            onClick={copyRef}
-            className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 active:bg-primary/10"
-          >
-            <span className="text-lg font-bold tracking-widest text-primary">{refCode}</span>
-            <span className="flex items-center gap-1 text-xs text-primary font-medium shrink-0">
-              {copiedRef ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copiedRef ? 'Copied!' : 'Copy'}
-            </span>
-          </button>
-        ) : null}
       </div>
 
       {/* Confirm button */}
