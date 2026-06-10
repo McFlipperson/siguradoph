@@ -298,7 +298,10 @@ async function buildAndSendReport(clinicId: string): Promise<{ ok: boolean; reas
     },
   })
 
-  if (error) return { ok: false, reason: error.message }
+  if (error) {
+    console.error('[quarterly-report] Failed to build/send report for clinic', clinicId, error)
+    return { ok: false, reason: 'An error occurred' }
+  }
   return { ok: true }
 }
 

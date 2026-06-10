@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     await sendReceiptEmail(body)
     return NextResponse.json({ success: true })
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: message }, { status: 500 })
+    console.error('[send-receipt] Failed to send receipt email:', err)
+    return NextResponse.json({ error: 'An error occurred' }, { status: 500 })
   }
 }
