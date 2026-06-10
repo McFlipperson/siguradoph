@@ -71,7 +71,7 @@ function LoginForm() {
   async function handleOAuth() {
     setOauthLoading(true)
     const supabase = createClient()
-    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/confirm` } })
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `https://${process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'sigurado.xyz'}/auth/confirm` } })
   }
 
   async function handleResend() {
