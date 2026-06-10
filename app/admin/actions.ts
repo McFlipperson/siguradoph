@@ -128,7 +128,7 @@ export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
             <p>Your Sigurado subscription has been upgraded to the <strong>${planLabel}</strong> plan.</p>
             <p>Your new features are available immediately.</p>
             <p style="margin-top:24px;">
-              <a href="https://mine.sigurado.xyz" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
+              <a href="https://sigurado.xyz" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">
                 Open Sigurado
               </a>
             </p>

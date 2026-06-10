@@ -271,8 +271,9 @@ export default function DashboardClient({ data }: Props) {
                 tick={{ fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
+                domain={[0, (dataMax: number) => dataMax === 0 ? 1 : dataMax]}
                 tickFormatter={(v: number) =>
-                  v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
+                  v === 0 ? '₱0' : v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
                 }
               />
               <Tooltip

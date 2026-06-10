@@ -45,6 +45,7 @@ type MenuSection = {
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'Home',     href: '/',         icon: Home   },
+  { label: 'Patients', href: '/patients', icon: Users  },
   { label: 'Expenses', href: '/expenses', icon: Wallet },
 ]
 
