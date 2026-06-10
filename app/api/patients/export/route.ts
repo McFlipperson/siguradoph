@@ -16,7 +16,7 @@ function fmtDate(d: Date | null): string {
 
 type ProcedureAmount = { name: string; amount: number }
 
-function fmtVisitHistory(visits: { visitDate: Date; procedureAmounts: unknown; chiefComplaint: string | null }[]): string {
+function fmtVisitHistory(visits: { visitDate: Date; procedureAmounts: unknown; notes: string | null }[]): string {
   if (!visits.length) return ''
   return visits.map((v) => {
     const date = fmtDate(v.visitDate)
@@ -25,8 +25,8 @@ function fmtVisitHistory(visits: { visitDate: Date; procedureAmounts: unknown; c
           .map((p) => `${p.name} (₱${Number(p.amount).toLocaleString('en-PH')})`)
           .join(', ')
       : ''
-    const complaint = v.chiefComplaint ? ` [${v.chiefComplaint}]` : ''
-    return procs ? `${date}: ${procs}${complaint}` : `${date}${complaint}`
+    const note = v.notes ? ` [${v.notes}]` : ''
+    return procs ? `${date}: ${procs}${note}` : `${date}${note}`
   }).join(' | ')
 }
 
@@ -45,7 +45,7 @@ export async function GET() {
       include: {
         visits: {
           orderBy: { visitDate: 'asc' },
-          select: { visitDate: true, procedureAmounts: true, chiefComplaint: true },
+          select: { visitDate: true, procedureAmounts: true, notes: true },
         },
         consentRecords: {
           orderBy: { consentDate: 'desc' },
