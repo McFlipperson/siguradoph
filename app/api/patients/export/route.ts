@@ -14,6 +14,22 @@ function fmtDate(d: Date | null): string {
   return new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
+type ProcedureAmount = { name: string; amount: number }
+
+function fmtVisitHistory(visits: { visitDate: Date; procedureAmounts: unknown; chiefComplaint: string | null }[]): string {
+  if (!visits.length) return ''
+  return visits.map((v) => {
+    const date = fmtDate(v.visitDate)
+    const procs = Array.isArray(v.procedureAmounts)
+      ? (v.procedureAmounts as ProcedureAmount[])
+          .map((p) => `${p.name} (₱${Number(p.amount).toLocaleString('en-PH')})`)
+          .join(', ')
+      : ''
+    const complaint = v.chiefComplaint ? ` [${v.chiefComplaint}]` : ''
+    return procs ? `${date}: ${procs}${complaint}` : `${date}${complaint}`
+  }).join(' | ')
+}
+
 export async function GET() {
   const user = await getSessionUser()
   if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -28,9 +44,8 @@ export async function GET() {
       orderBy: { lastName: 'asc' },
       include: {
         visits: {
-          orderBy: { visitDate: 'desc' },
-          take: 1,
-          select: { visitDate: true },
+          orderBy: { visitDate: 'asc' },
+          select: { visitDate: true, procedureAmounts: true, chiefComplaint: true },
         },
         consentRecords: {
           orderBy: { consentDate: 'desc' },
@@ -47,6 +62,7 @@ export async function GET() {
     'Enrolled', 'Last Visit',
     'Reminder Channel', 'Braces Complete',
     'Consent Date', 'Consent Method', 'Is Minor', 'Guardian Name',
+    'Visit History (Date: Procedures)',
   ]
 
   const rows = patients.map((p) => [
@@ -60,13 +76,14 @@ export async function GET() {
     p.medications ?? '',
     p.allergies ?? '',
     fmtDate(p.enrolledAt),
-    fmtDate(p.visits[0]?.visitDate ?? null),
+    fmtDate(p.visits[p.visits.length - 1]?.visitDate ?? null),
     p.reminderChannel,
     p.bracesComplete ? 'Yes' : 'No',
     fmtDate(p.consentRecords[0]?.consentDate ?? null),
     p.consentRecords[0]?.consentMethod ?? '',
     p.consentRecords[0]?.isMinor ? 'Yes' : 'No',
     p.consentRecords[0]?.guardianName ?? '',
+    fmtVisitHistory(p.visits),
   ])
 
   const csv = [header, ...rows]
@@ -81,7 +98,7 @@ export async function GET() {
     action: 'EXPORT_PATIENTS',
     resourceType: 'PATIENT',
     resourceId: 'BULK_EXPORT',
-    detail: `Exported ${patients.length} patient record(s) to CSV (includes medical history, medications, allergies)`,
+    detail: `Exported ${patients.length} patient record(s) to CSV (includes medical history, medications, allergies, full visit & procedure history)`,
   })
 
   const today = new Date().toISOString().split('T')[0]

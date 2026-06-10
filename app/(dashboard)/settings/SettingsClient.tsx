@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react'
 import { toast } from 'sonner'
 import Image from 'next/image'
+import { Building2, ListChecks, Package, Monitor, Users } from 'lucide-react'
 import { PrinterSection } from './PrinterSection'
 import { createClient } from '@/lib/supabase-browser'
 import { updateClinicLogo, updateClinicSignature } from './actions'
@@ -561,14 +562,26 @@ export default function SettingsClient({
       <h1 className="text-xl font-bold">Settings</h1>
 
       {/* Tab selector */}
-      <div className="flex rounded-xl border overflow-hidden">
-        {(['clinic', 'services', 'suppliers', 'devices', 'staff'] as const).map(t => (
+      <div className="grid grid-cols-2 gap-3">
+        {([
+          { key: 'clinic',    label: 'Clinic',    icon: Building2,  wide: false },
+          { key: 'services',  label: 'Services',  icon: ListChecks, wide: false },
+          { key: 'suppliers', label: 'Suppliers', icon: Package,    wide: false },
+          { key: 'devices',   label: 'Devices',   icon: Monitor,    wide: false },
+          { key: 'staff',     label: 'Staff',     icon: Users,      wide: true  },
+        ] as { key: 'clinic'|'services'|'suppliers'|'devices'|'staff'; label: string; icon: React.ElementType; wide: boolean }[])
+        .map(({ key, label, icon: Icon, wide }) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-2.5 text-[11px] font-medium transition-colors capitalize ${tab === t ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground'}`}
+            key={key}
+            onClick={() => setTab(key)}
+            className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 py-5 font-semibold text-base transition-all active:scale-95 ${wide ? 'col-span-2' : ''} ${
+              tab === key
+                ? 'border-primary bg-primary text-primary-foreground shadow-md'
+                : 'border-border bg-white text-foreground'
+            }`}
           >
-            {t === 'clinic' ? 'Clinic' : t === 'services' ? 'Services' : t === 'suppliers' ? 'Suppliers' : t === 'devices' ? 'Devices' : 'Staff'}
+            <Icon className="w-7 h-7" />
+            {label}
           </button>
         ))}
       </div>

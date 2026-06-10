@@ -44,9 +44,10 @@ type MenuSection = {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Home',     href: '/',         icon: Home   },
-  { label: 'Patients', href: '/patients', icon: Users  },
-  { label: 'Expenses', href: '/expenses', icon: Wallet },
+  { label: 'Home',     href: '/',         icon: Home     },
+  { label: 'Patients', href: '/patients', icon: Users    },
+  { label: 'Expenses', href: '/expenses', icon: Wallet   },
+  { label: 'Settings', href: '/settings', icon: Settings },
 ]
 
 const MENU_SECTIONS: MenuSection[] = [
