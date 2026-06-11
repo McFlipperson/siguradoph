@@ -749,7 +749,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
                   <Label>Reminder interval</Label>
                   <InfoSheet title="Braces reminder interval">
                     <p>This sets how many weeks until the next braces alignment reminder is automatically sent to the patient.</p>
-                    <p>Typical range is <strong>4–6 weeks</strong> depending on the patient's treatment plan. After each alignment visit, a new reminder is scheduled automatically.</p>
+                    <p>Typical range is <strong>4–6 weeks</strong> depending on the patient&apos;s treatment plan. After each alignment visit, a new reminder is scheduled automatically.</p>
                   </InfoSheet>
                 </div>
                 <select className={inputClass} value={reminderWeeks} onChange={(e) => setReminderWeeks(Number(e.target.value))}>
