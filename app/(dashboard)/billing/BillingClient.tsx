@@ -397,7 +397,7 @@ function PromoCodePanel({ promoExpiresAt, onRedeemed }: { promoExpiresAt: string
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
 
-  if (promoExpiresAt) {
+  if (promoExpiresAt && new Date(promoExpiresAt) > new Date()) {
     const expiry = new Date(promoExpiresAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
     return (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-start gap-3">
