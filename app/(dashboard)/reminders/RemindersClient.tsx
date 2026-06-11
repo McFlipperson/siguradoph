@@ -593,16 +593,6 @@ export default function RemindersClient({
       actionLabel: null,
       onAction: null,
     },
-    {
-      key: 'SMS',
-      emoji: '📞',
-      label: 'SMS',
-      count: channelStats.SMS,
-      active: false,
-      actionLabel: 'Coming soon',
-      onAction: null,
-      comingSoon: true,
-    },
   ]
 
   return (
