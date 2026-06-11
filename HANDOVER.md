@@ -1,10 +1,13 @@
 # Sigurado — Handover & Operations Guide
 
-Last updated: 2026-06-03. Plain-English where possible; technical detail for a developer.
+Last updated: 2026-06-09. Plain-English where possible; technical detail for a developer.
 
 ## 0. New session — start here
 
 Recent work this session (all live on production unless noted):
+
+- **Dashboard QA test** — full route-by-route test run on `test-clinic-two.sigurado.xyz`. Three bugs found, two UX issues flagged. Full report in §18.
+- **RLS activated on production** — Postgres `FORCE ROW LEVEL SECURITY` now live on all 22 tenant tables. Tested on preview DB first, all working. See §6.
 
 - **Dental certificate logo fix** — clinic logo now appears top-left on the on-screen preview AND in the emailed PDF (`lib/certificate-pdf.tsx`, `CertificateBuilder.tsx`).
 - **GCash semi-automated billing system** — full billing infrastructure built (§14).
@@ -101,9 +104,13 @@ Source of truth: `lib/entitlements.ts`. Plans: `FREE` / `BASIC` / `PRO`.
 
 ---
 
-## 6. ⚠️ Important: RLS is built but NOT yet active
+## 6. ✅ RLS is active on production (activated 2026-06-09)
 
-App-level `clinicId` filters protect tenants today. RLS policies are written but inert (app connects as `postgres` superuser). Follow `docs/RLS_ACTIVATION_RUNBOOK.md` to activate. **Test on preview DB first.**
+Both layers of tenant isolation are now live:
+- **App layer:** `withClinicDb` / `getActorDb` set `app.clinic_id` on every query.
+- **Database layer:** Postgres `FORCE ROW LEVEL SECURITY` active on all 22 patient/clinic tables. Policy: `"clinicId" = current_setting('app.clinic_id', TRUE)`. Tested on preview DB before production. All tests passed.
+
+See `docs/RLS_ACTIVATION_RUNBOOK.md` for the steps followed.
 
 ---
 
@@ -137,7 +144,7 @@ Unchanged. Patient with issued receipts → cannot delete → offer Anonymize (s
 
 ## 10. Known gaps / future work
 
-- **Activate RLS** (§6) — biggest pending hardening.
+- ~~**Activate RLS**~~ — **DONE 2026-06-09.** Both app and DB layers active. See §6.
 - **Gmail MCP connector** — needed for the hourly billing verification agent. Connect at https://claude.ai/customize/connectors then use the `schedule` skill.
 - **Civil status + Sex** on Patient — see §13.
 - **Google/Apple OAuth** — Supabase dashboard → Authentication → Providers → enable Google/Apple, paste credentials.
@@ -146,6 +153,7 @@ Unchanged. Patient with issued receipts → cannot delete → offer Anonymize (s
 - **Email drip** — Day 3/7/14 after signup spotlighting unused features. Not built.
 - **Tax/CPA module** — hidden (`lib/features.ts` `TAX_MODULE = false`); routes need access-control hardening before unhiding.
 - **`ADMIN_EMAILS` on Preview** — only set on Production.
+- **QA bugs from 2026-06-09 test** — see §18 for full report and fix instructions.
 
 ---
 
@@ -277,3 +285,139 @@ If off on real device, adjust these values in `login/page.tsx`.
 - Top-left of the emailed PDF (72pt)
 
 No migration needed — `logoUrl` was already in the schema.
+
+---
+
+## 18. QA Test Report — 2026-06-09
+
+**Tested on:** `https://test-clinic-two.sigurado.xyz` (Free plan, CLINIC_OWNER role)
+**Tester:** Claude (Cowork)
+**Method:** Live browser testing of all routes + static analysis (`tsc --noEmit`) + source review
+
+---
+
+### Routes tested and status
+
+| Route | Result |
+|---|---|
+| `/` (Dashboard) | ✅ Loads. Stats, chart, quick actions, empty states all render. |
+| `/patients` | ✅ Loads. Search, All/Today tabs, "+ New Patient" button present. |
+| `/patients/intake` | ✅ Loads. Patient intake form renders correctly. |
+| `/scheduling` | ✅ Loads. Queue and Calendar tabs work. Takes ~2s for `late-rule` POST on first load. |
+| `/expenses` | ✅ Loads. Month nav, VAT summary, category chips, "+ Add Expense" all present. |
+| `/invoices` | ✅ Loads. Search, filter chips, empty state correct. |
+| `/visits/new` (no patientId) | ✅ Correctly redirects to `/patients` — expected behavior. |
+| `/payments` (no visitId) | ✅ Correctly redirects to `/patients` — expected behavior. |
+| `/settings` | ✅ Loads. Clinic/Services/Suppliers/Devices/Staff tabs all render. |
+| `/billing` | ✅ Loads. Free plan shown, Basic/Pro upsell cards correct. |
+| `/reports` (Free plan) | ✅ Correctly shows feature lock screen with "Available on the Basic plan" + Upgrade CTA. |
+
+---
+
+### Bug 1 — Revenue chart Y-axis shows wrong scale when no data (cosmetic)
+
+**Where:** Dashboard → Revenue This Year chart  
+**What happens:** When all 12 months have ₱0 revenue, Recharts defaults to a 0–4 scale. Y-axis labels show ₱4, ₱3, ₱2, ₱1, ₱0 — looks like the clinic earned between ₱1 and ₱4 at some point.  
+**File:** `app/(dashboard)/DashboardClient.tsx`, the `<YAxis>` inside `<BarChart>`  
+**Fix:** Add `domain={[0, 1]}` to `<YAxis>` so the empty state always shows just ₱0 at the bottom, or add a minimum data floor:
+
+```tsx
+// In DashboardClient.tsx, change:
+<YAxis
+  tick={{ fontSize: 11 }}
+  axisLine={false}
+  tickLine={false}
+  tickFormatter={(v: number) =>
+    v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
+  }
+/>
+
+// To:
+<YAxis
+  tick={{ fontSize: 11 }}
+  axisLine={false}
+  tickLine={false}
+  domain={[0, (dataMax: number) => dataMax === 0 ? 1 : dataMax]}
+  tickFormatter={(v: number) =>
+    v >= 1000 ? `₱${(v / 1000).toFixed(0)}k` : `₱${v}`
+  }
+/>
+```
+
+---
+
+### Bug 2 — Patients route missing from navigation (UX / usability)
+
+**Where:** `app/(dashboard)/BottomNav.tsx`  
+**What happens:** `/patients` is not in `NAV_ITEMS` or `MENU_SECTIONS`. The secretary has no navigation path to the patient list except:
+  - Typing the URL directly
+  - Tapping "+ Patient" on the dashboard (which actually redirects to `/patients` as a side effect, not its primary purpose)
+
+`/scheduling` has the same problem — it only appears as a dashboard quick action button, not in the nav menu.
+
+**Impact:** High. Patient list is the most-used daily screen. A new secretary would not find it.
+
+**Fix:** Add both to `BottomNav.tsx`. Simplest option — add to `NAV_ITEMS` (the persistent bottom bar):
+
+```tsx
+// In BottomNav.tsx, change NAV_ITEMS to:
+const NAV_ITEMS: NavItem[] = [
+  { label: 'Home',      href: '/',         icon: Home     },
+  { label: 'Patients',  href: '/patients', icon: Users    },
+  { label: 'Expenses',  href: '/expenses', icon: Wallet   },
+]
+```
+
+Or add to the Daily `MENU_SECTIONS` (less visible but cleaner if the bar is already crowded):
+
+```tsx
+{
+  title: 'Daily',
+  items: [
+    { label: 'Patients',   href: '/patients',   icon: Users,     color: 'bg-indigo-500' },
+    { label: 'Scheduling', href: '/scheduling', icon: CalendarDays, color: 'bg-teal-500' },
+    { label: 'Invoices',   href: '/invoices',   icon: FileText,  color: 'bg-blue-500'   },
+  ],
+},
+```
+
+Note: `scheduling` is listed in entitlements as a BASIC feature, but the route itself is accessible to Free plan users — the feature gate only controls menu visibility, not the page. This inconsistency should be resolved: either gate the route or remove the feature flag.
+
+---
+
+### Bug 3 — Prisma client is stale, TypeScript errors in local dev
+
+**Scope:** Local development only. Production (Vercel) is unaffected — it builds fresh from the schema.
+
+**What happened:** `prisma/schema.prisma` was last modified 2026-06-08 (adds `gcashNumber`, `isActive`, `pendingUpgrade`, `clinic` relation on User). The generated Prisma client in `node_modules/.prisma/client/` was last generated 2026-06-02. Running `npx tsc --noEmit` produces 30+ errors.
+
+**Affected files:**
+- `lib/auth.ts` — `user.isActive`, `user.clinic` relation
+- `app/(dashboard)/layout.tsx` — same
+- `app/(dashboard)/settings/page.tsx` — `clinic.gcashNumber`, `user.isActive`
+- `app/(dashboard)/billing/actions.ts` — `prisma.pendingUpgrade`
+- `app/admin/actions.ts` and `app/admin/page.tsx` — `prisma.pendingUpgrade`
+- `app/api/billing/confirm/route.ts` — `prisma.pendingUpgrade`, `clinic.gcashNumber`
+- `app/api/staff/[id]/route.ts`, `app/api/staff/invite/route.ts`, `app/api/staff/route.ts` — `user.isActive`
+- `app/auth/confirm/route.ts` — `user.isActive`
+- `app/(onboarding)/onboarding/actions.ts` and `page.tsx` — `clinic.gcashNumber`
+
+**Fix:** Run locally (needs network access to Prisma CDN):
+```bash
+npx prisma generate
+```
+
+If CDN is blocked (sandbox/offline), set: `PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1` — but the binary download itself still requires network access to `binaries.prisma.sh`.
+
+---
+
+### Minor observations (not bugs, but worth noting)
+
+**Dashboard "+ Patient" button label is misleading.**
+The button goes to `/visits/new` which immediately redirects to `/patients` since no `patientId` is in the URL. The button's job is to start a new *visit*, not create a patient. The label should be `+ Visit` or `New Visit` to match the actual flow. File: `app/(dashboard)/DashboardClient.tsx` line 163.
+
+**No logo on test clinic — expected.**
+The blank space in the dashboard header where the clinic logo should appear is because the test clinic has no logo uploaded. Not a code bug — uploading a logo via Settings → Clinic Logo fills the space correctly.
+
+**Scheduling slow first load — not a bug.**
+On first navigation to `/scheduling`, the UI shows "Loading…" for ~2–3 seconds before resolving to empty state. This is because the page first POSTs to `/api/appointments/late-rule` before fetching data. Normal behavior; no fix needed. Could add an `AbortController` timeout if it becomes a complaint.

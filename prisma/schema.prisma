@@ -250,6 +250,9 @@ model Patient {
   phone           String
   email           String?
   philsysId       String?  // Philippine Identification System (PhilSys) ID — optional
+  sex             String?  // MALE | FEMALE
+  civilStatus     String?  // SINGLE | MARRIED | WIDOWED | SEPARATED | OTHER
+  occupation      String?
   medicalHistory  String?
   medications     String?
   allergies       String?

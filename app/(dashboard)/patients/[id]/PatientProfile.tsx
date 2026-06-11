@@ -993,6 +993,9 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   const [email, setEmail] = useState(patient.email ?? '')
   const [address, setAddress] = useState(patient.address ?? '')
   const [addressLine2, setAddressLine2] = useState(patient.addressLine2 ?? '')
+  const [sex, setSex] = useState(patient.sex ?? '')
+  const [civilStatus, setCivilStatus] = useState(patient.civilStatus ?? '')
+  const [occupation, setOccupation] = useState(patient.occupation ?? '')
 
   const age = computeAge(patient.dateOfBirth)
   const inputClass = 'w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring'
@@ -1000,7 +1003,7 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
   function handleSave() {
     if (!firstName.trim() || !lastName.trim() || !phone.trim() || !dob) return
     startTransition(async () => {
-      await updatePatientInfo(patient.id, { firstName, middleName: middleName || undefined, lastName, dateOfBirth: dob, phone, email, address, addressLine2: addressLine2 || undefined })
+      await updatePatientInfo(patient.id, { firstName, middleName: middleName || undefined, lastName, dateOfBirth: dob, phone, email, address, addressLine2: addressLine2 || undefined, sex: sex || undefined, civilStatus: civilStatus || undefined, occupation: occupation || undefined })
       setEditing(false)
       router.refresh()
     })
@@ -1045,6 +1048,33 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
               <label className="text-xs font-medium text-muted-foreground">Address Line 2 <span className="text-muted-foreground font-normal">(optional)</span></label>
               <input className={inputClass} value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} placeholder="Unit / building / barangay" />
             </div>
+            <div className="flex gap-2">
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-muted-foreground">Sex</label>
+                <select value={sex} onChange={e => setSex(e.target.value)}
+                  className="min-h-[48px] rounded-lg border border-input bg-background px-4 text-sm">
+                  <option value="">— select —</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1 flex-1">
+                <label className="text-xs font-medium text-muted-foreground">Civil Status</label>
+                <select value={civilStatus} onChange={e => setCivilStatus(e.target.value)}
+                  className="min-h-[48px] rounded-lg border border-input bg-background px-4 text-sm">
+                  <option value="">— select —</option>
+                  <option value="SINGLE">Single</option>
+                  <option value="MARRIED">Married</option>
+                  <option value="WIDOWED">Widowed</option>
+                  <option value="SEPARATED">Separated</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-muted-foreground">Occupation</label>
+              <input className={inputClass} value={occupation} onChange={(e) => setOccupation(e.target.value)} placeholder="e.g. Teacher, Nurse" />
+            </div>
             <div className="flex gap-2 pt-1">
               <Button onClick={handleSave} disabled={isPending || !firstName.trim() || !lastName.trim() || !phone.trim()} className="flex-1 min-h-[48px]">
                 {isPending ? 'Saving…' : 'Save'}
@@ -1082,6 +1112,15 @@ function ProfileHeader({ patient }: { patient: FullPatient }) {
             </a>
             {patient.email && (
               <p className="text-sm text-muted-foreground">{patient.email}</p>
+            )}
+            {(patient.sex || patient.civilStatus || patient.occupation) && (
+              <p className="text-sm text-muted-foreground">
+                {[
+                  patient.sex ? (patient.sex === 'MALE' ? 'Male' : 'Female') : null,
+                  patient.civilStatus ? patient.civilStatus.charAt(0) + patient.civilStatus.slice(1).toLowerCase() : null,
+                  patient.occupation ?? null,
+                ].filter(Boolean).join(' · ')}
+              </p>
             )}
             <Link
               href={`/patients/${patient.id}/certificate`}

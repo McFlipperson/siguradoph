@@ -1,5 +1,7 @@
 # RLS Activation Runbook — Dedicated Restricted DB Role
 
+> ✅ **STATUS: COMPLETED 2026-06-09.** This runbook was followed in full. Tested on preview DB, then applied to production. All tests passed. `sigurado_app` role is live, `TENANT_DATABASE_URL` is set in Vercel.
+
 ## Why this exists
 
 Our RLS policies (`supabase/migrations/*_rls_*.sql`) are written correctly, but they

@@ -5,6 +5,7 @@ import { getSessionUser } from '@/lib/auth'
 export async function POST(req: NextRequest) {
   const user = await getSessionUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (user.role !== 'CLINIC_OWNER') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { cpaUserId, clinicId } = await req.json()
 

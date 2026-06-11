@@ -59,6 +59,9 @@ export function IntakeForm({
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [philsysId, setPhilsysId] = useState('')
+  const [sex, setSex] = useState('')
+  const [civilStatus, setCivilStatus] = useState('')
+  const [occupation, setOccupation] = useState('')
   const [isSeniorCitizen, setIsSeniorCitizen] = useState(false)
   const [scIdNumber, setScIdNumber] = useState('')
   const [isPwd, setIsPwd] = useState(false)
@@ -95,6 +98,9 @@ export function IntakeForm({
       phone,
       email: email || undefined,
       philsysId: philsysId || undefined,
+      sex: sex || undefined,
+      civilStatus: civilStatus || undefined,
+      occupation: occupation || undefined,
       isSeniorCitizen,
       scIdNumber: isSeniorCitizen ? (scIdNumber || undefined) : undefined,
       isPwd,
@@ -355,6 +361,38 @@ export function IntakeForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="email">Email <span className="text-muted-foreground font-normal">(optional — leave blank if none)</span></Label>
           <Input id="email" type="text" inputMode="email" value={email} onChange={e => setEmail(e.target.value)} className="min-h-[48px]" placeholder="patient@example.com" />
+        </div>
+
+        {/* Sex + Civil Status side by side */}
+        <div className="flex gap-3">
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Label htmlFor="sex">Sex <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <select id="sex" value={sex} onChange={e => setSex(e.target.value)}
+              className="min-h-[48px] rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">— select —</option>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5 flex-1">
+            <Label htmlFor="civilStatus">Civil Status <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <select id="civilStatus" value={civilStatus} onChange={e => setCivilStatus(e.target.value)}
+              className="min-h-[48px] rounded-md border border-input bg-background px-3 text-sm">
+              <option value="">— select —</option>
+              <option value="SINGLE">Single</option>
+              <option value="MARRIED">Married</option>
+              <option value="WIDOWED">Widowed</option>
+              <option value="SEPARATED">Separated</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Occupation */}
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="occupation">Occupation <span className="text-muted-foreground font-normal">(optional)</span></Label>
+          <Input id="occupation" value={occupation} onChange={e => setOccupation(e.target.value)}
+            className="min-h-[48px]" placeholder="e.g. Teacher, Nurse, Self-employed" />
         </div>
 
         <div className="flex flex-col gap-1.5">

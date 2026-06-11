@@ -57,7 +57,8 @@ export async function GET() {
   )
 
   const header = [
-    'Last Name', 'First Name', 'Date of Birth', 'Phone', 'Email', 'Address',
+    'Last Name', 'First Name', 'Date of Birth', 'Sex', 'Civil Status', 'Occupation',
+    'Phone', 'Email', 'Address',
     'Medical History', 'Medications', 'Allergies',
     'Enrolled', 'Last Visit',
     'Reminder Channel', 'Braces Complete',
@@ -69,6 +70,9 @@ export async function GET() {
     p.lastName,
     p.firstName,
     fmtDate(p.dateOfBirth),
+    p.sex ? (p.sex === 'MALE' ? 'Male' : 'Female') : '',
+    p.civilStatus ? p.civilStatus.charAt(0) + p.civilStatus.slice(1).toLowerCase() : '',
+    p.occupation ?? '',
     p.phone,
     p.email ?? '',
     p.address,

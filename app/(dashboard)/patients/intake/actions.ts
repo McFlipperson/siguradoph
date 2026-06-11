@@ -17,6 +17,9 @@ export type IntakeStep1Data = {
   phone: string
   email?: string
   philsysId?: string
+  sex?: string
+  civilStatus?: string
+  occupation?: string
   medicalHistory: string
   medications: string
   allergies: string
@@ -82,6 +85,9 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
           phone: data.phone.trim(),
           email: data.email?.trim() || null,
           philsysId: data.philsysId?.trim() || null,
+          sex: data.sex || null,
+          civilStatus: data.civilStatus || null,
+          occupation: data.occupation?.trim() || null,
           isSeniorCitizen: data.isSeniorCitizen ?? false,
           scIdNumber: data.isSeniorCitizen ? (data.scIdNumber?.trim() || null) : null,
           isPwd: data.isPwd ?? false,

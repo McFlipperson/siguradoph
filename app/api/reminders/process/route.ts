@@ -71,15 +71,21 @@ export async function POST(req: NextRequest) {
   const internalSecret = req.headers.get('x-internal-secret')
   const isInternal = !!internalSecret && internalSecret === process.env.CRON_SECRET
 
+  let scopedClinicId: string | null = null
   if (!isInternal) {
     const user = await getSessionUser()
     if (!user?.clinicId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    scopedClinicId = user.clinicId
   }
 
   const now = new Date()
 
   const due = await prisma.scheduledReminder.findMany({
-    where: { status: 'PENDING', scheduledFor: { lte: now } },
+    where: {
+      status: 'PENDING',
+      scheduledFor: { lte: now },
+      ...(scopedClinicId ? { clinicId: scopedClinicId } : {}),
+    },
     include: {
       patient: {
         select: {
@@ -144,8 +150,8 @@ export async function POST(req: NextRequest) {
       }
 
       case 'SMS': {
-        // TODO Phase 2: integrate Semaphore SMS API
-        console.log(`SMS reminder skipped for patient ${reminder.patientId} — Phase 2`)
+        // SMS reminders require clinics to configure their own SMS provider.
+        // Patients who select SMS at intake see "coming soon" messaging.
         await prisma.scheduledReminder.update({
           where: { id: reminder.id },
           data: { status: 'FAILED' },
