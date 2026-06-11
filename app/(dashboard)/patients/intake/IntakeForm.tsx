@@ -259,9 +259,18 @@ export function IntakeForm({
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Messenger QR code will appear here once the clinic&apos;s Facebook Page ID is configured.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Messenger not connected yet</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  To use Messenger reminders, the clinic needs to connect its Facebook Page first.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Go to <strong>Reminders → Connect with Facebook</strong>, then come back to this intake.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  For now, choose <strong>Email</strong> or <strong>No reminders</strong> below.
+                </p>
+              </div>
             )}
           </div>
         )}
