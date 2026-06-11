@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
 function createPrismaClient(connectionString: string | undefined) {
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({ connectionString, max: 1 })
   const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
