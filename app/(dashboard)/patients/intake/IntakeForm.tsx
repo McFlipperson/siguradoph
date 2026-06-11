@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
+import { InfoSheet } from '@/components/InfoSheet'
 
 const GUARDIAN_RELATIONSHIPS = [
   'Mother', 'Father', 'Legal Guardian', 'Grandparent', 'Sibling (18+)', 'Other',
@@ -34,7 +35,6 @@ type ChannelOption = {
 const CHANNEL_OPTIONS: ChannelOption[] = [
   { channel: 'MESSENGER', emoji: '📱', label: 'Messenger',    sub: 'Via Facebook Messenger' },
   { channel: 'EMAIL',     emoji: '📧', label: 'Email',        sub: 'To your email address' },
-  { channel: 'SMS',       emoji: '📞', label: 'SMS',          sub: 'To your phone number' },
   { channel: 'NONE',      emoji: '✕',  label: 'No reminders', sub: 'Skip reminders' },
 ]
 
@@ -178,11 +178,6 @@ export function IntakeForm({
               Reminders will be sent to <strong>{email}</strong>.
             </p>
           )}
-          {channel === 'SMS' && (
-            <p className="text-sm text-muted-foreground">
-              SMS reminders will be sent to <strong>{phone}</strong> when available.
-            </p>
-          )}
           {channel === 'NONE' && (
             <p className="text-sm text-muted-foreground">No reminders will be sent.</p>
           )}
@@ -204,7 +199,14 @@ export function IntakeForm({
     return (
       <div className="flex flex-col gap-5 pb-10">
         <div>
-          <h2 className="text-lg font-semibold">How would you like to receive reminders?</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">How would you like to receive reminders?</h2>
+            <InfoSheet title="Reminder channels">
+              <p><strong>Messenger</strong> — sends via Facebook Messenger. Requires the clinic to connect their Facebook page. Best for patients who use Messenger daily.</p>
+              <p><strong>Email</strong> — works immediately, no setup needed. Recommended for new clinics.</p>
+              <p>💡 If unsure, choose <strong>Email</strong> — it works right away.</p>
+            </InfoSheet>
+          </div>
           <p className="text-sm text-muted-foreground mt-1">
             We&apos;ll remind you about upcoming appointments and when it&apos;s time for your next visit.
           </p>
@@ -275,15 +277,6 @@ export function IntakeForm({
                 No email address on file. Go back and add one, or choose another option.
               </p>
             )}
-          </div>
-        )}
-
-        {channel === 'SMS' && (
-          <div className="rounded-xl border bg-background p-4 text-center space-y-1">
-            <p className="text-sm text-muted-foreground">
-              Reminders will be sent to <strong className="text-foreground">{phone}</strong>
-            </p>
-            <p className="text-xs text-muted-foreground">SMS reminders coming soon.</p>
           </div>
         )}
 

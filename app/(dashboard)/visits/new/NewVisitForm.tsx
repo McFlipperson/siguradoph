@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { SERVICE_CARD_FIELDS, type LoyaltyBenefitApplication } from '@/lib/loyaltyConfig'
 import type { VisitSetup, VisitLoyaltyCard } from '../actions'
+import { InfoSheet } from '@/components/InfoSheet'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -485,6 +486,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               placeholder="0.00"
               min={0}
             />
+            <p className="text-xs text-muted-foreground mt-1">Enter the actual amount charged to this patient for this visit.</p>
           </CardContent>
         </Card>
       )}
@@ -720,6 +722,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               <span>VAT-Exempt (NIRC §109)</span>
               <span>₱0.00</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Dental services are VAT-exempt. The gross amount is reported as-is in your BIR quarterly filing.</p>
           </CardContent>
         </Card>
       )}
@@ -742,7 +745,13 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
             </div>
             {isBracesReminder && (
               <div className="flex flex-col gap-1.5">
-                <Label>Reminder interval</Label>
+                <div className="flex items-center gap-2">
+                  <Label>Reminder interval</Label>
+                  <InfoSheet title="Braces reminder interval">
+                    <p>This sets how many weeks until the next braces alignment reminder is automatically sent to the patient.</p>
+                    <p>Typical range is <strong>4–6 weeks</strong> depending on the patient's treatment plan. After each alignment visit, a new reminder is scheduled automatically.</p>
+                  </InfoSheet>
+                </div>
                 <select className={inputClass} value={reminderWeeks} onChange={(e) => setReminderWeeks(Number(e.target.value))}>
                   {REMINDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>

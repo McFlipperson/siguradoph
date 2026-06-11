@@ -8,6 +8,7 @@ import { selfReportPayment } from './actions'
 import { PLAN_PRICES } from '@/lib/billing-constants'
 import { Check, Copy, Zap, ArrowRight, CalendarClock, Tag } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { InfoSheet } from '@/components/InfoSheet'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-PH', {
@@ -432,7 +433,14 @@ function PromoCodePanel({ promoExpiresAt, onRedeemed }: { promoExpiresAt: string
 
   return (
     <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Have a promo code?</p>
+      <div className="flex items-center gap-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Have a promo code?</p>
+        <InfoSheet title="Promo code">
+          <p>A promo code gives you a <strong>free PRO trial</strong> for 3 months — no payment needed.</p>
+          <p>PRO includes unlimited patients, scheduling, reminders, loyalty cards, payroll, and the full compliance suite.</p>
+          <p>After the trial ends, your clinic moves back to the Free plan. You can upgrade anytime to keep full access.</p>
+        </InfoSheet>
+      </div>
       <div className="flex gap-2">
         <input
           type="text"
