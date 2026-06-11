@@ -470,6 +470,7 @@ export default function BillingClient({
   autoOpenPlan?: 'BASIC' | 'PRO' | null
   promoExpiresAt: string | null
 }) {
+  const router = useRouter()
   const plansToShow = PLAN_DEFS.filter((p) => PLAN_RANK[p.id] >= PLAN_RANK[currentPlan])
   const currentPlanDef = PLAN_DEFS.find((p) => p.id === currentPlan)
 
