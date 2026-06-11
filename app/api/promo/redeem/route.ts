@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Schedule drip emails as PromoEmail records
     const now = new Date()
-    function daysFromNow(d: number) {
+    const daysFromNow = (d: number) => {
       const dt = new Date(now)
       dt.setDate(dt.getDate() + d)
       dt.setHours(9, 0, 0, 0) // 9am Manila
