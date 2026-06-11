@@ -167,6 +167,35 @@ export default function ReportsClient({ today, week, month, monthLabel }: Props)
           ))
         )}
       </Section>
+
+      {/* Backup & Export */}
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 space-y-3">
+        <div>
+          <h2 className="text-sm font-bold text-blue-900">Backup & Export</h2>
+          <p className="text-xs text-blue-600 mt-0.5">Download your data as a spreadsheet anytime.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { href: '/api/patients/export', label: 'Patients', icon: <path d="M13 2H6a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7z" />, icon2: <path d="M13 2v5h5M8 13h4M10 11v4" /> },
+            { href: '/api/invoices/export', label: 'Invoices', icon: <rect x="2" y="3" width="16" height="14" rx="2" />, icon2: <path d="M6 7h8M6 10h8M6 13h5" /> },
+            { href: '/api/expenses/export', label: 'Expenses', icon: <path d="M10 2a8 8 0 100 16A8 8 0 0010 2z" />, icon2: <path d="M10 6v4l3 3" /> },
+          ].map(({ href, label, icon, icon2 }) => (
+            <a
+              key={label}
+              href={href}
+              download
+              className="flex flex-col items-center justify-center gap-1.5 min-h-[72px] rounded-xl bg-white border border-blue-100 text-xs font-semibold text-blue-700 active:bg-blue-50 transition-colors px-2 text-center shadow-sm"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                {icon}{icon2}
+              </svg>
+              {label}
+            </a>
+          ))}
+        </div>
+        <p className="text-xs text-blue-400">CSV · opens in Excel, Google Sheets, Numbers</p>
+      </div>
+
     </div>
   )
 }
