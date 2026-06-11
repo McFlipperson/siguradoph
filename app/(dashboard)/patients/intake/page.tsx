@@ -20,7 +20,11 @@ export default async function IntakePage() {
         <h1 className="text-xl font-bold font-heading">Patient Intake Form</h1>
         <p className="text-sm text-muted-foreground mt-1">Hand the tablet to the patient to fill out.</p>
       </div>
-      <IntakeForm clinicName={user.clinic.name} clinicFacebookPageUrl={user.clinic.facebookPageUrl} />
+      <IntakeForm
+        clinicName={user.clinic.name}
+        clinicFacebookPageUrl={user.clinic.facebookPageUrl}
+        clinicMessengerPageId={user.clinic.messengerPageId}
+      />
     </div>
   )
 }

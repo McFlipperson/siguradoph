@@ -19,8 +19,6 @@ const GUARDIAN_RELATIONSHIPS = [
   'Mother', 'Father', 'Legal Guardian', 'Grandparent', 'Sibling (18+)', 'Other',
 ]
 
-const FB_PAGE_ID = process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID ?? ''
-
 // RA 10173 consent-notice version. Bump this whenever the consent statement
 // text below changes, so each ConsentRecord proves exactly what the patient agreed to.
 const CONSENT_NOTICE_VERSION = '2026-06-01'
@@ -41,9 +39,11 @@ const CHANNEL_OPTIONS: ChannelOption[] = [
 export function IntakeForm({
   clinicName,
   clinicFacebookPageUrl,
+  clinicMessengerPageId,
 }: {
   clinicName: string
   clinicFacebookPageUrl?: string | null
+  clinicMessengerPageId?: string | null
 }) {
   const router = useRouter()
   type Step = 'form' | 'reminders' | 'done'
@@ -156,8 +156,8 @@ export function IntakeForm({
     scrollTop()
   }
 
-  const messengerUrl = FB_PAGE_ID && patientId
-    ? `https://m.me/${FB_PAGE_ID}?ref=patient_${patientId}`
+  const messengerUrl = clinicMessengerPageId && patientId
+    ? `https://m.me/${clinicMessengerPageId}?ref=patient_${patientId}`
     : null
 
   // ── DONE ──────────────────────────────────────────────────────────────────
