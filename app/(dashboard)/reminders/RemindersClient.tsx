@@ -614,11 +614,7 @@ export default function RemindersClient({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm">{ch.label}</span>
-                      {ch.comingSoon ? (
-                        <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
-                          Coming soon
-                        </span>
-                      ) : ch.active ? (
+                      {ch.active ? (
                         <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
                           Active
                         </span>
@@ -636,12 +632,9 @@ export default function RemindersClient({
                 {ch.actionLabel && (
                   <button
                     onClick={ch.onAction ?? undefined}
-                    disabled={ch.comingSoon}
                     className={[
                       'shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg min-h-[36px] transition-colors',
-                      ch.comingSoon
-                        ? 'text-muted-foreground cursor-default'
-                        : ch.active
+                      ch.active
                           ? 'border border-border text-foreground hover:bg-muted'
                           : 'bg-primary text-primary-foreground',
                     ].join(' ')}
