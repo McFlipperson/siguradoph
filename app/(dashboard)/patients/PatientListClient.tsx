@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -74,6 +74,27 @@ export default function PatientListClient({
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState<Tab>('all')
   const [isPending, startTransition] = useTransition()
+  const [searchResults, setSearchResults] = useState<PatientSummary[] | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const runSearch = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setSearchResults(null); return }
+    setIsSearching(true)
+    try {
+      const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q.trim())}`)
+      if (res.ok) setSearchResults(await res.json())
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  function handleQueryChange(value: string) {
+    setQuery(value)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (value.trim().length < 2) { setSearchResults(null); return }
+    debounceRef.current = setTimeout(() => runSearch(value), 300)
+  }
 
   function loadMore() {
     const nextPage = page + 1
@@ -86,21 +107,13 @@ export default function PatientListClient({
   }
 
   const filtered = useMemo(() => {
+    if (searchResults !== null) return searchResults
     let list = patients
     if (tab === 'today') {
       list = list.filter((p) => isToday(p.enrolledAt))
     }
-    if (query.trim()) {
-      const q = query.toLowerCase()
-      list = list.filter(
-        (p) =>
-          p.firstName.toLowerCase().includes(q) ||
-          p.lastName.toLowerCase().includes(q) ||
-          p.phone.includes(q)
-      )
-    }
     return list
-  }, [patients, query, tab])
+  }, [patients, searchResults, tab])
 
   return (
     <div className="flex flex-col gap-4 pb-24">
@@ -110,7 +123,7 @@ export default function PatientListClient({
         autoFocus
         placeholder="Search by name or phone…"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => handleQueryChange(e.target.value)}
         className="w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
       />
 
@@ -135,15 +148,15 @@ export default function PatientListClient({
       <div className="flex flex-col gap-3">
         {filtered.length === 0 ? (
           <p className="text-center text-sm text-muted-foreground py-8">
-            {query ? 'No patients match your search.' : 'No patients yet.'}
+            {isSearching ? 'Searching…' : query ? 'No patients match your search.' : 'No patients yet.'}
           </p>
         ) : (
           filtered.map((p) => <PatientCard key={p.id} patient={p} />)
         )}
       </div>
 
-      {/* Load more — only show on All tab with no search query */}
-      {hasMore && !query && tab === 'all' && (
+      {/* Load more — only show on All tab with no search active */}
+      {hasMore && searchResults === null && tab === 'all' && (
         <button
           onClick={loadMore}
           disabled={isPending}

@@ -26,11 +26,39 @@ export async function GET(req: NextRequest) {
           { phone: { contains: q } },
         ],
       },
-      select: { id: true, firstName: true, lastName: true, phone: true },
+      select: {
+        id: true,
+        firstName: true,
+        middleName: true,
+        lastName: true,
+        phone: true,
+        dateOfBirth: true,
+        enrolledAt: true,
+        visits: {
+          orderBy: { visitDate: 'desc' },
+          take: 1,
+          select: { visitDate: true },
+        },
+        loyaltyCards: {
+          where: { isActive: true },
+          take: 1,
+          select: { id: true },
+        },
+      },
       take: 10,
       orderBy: { lastName: 'asc' },
     })
   )
 
-  return NextResponse.json(patients)
+  return NextResponse.json(patients.map((p) => ({
+    id: p.id,
+    firstName: p.firstName,
+    middleName: p.middleName ?? null,
+    lastName: p.lastName,
+    phone: p.phone,
+    dateOfBirth: p.dateOfBirth,
+    enrolledAt: p.enrolledAt,
+    lastVisitDate: p.visits[0]?.visitDate ?? null,
+    hasActiveLoyaltyCard: p.loyaltyCards.length > 0,
+  })))
 }
