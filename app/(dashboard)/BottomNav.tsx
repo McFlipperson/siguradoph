@@ -54,16 +54,16 @@ const MENU_SECTIONS: MenuSection[] = [
   {
     title: 'Daily',
     items: [
-      { label: 'Invoices',    href: '/invoices',  icon: FileText,  color: 'bg-blue-500'   },
+      { label: 'Invoices / Receipts',    href: '/invoices',  icon: FileText,  color: 'bg-blue-500'   },
     ],
   },
   {
     title: 'Clinic',
     items: [
       { label: 'Reminders',     href: '/reminders', icon: Bell,        color: 'bg-sky-500',    feature: 'reminders' },
-      { label: 'Employees',     href: '/employees', icon: Users,       color: 'bg-violet-500', feature: 'employees' },
+      { label: 'Employees / Payroll', href: '/employees', icon: Users,       color: 'bg-violet-500', feature: 'employees' },
       { label: 'Loyalty Cards', href: '/loyalty',   icon: CreditCard,  color: 'bg-rose-500',   feature: 'loyalty'   },
-      { label: 'Reports',       href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500', feature: 'reports'  },
+      { label: 'Reports / Downloads', href: '/reports',   icon: BarChart2,   color: 'bg-emerald-500', feature: 'reports'  },
     ],
   },
   /* TAX_MODULE — Finance section hidden; re-enable in lib/features.ts */
