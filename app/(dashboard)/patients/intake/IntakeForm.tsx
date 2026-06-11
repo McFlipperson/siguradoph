@@ -30,7 +30,7 @@ type ChannelOption = {
   sub: string
 }
 
-const CHANNEL_OPTIONS: ChannelOption[] = [
+const ALL_CHANNEL_OPTIONS: ChannelOption[] = [
   { channel: 'MESSENGER', emoji: '📱', label: 'Messenger',    sub: 'Via Facebook Messenger' },
   { channel: 'EMAIL',     emoji: '📧', label: 'Email',        sub: 'To your email address' },
   { channel: 'NONE',      emoji: '✕',  label: 'No reminders', sub: 'Skip reminders' },
@@ -73,6 +73,10 @@ export function IntakeForm({
   const [guardianName, setGuardianName] = useState('')
   const [guardianRelationship, setGuardianRelationship] = useState('')
   const [consentGiven, setConsentGiven] = useState(false)
+
+  const CHANNEL_OPTIONS = clinicMessengerPageId
+    ? ALL_CHANNEL_OPTIONS
+    : ALL_CHANNEL_OPTIONS.filter((o) => o.channel !== 'MESSENGER')
 
   // ── Step 2 state ───────────────────────────────────────────────────────────
   const [patientId, setPatientId] = useState<string | null>(null)
@@ -258,20 +262,7 @@ export function IntakeForm({
                   )}
                 </div>
               </>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm font-medium">Messenger not connected yet</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  To use Messenger reminders, the clinic needs to connect its Facebook Page first.
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Go to <strong>Reminders → Connect with Facebook</strong>, then come back to this intake.
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  For now, choose <strong>Email</strong> or <strong>No reminders</strong> below.
-                </p>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
 
