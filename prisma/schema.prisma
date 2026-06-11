@@ -154,6 +154,9 @@ model Clinic {
   gcashNumber              String?      // clinic owner's GCash mobile number — used to match incoming payments
   tosAcceptedAt            DateTime?    // timestamp when DPA/ToS was accepted during onboarding
   trialEndsAt              DateTime?    // set to createdAt + 30 days on first create
+  promoCode                String?      // promo code used to activate a free PRO trial
+  promoExpiresAt           DateTime?    // when the promo PRO trial expires
+  deletionRequestedAt      DateTime?    // set when clinic owner requests account deletion; wipe fires after 30 days
   createdAt                DateTime     @default(now())
   updatedAt                DateTime     @updatedAt
 
@@ -179,6 +182,7 @@ model Clinic {
   pendingMessengerLink       PendingMessengerLink?
   incidentLogs               IncidentLog[]
   pendingUpgrades            PendingUpgrade[]
+  promoEmails                PromoEmail[]
 }
 
 // RA 10173 — Security incident & data-breach register.
@@ -269,6 +273,7 @@ model Patient {
   pwdDisabilityType String?  // VISUAL | HEARING | SPEECH | PHYSICAL | INTELLECTUAL | PSYCHOSOCIAL | LEARNING | MENTAL
   enrolledAt                   DateTime
   createdAt                    DateTime @default(now())
+  archived                     Boolean  @default(false)  // true when clinic downgrades past 30-patient free limit; hidden from UI, restored on upgrade
   anonymizedAt                 DateTime?  // set when PII is scrubbed under RA 10173 erasure while BIR financial records are retained
 
   consentRecords     ConsentRecord[]
@@ -674,4 +679,19 @@ model ScPwdAuditLog {
   discountPct    Decimal  @default(20)
   discountAmount Decimal
   createdAt      DateTime @default(now())
+}
+
+// Scheduled drip emails for promo trial clinics
+model PromoEmail {
+  id           String   @id @default(cuid())
+  clinicId     String
+  clinic       Clinic   @relation(fields: [clinicId], references: [id])
+  emailType    String   // DAY_5 | DAY_10 | EXPIRY_7 | EXPIRY_3 | EXPIRY_0
+  scheduledFor DateTime
+  status       String   @default("PENDING") // PENDING | SENT | FAILED
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([status, scheduledFor])
+  @@index([clinicId])
 }

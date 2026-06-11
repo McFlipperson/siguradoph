@@ -1,11 +1,19 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { createServerClient } from '@/lib/supabase'
 import { isAdminEmail } from '@/lib/admin'
 import { revalidatePath } from 'next/cache'
 import type { Plan } from '@/lib/entitlements'
 import { Resend } from 'resend'
+
+/** Unarchive all patients for a clinic (called when upgrading from FREE). */
+async function unarchivePatients(clinicId: string) {
+  await withClinicDb(clinicId, (tx) =>
+    tx.patient.updateMany({ where: { clinicId, archived: true }, data: { archived: false } })
+  )
+}
 
 /** Set a clinic's subscription plan. Sigurado-admin only. */
 export async function setClinicPlan(clinicId: string, plan: Plan): Promise<void> {
@@ -23,6 +31,9 @@ export async function setClinicPlan(clinicId: string, plan: Plan): Promise<void>
   if (before.plan === plan) return // no-op, don't log
 
   await prisma.clinic.update({ where: { id: clinicId }, data: { plan } })
+
+  // Restore archived patients when upgrading to a paid plan
+  if (plan !== 'FREE') await unarchivePatients(clinicId)
 
   // Tamper-evident record of who changed what, when.
   await prisma.adminAuditLog.create({
@@ -84,7 +95,8 @@ export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
     prisma.clinic.update({
       where: { id: upgrade.clinicId },
       data: { plan: targetPlan },
-    }),
+    }), // unarchive patients outside transaction (separate DB connection)
+
     prisma.pendingUpgrade.update({
       where: { id: upgradeId },
       data: {
@@ -102,6 +114,9 @@ export async function confirmPendingUpgrade(upgradeId: string): Promise<void> {
       },
     }),
   ])
+
+  // Restore archived patients on upgrade
+  await unarchivePatients(upgrade.clinicId)
 
   // Email the clinic
   const planLabel = targetPlan === 'BASIC' ? 'Basic (₱499/mo)' : 'Pro (₱999/mo)'

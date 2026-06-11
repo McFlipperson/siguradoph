@@ -55,7 +55,7 @@ export async function submitIntakeStep1(data: IntakeStep1Data): Promise<IntakeSt
     const plan = await getClinicPlan(clinicId)
     const limit = patientLimit(plan)
     if (Number.isFinite(limit)) {
-      const count = await db((tx) => tx.patient.count({ where: { clinicId } }))
+      const count = await db((tx) => tx.patient.count({ where: { clinicId, archived: false } }))
       if (count >= limit) return { success: false, error: 'patient_limit' }
     }
 

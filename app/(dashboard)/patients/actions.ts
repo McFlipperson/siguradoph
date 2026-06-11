@@ -21,7 +21,7 @@ export async function getPatients(page = 0): Promise<{ patients: PatientSummary[
   const PAGE_SIZE = 30
   const { clinicId, db } = await getActorDb()
   const patients = await db((tx) => tx.patient.findMany({
-    where: { clinicId },
+    where: { clinicId, archived: false },
     orderBy: { createdAt: 'desc' },
     skip: page * PAGE_SIZE,
     take: PAGE_SIZE + 1, // fetch one extra to know if there's a next page

@@ -76,6 +76,7 @@ export default async function SettingsPage() {
         prcLicenseNo: clinic.prcLicenseNo ?? '',
         signatureUrl: clinic.signatureUrl ?? null,
         gcashNumber: clinic.gcashNumber ?? '',
+        deletionRequestedAt: clinic.deletionRequestedAt?.toISOString() ?? null,
       }}
       initialServices={services.map(s => ({
         id: s.id,

@@ -1,6 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
+import { withClinicDb } from '@/lib/clinic-db'
 import { getActor } from '@/lib/auth'
 import { PLAN_PRICES } from '@/lib/billing-constants'
 import { Resend } from 'resend'
@@ -121,7 +122,7 @@ export async function selfReportPayment(
         where: { id: clinicId },
         data: { plan },
         select: { name: true, email: true, slug: true },
-      }),
+      }), // unarchive patients outside transaction below
       prisma.adminAuditLog.create({
         data: {
           actorEmail: userEmail,
@@ -131,6 +132,11 @@ export async function selfReportPayment(
         },
       }),
     ])
+
+    // Restore archived patients on upgrade
+    await withClinicDb(clinicId, (tx) =>
+      tx.patient.updateMany({ where: { clinicId, archived: true }, data: { archived: false } })
+    )
 
     // Send confirmation email
     if (clinic.email && process.env.RESEND_API_KEY) {

@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
     tx.patient.findMany({
       where: {
         clinicId,
+        archived: false,
         OR: [
           { firstName: { contains: q, mode: 'insensitive' } },
           { lastName: { contains: q, mode: 'insensitive' } },

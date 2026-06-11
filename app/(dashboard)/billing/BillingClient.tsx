@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { type Plan } from '@/lib/entitlements'
 import { selfReportPayment } from './actions'
 import { PLAN_PRICES } from '@/lib/billing-constants'
-import { Check, Copy, Zap, ArrowRight, CalendarClock } from 'lucide-react'
+import { Check, Copy, Zap, ArrowRight, CalendarClock, Tag } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 function formatDate(iso: string) {
@@ -393,6 +393,66 @@ function PlanCard({ plan, currentPlan, gcashNumber, autoOpen = false }: { plan: 
 
 // ─── BillingClient ────────────────────────────────────────────────────────────
 
+function PromoCodePanel({ promoExpiresAt, onRedeemed }: { promoExpiresAt: string | null; onRedeemed: () => void }) {
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  if (promoExpiresAt) {
+    const expiry = new Date(promoExpiresAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })
+    return (
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-start gap-3">
+        <Tag className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-emerald-800">PRO trial active</p>
+          <p className="text-xs text-emerald-700 mt-0.5">Your free PRO trial expires on {expiry}.</p>
+        </div>
+      </div>
+    )
+  }
+
+  async function handleRedeem() {
+    if (!code.trim()) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/promo/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+      })
+      const data = await res.json() as { ok?: boolean; error?: string; promoExpiresAt?: string }
+      if (!res.ok) { toast.error(data.error ?? 'Invalid code'); return }
+      toast.success('PRO trial activated! Refreshing...')
+      setTimeout(onRedeemed, 1500)
+    } catch {
+      toast.error('Something went wrong.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-3">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Have a promo code?</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          placeholder="Enter code"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          className="flex-1 rounded-xl border bg-background px-3 py-2.5 text-sm min-h-[48px]"
+        />
+        <button
+          onClick={handleRedeem}
+          disabled={loading || !code.trim()}
+          className="rounded-xl bg-primary text-primary-foreground px-4 py-2.5 text-sm font-semibold min-h-[48px] disabled:opacity-50"
+        >
+          {loading ? '...' : 'Apply'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function BillingClient({
   currentPlan,
   clinicName,
@@ -400,6 +460,7 @@ export default function BillingClient({
   recentlyConfirmedPlan,
   nextDueDate,
   autoOpenPlan,
+  promoExpiresAt,
 }: {
   currentPlan: Plan
   clinicName: string
@@ -407,6 +468,7 @@ export default function BillingClient({
   recentlyConfirmedPlan: Plan | null
   nextDueDate: string | null
   autoOpenPlan?: 'BASIC' | 'PRO' | null
+  promoExpiresAt: string | null
 }) {
   const plansToShow = PLAN_DEFS.filter((p) => PLAN_RANK[p.id] >= PLAN_RANK[currentPlan])
   const currentPlanDef = PLAN_DEFS.find((p) => p.id === currentPlan)
@@ -481,6 +543,8 @@ export default function BillingClient({
           ))}
         </div>
       )}
+
+      <PromoCodePanel promoExpiresAt={promoExpiresAt} onRedeemed={() => router.refresh()} />
 
       {currentPlan === 'FREE' && (
         <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">

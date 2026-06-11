@@ -20,7 +20,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
 
   const clinic = await prisma.clinic.findUnique({
     where: { id: user.clinicId },
-    select: { plan: true, name: true, email: true },
+    select: { plan: true, name: true, email: true, promoExpiresAt: true },
   })
   if (!clinic) redirect('/onboarding')
 
@@ -77,6 +77,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       recentlyConfirmedPlan={recentConfirmed?.plan as Plan | null ?? null}
       nextDueDate={nextDueDate}
       autoOpenPlan={autoOpenPlan}
+      promoExpiresAt={clinic.promoExpiresAt?.toISOString() ?? null}
     />
   )
 }

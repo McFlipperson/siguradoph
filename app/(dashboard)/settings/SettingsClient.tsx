@@ -58,6 +58,7 @@ type ClinicData = {
   prcLicenseNo: string
   signatureUrl: string | null
   gcashNumber: string
+  deletionRequestedAt: string | null
 }
 
 type ServiceItem = {
@@ -275,6 +276,9 @@ export default function SettingsClient({
   const [prcLicenseNo, setPrcLicenseNo] = useState(clinic.prcLicenseNo)
   const [signatureUrl, setSignatureUrl] = useState<string | null>(clinic.signatureUrl)
   const [gcashNumber, setGcashNumber] = useState(clinic.gcashNumber)
+  const [deletionRequested, setDeletionRequested] = useState(!!clinic.deletionRequestedAt)
+  const [deletionLoading, setDeletionLoading] = useState(false)
+  const [showDeletionConfirm, setShowDeletionConfirm] = useState(false)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [tin, setTin] = useState(clinic.tin)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -843,6 +847,68 @@ export default function SettingsClient({
           >
             {savingClinic ? 'Saving…' : 'Save Changes'}
           </button>
+
+          {/* Danger Zone */}
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 space-y-3 mt-2">
+            <h2 className="text-xs font-semibold text-destructive uppercase tracking-wide">Danger Zone</h2>
+            {deletionRequested ? (
+              <div className="space-y-2">
+                <p className="text-sm text-destructive font-medium">Account deletion is scheduled.</p>
+                <p className="text-xs text-muted-foreground">All clinic data will be permanently deleted in 30 days. You can cancel before then.</p>
+                <button
+                  onClick={async () => {
+                    setDeletionLoading(true)
+                    try {
+                      const res = await fetch('/api/account/delete-request', { method: 'DELETE' })
+                      if (res.ok) { setDeletionRequested(false); toast.success('Deletion cancelled. Your account is safe.') }
+                      else { const d = await res.json() as { error?: string }; toast.error(d.error ?? 'Error') }
+                    } finally { setDeletionLoading(false) }
+                  }}
+                  disabled={deletionLoading}
+                  className="w-full min-h-[48px] rounded-xl border border-emerald-600 text-emerald-700 font-medium text-sm disabled:opacity-50"
+                >
+                  {deletionLoading ? 'Cancelling…' : 'Cancel deletion'}
+                </button>
+              </div>
+            ) : showDeletionConfirm ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-destructive">Are you sure? This cannot be undone.</p>
+                <p className="text-xs text-muted-foreground">All patients, visits, invoices, and clinic data will be permanently deleted after 30 days. You can cancel during this window by logging in.</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowDeletionConfirm(false)}
+                    className="flex-1 min-h-[48px] rounded-xl border text-sm font-medium"
+                  >
+                    Go back
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setDeletionLoading(true)
+                      try {
+                        const res = await fetch('/api/account/delete-request', { method: 'POST' })
+                        if (res.ok) { setDeletionRequested(true); setShowDeletionConfirm(false); toast.success('Deletion scheduled. Check your email for confirmation.') }
+                        else { const d = await res.json() as { error?: string }; toast.error(d.error ?? 'Error') }
+                      } finally { setDeletionLoading(false) }
+                    }}
+                    disabled={deletionLoading}
+                    className="flex-1 min-h-[48px] rounded-xl bg-destructive text-white text-sm font-semibold disabled:opacity-50"
+                  >
+                    {deletionLoading ? 'Scheduling…' : 'Yes, delete'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Permanently delete this clinic and all associated data. This is irreversible after 30 days.</p>
+                <button
+                  onClick={() => setShowDeletionConfirm(true)}
+                  className="w-full min-h-[48px] rounded-xl border border-destructive text-destructive font-medium text-sm"
+                >
+                  Delete my account
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
