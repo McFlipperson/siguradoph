@@ -3,21 +3,9 @@
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { Users, Banknote, Clock, CalendarDays } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
 
 type Appointment = {
   id: string
@@ -31,7 +19,7 @@ type Appointment = {
 type WalkIn = {
   id: string
   name: string
-  enrolledAt: string  // actually visitDate — kept same field name for compat
+  enrolledAt: string
   hasVisit: boolean
 }
 
@@ -60,14 +48,6 @@ type DashboardData = {
   currentMonth: number
 }
 
-type Props = {
-  data: DashboardData
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 function fmt(n: number): string {
   return new Intl.NumberFormat('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
 }
@@ -78,22 +58,23 @@ function fmtTime(iso: string): string {
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    SCHEDULED: 'bg-blue-100 text-blue-800',
-    CONFIRMED: 'bg-green-100 text-green-800',
-    WALK_IN: 'bg-amber-100 text-amber-800',
-    COMPLETED: 'bg-gray-100 text-gray-600',
-    CANCELLED: 'bg-red-100 text-red-700',
-  }
-  return map[status] ?? 'bg-gray-100 text-gray-600'
+const STATUS_LABEL: Record<string, string> = {
+  SCHEDULED: 'Scheduled',
+  CONFIRMED: 'Confirmed',
+  WALK_IN: 'Walk-in',
+  COMPLETED: 'Done',
+  CANCELLED: 'Cancelled',
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const STATUS_COLOR: Record<string, string> = {
+  SCHEDULED: 'bg-blue-100 text-blue-800 border border-blue-200',
+  CONFIRMED: 'bg-green-100 text-green-800 border border-green-200',
+  WALK_IN: 'bg-amber-100 text-amber-800 border border-amber-200',
+  COMPLETED: 'bg-gray-100 text-gray-700 border border-gray-200',
+  CANCELLED: 'bg-red-100 text-red-700 border border-red-200',
+}
 
-export default function DashboardClient({ data }: Props) {
+export default function DashboardClient({ data }: { data: DashboardData }) {
   const router = useRouter()
   const today = new Date()
 
@@ -103,143 +84,117 @@ export default function DashboardClient({ data }: Props) {
     isCurrent: i === data.currentMonth,
   }))
 
-  return (
-    <div className="space-y-5">
+  const allPatients = [
+    ...data.appointments.map(a => ({ id: a.patientId, name: a.patientName, time: fmtTime(a.scheduledAt), status: a.status })),
+    ...data.walkIns.map(w => ({ id: w.id, name: w.name, time: fmtTime(w.enrolledAt), status: 'COMPLETED' })),
+  ]
 
-      {/* ── Header ─────────────────────────────────────────── */}
+  return (
+    <div className="flex flex-col gap-6 pb-10">
+
+      {/* ── Header ── */}
       <div className="flex items-center justify-between pt-1">
         <Image
           src={data.logoUrl ?? '/logo.png'}
           alt={data.clinicName}
           width={390}
           height={108}
-          className="h-28 w-auto object-contain"
+          className="h-20 w-auto object-contain"
           unoptimized={!!data.logoUrl}
         />
         <div className="text-right">
-          <p className="text-xs text-muted-foreground">{format(today, 'EEEE')}</p>
-          <p className="text-sm font-bold text-foreground">{format(today, 'MMMM d')}</p>
+          <p className="text-base font-medium text-muted-foreground">{format(today, 'EEEE')}</p>
+          <p className="text-xl font-bold text-foreground">{format(today, 'MMMM d')}</p>
         </div>
       </div>
 
-      {/* ── Stats Grid ─────────────────────────────────────── */}
+      {/* ── Stat Tiles ── */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Patients Seen — deep blue */}
-        <div className="rounded-2xl p-5 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)' }}>
-          <Users className="absolute top-4 right-4 w-5 h-5 text-blue-200" />
-          <p className="text-blue-100 text-xs font-medium mb-2">Patients Seen</p>
-          <p className="text-4xl font-extrabold tracking-tight">{data.stats.patientsSeen}</p>
-          <p className="text-blue-200 text-xs mt-1">today</p>
+
+        {/* Patients Seen */}
+        <div className="rounded-3xl p-5 flex flex-col gap-2 bg-blue-600 text-white shadow-md">
+          <p className="text-base font-semibold opacity-80">Patients Seen</p>
+          <p className="text-6xl font-black leading-none">{data.stats.patientsSeen}</p>
+          <p className="text-sm opacity-70">today</p>
         </div>
-        {/* Revenue — sky blue */}
-        <div className="rounded-2xl p-5 relative overflow-hidden text-white" style={{ background: 'linear-gradient(135deg, #0369a1 0%, #38bdf8 100%)' }}>
-          <Banknote className="absolute top-4 right-4 w-5 h-5 text-sky-200" />
-          <p className="text-sky-100 text-xs font-medium mb-2">Today&apos;s Revenue</p>
-          <p className="text-4xl font-extrabold tracking-tight">₱{fmt(data.stats.todayRevenue)}</p>
-          <p className="text-sky-200 text-xs mt-1">collected</p>
+
+        {/* Revenue */}
+        <div className="rounded-3xl p-5 flex flex-col gap-2 bg-emerald-500 text-white shadow-md">
+          <p className="text-base font-semibold opacity-80">Revenue</p>
+          <p className="text-4xl font-black leading-none break-all">₱{fmt(data.stats.todayRevenue)}</p>
+          <p className="text-sm opacity-70">today</p>
         </div>
-        {/* Pending — amber */}
-        <div className="rounded-2xl p-5 relative overflow-hidden bg-amber-50 border border-amber-100">
-          <Clock className="absolute top-4 right-4 w-5 h-5 text-amber-400" />
-          <p className="text-amber-600 text-xs font-medium mb-2">Pending</p>
-          <p className="text-4xl font-extrabold tracking-tight text-amber-700">{data.stats.pending}</p>
-          <p className="text-amber-400 text-xs mt-1">awaiting</p>
+
+        {/* Pending */}
+        <div className="rounded-3xl p-5 flex flex-col gap-2 bg-amber-400 text-white shadow-md">
+          <p className="text-base font-semibold opacity-80">Waiting</p>
+          <p className="text-6xl font-black leading-none">{data.stats.pending}</p>
+          <p className="text-sm opacity-70">patients</p>
         </div>
-        {/* Appointments — emerald */}
-        <div className="rounded-2xl p-5 relative overflow-hidden bg-emerald-50 border border-emerald-100">
-          <CalendarDays className="absolute top-4 right-4 w-5 h-5 text-emerald-400" />
-          <p className="text-emerald-600 text-xs font-medium mb-2">Appointments</p>
-          <p className="text-4xl font-extrabold tracking-tight text-emerald-700">{data.stats.appointments}</p>
-          <p className="text-emerald-400 text-xs mt-1">scheduled</p>
+
+        {/* Appointments */}
+        <div className="rounded-3xl p-5 flex flex-col gap-2 bg-violet-500 text-white shadow-md">
+          <p className="text-base font-semibold opacity-80">Scheduled</p>
+          <p className="text-6xl font-black leading-none">{data.stats.appointments}</p>
+          <p className="text-sm opacity-70">today</p>
         </div>
+
       </div>
 
-      {/* ── Quick Actions ───────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* ── Quick Actions ── */}
+      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => router.push('/visits/new')}
-          className="min-h-[64px] rounded-2xl text-white font-bold text-sm active:opacity-80 transition-opacity flex flex-col items-center justify-center gap-1 shadow-sm shadow-sky-200"
-          style={{ background: 'linear-gradient(135deg, #0369a1 0%, #0ea5e9 100%)' }}
+          className="min-h-[72px] rounded-2xl bg-blue-600 text-white font-bold text-lg active:opacity-80 transition-opacity flex items-center justify-center gap-2 shadow-md"
         >
-          <span className="text-xl leading-none">＋</span>
-          <span>Patient</span>
+          <span className="text-2xl leading-none">＋</span>
+          New Visit
         </button>
         <button
-          onClick={() => router.push('/scheduling')}
-          className="min-h-[64px] rounded-2xl border-2 border-blue-600 text-blue-700 font-bold text-sm active:bg-blue-50 transition-colors flex flex-col items-center justify-center gap-1"
+          onClick={() => router.push('/patients/intake')}
+          className="min-h-[72px] rounded-2xl bg-white border-2 border-blue-600 text-blue-700 font-bold text-lg active:bg-blue-50 transition-colors flex items-center justify-center gap-2"
         >
-          <CalendarDays className="w-5 h-5" />
-          <span>Schedule</span>
+          <span className="text-2xl leading-none">👤</span>
+          New Patient
         </button>
       </div>
 
+      {/* ── Today's Patients ── */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-2xl font-black text-foreground">Today&apos;s Patients</h2>
 
-      {/* ── Today's Patients ────────────────────────────────── */}
-      <div className="space-y-3">
-        <h2 className="text-base font-bold">Today&apos;s Patients</h2>
-
-        {data.appointments.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Appointments</p>
-            {data.appointments.map((appt) => (
-              <Card
-                key={appt.id}
-                className="cursor-pointer active:bg-muted transition-colors shadow-sm"
-                onClick={() => router.push('/patients/' + appt.patientId)}
-              >
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold truncate">{appt.patientName}</p>
-                    <p className="text-sm text-muted-foreground">{fmtTime(appt.scheduledAt)} · {appt.type}</p>
-                  </div>
-                  <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${statusBadge(appt.status)}`}>
-                    {appt.status.replace('_', ' ')}
-                  </span>
-                </CardContent>
-              </Card>
-            ))}
+        {allPatients.length === 0 ? (
+          <div className="rounded-2xl bg-muted/40 border border-border px-6 py-10 text-center">
+            <p className="text-xl text-muted-foreground">No patients today yet.</p>
           </div>
-        )}
-
-        {data.walkIns.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Seen Today</p>
-            {data.walkIns.map((p) => (
-              <Card
-                key={p.id}
-                className="cursor-pointer active:bg-muted transition-colors shadow-sm"
-                onClick={() => router.push('/patients/' + p.id)}
-              >
-                <CardContent className="p-4 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-semibold truncate">{p.name}</p>
-                    <p className="text-sm text-muted-foreground">Visit at {fmtTime(p.enrolledAt)}</p>
-                  </div>
-                  <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${statusBadge('COMPLETED')}`}>
-                    Seen
-                  </span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {data.appointments.length === 0 && data.walkIns.length === 0 && (
-          <div className="rounded-2xl bg-muted/40 border border-border px-4 py-6 text-center">
-            <p className="text-base text-muted-foreground">No patients today yet.</p>
-          </div>
+        ) : (
+          allPatients.map((p) => (
+            <button
+              key={p.id + p.time}
+              onClick={() => router.push('/patients/' + p.id)}
+              className="w-full rounded-2xl bg-white border border-border shadow-sm p-4 flex items-center justify-between gap-3 active:bg-muted/40 transition-colors text-left"
+            >
+              <div className="min-w-0">
+                <p className="text-xl font-bold text-foreground truncate">{p.name}</p>
+                <p className="text-base text-muted-foreground mt-0.5">{p.time}</p>
+              </div>
+              <span className={`shrink-0 text-sm font-bold px-3 py-1.5 rounded-full ${STATUS_COLOR[p.status] ?? 'bg-gray-100 text-gray-700 border border-gray-200'}`}>
+                {STATUS_LABEL[p.status] ?? p.status}
+              </span>
+            </button>
+          ))
         )}
       </div>
 
-      {/* ── Revenue Chart ───────────────────────────────────── */}
-      <div className="space-y-2">
-        <h2 className="text-base font-bold">Revenue This Year</h2>
+      {/* ── Revenue Chart ── */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-2xl font-black text-foreground">Revenue This Year</h2>
         <div className="rounded-2xl bg-white border border-border p-4 shadow-sm">
           <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+            <BarChart data={chartData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
               <YAxis
-                tick={{ fontSize: 11 }}
+                tick={{ fontSize: 12 }}
                 axisLine={false}
                 tickLine={false}
                 domain={[0, (dataMax: number) => dataMax === 0 ? 1 : dataMax]}
@@ -249,7 +204,7 @@ export default function DashboardClient({ data }: Props) {
               />
               <Tooltip
                 formatter={(v) => [`₱${new Intl.NumberFormat('en-PH').format(Number(v))}`, 'Revenue']}
-                contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid #dbeafe' }}
+                contentStyle={{ fontSize: 14, borderRadius: 12, border: '1px solid #dbeafe' }}
               />
               <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                 {chartData.map((entry, index) => (
@@ -261,35 +216,30 @@ export default function DashboardClient({ data }: Props) {
         </div>
       </div>
 
-      {/* ── Recent Invoices ─────────────────────────────────── */}
-      <div className="space-y-2">
-        <h2 className="text-base font-bold">Recent Receipts</h2>
+      {/* ── Recent Receipts ── */}
+      <div className="flex flex-col gap-3">
+        <h2 className="text-2xl font-black text-foreground">Recent Receipts</h2>
         {data.recentInvoices.length === 0 ? (
-          <div className="rounded-2xl bg-muted/40 border border-border px-4 py-6 text-center">
-            <p className="text-base text-muted-foreground">No receipts yet.</p>
+          <div className="rounded-2xl bg-muted/40 border border-border px-6 py-10 text-center">
+            <p className="text-xl text-muted-foreground">No receipts yet.</p>
           </div>
         ) : (
           <div className="rounded-2xl bg-white border border-border shadow-sm overflow-hidden">
             {data.recentInvoices.map((inv, i) => (
-              <div
+              <button
                 key={inv.id}
-                className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer active:bg-muted/50 transition-colors ${i > 0 ? 'border-t border-border' : ''}`}
                 onClick={() => router.push('/invoices/' + inv.id)}
+                className={`w-full flex items-center gap-3 px-4 py-4 active:bg-muted/50 transition-colors text-left ${i > 0 ? 'border-t border-border' : ''}`}
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-base">OR #{inv.orNumber}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.paymentMethod === 'GCASH' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
-                      {inv.paymentMethod}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{inv.patientName} · {new Date(inv.transactionDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                  <p className="text-lg font-bold text-foreground truncate">{inv.patientName}</p>
+                  <p className="text-base text-muted-foreground">OR #{inv.orNumber} · {inv.paymentMethod} · {new Date(inv.transactionDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                 </div>
-                <span className="font-extrabold text-base shrink-0 text-blue-700">₱{fmt(inv.grossAmount)}</span>
-              </div>
+                <span className="font-black text-xl shrink-0 text-blue-700">₱{fmt(inv.grossAmount)}</span>
+              </button>
             ))}
-            <div className="border-t border-border px-4 py-3">
-              <button onClick={() => router.push('/invoices')} className="text-base text-blue-600 font-semibold">
+            <div className="border-t border-border px-4 py-4">
+              <button onClick={() => router.push('/invoices')} className="text-lg text-blue-600 font-bold">
                 View all receipts →
               </button>
             </div>
@@ -297,7 +247,6 @@ export default function DashboardClient({ data }: Props) {
         )}
       </div>
 
-      <div className="h-4" />
     </div>
   )
 }
