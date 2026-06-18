@@ -113,30 +113,30 @@ export default function DashboardClient({ data }: { data: DashboardData }) {
 
         {/* Patients Seen */}
         <div className="rounded-3xl p-5 flex flex-col gap-2 bg-blue-600 text-white shadow-md">
-          <p className="text-base font-semibold opacity-80">Patients Seen</p>
+          <p className="text-lg font-bold">Patients Seen</p>
           <p className="text-6xl font-black leading-none">{data.stats.patientsSeen}</p>
-          <p className="text-sm opacity-70">today</p>
+          <p className="text-base font-semibold opacity-80">today</p>
         </div>
 
         {/* Revenue */}
         <div className="rounded-3xl p-5 flex flex-col gap-2 bg-emerald-500 text-white shadow-md">
-          <p className="text-base font-semibold opacity-80">Revenue</p>
+          <p className="text-lg font-bold">Revenue</p>
           <p className="text-4xl font-black leading-none break-all">₱{fmt(data.stats.todayRevenue)}</p>
-          <p className="text-sm opacity-70">today</p>
+          <p className="text-base font-semibold opacity-80">today</p>
         </div>
 
         {/* Pending */}
         <div className="rounded-3xl p-5 flex flex-col gap-2 bg-amber-400 text-white shadow-md">
-          <p className="text-base font-semibold opacity-80">Waiting</p>
+          <p className="text-lg font-bold">Waiting</p>
           <p className="text-6xl font-black leading-none">{data.stats.pending}</p>
-          <p className="text-sm opacity-70">patients</p>
+          <p className="text-base font-semibold opacity-80">patients</p>
         </div>
 
         {/* Appointments */}
         <div className="rounded-3xl p-5 flex flex-col gap-2 bg-violet-500 text-white shadow-md">
-          <p className="text-base font-semibold opacity-80">Scheduled</p>
+          <p className="text-lg font-bold">Scheduled</p>
           <p className="text-6xl font-black leading-none">{data.stats.appointments}</p>
-          <p className="text-sm opacity-70">today</p>
+          <p className="text-base font-semibold opacity-80">today</p>
         </div>
 
       </div>
