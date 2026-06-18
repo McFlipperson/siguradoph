@@ -37,13 +37,13 @@ export async function sendPromoDay5(to: string, clinicName: string) {
       <p>Hi ${clinicName},</p>
       <p>Did you know Sigurado PRO includes a built-in <strong>loyalty card system</strong>?</p>
       <ul>
-        <li>Sell reloadable loyalty cards at a set price</li>
-        <li>Patients pay using their card balance — discount applied before VAT</li>
-        <li>SC/PWD discounts are handled automatically — 20% off, BIR-compliant</li>
-        <li>All transactions are logged for your quarterly BIR report</li>
+        <li>Sell reloadable loyalty cards at a fixed price you set</li>
+        <li>Patients pay using their card balance — no cash needed at checkout</li>
+        <li>SC/PWD discounts are handled automatically — 20% off, properly computed</li>
+        <li>Everything is tracked per patient so you always know who has a card</li>
       </ul>
-      <p>Go to <strong>Settings → Services</strong> to configure your loyalty card price and validity period.</p>
-      <p><a href="https://sigurado.xyz/settings" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Set up loyalty cards →</a></p>
+      <p>Go to <strong>Menu → Loyalty Cards</strong> to set it up.</p>
+      <p><a href="https://sigurado.xyz/loyalty" style="background:#16a34a;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:8px">Set up loyalty cards →</a></p>
     `),
   })
 }
