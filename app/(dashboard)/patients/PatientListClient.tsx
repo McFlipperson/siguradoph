@@ -2,8 +2,6 @@
 
 import { useCallback, useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { getPatients, type PatientSummary } from './actions'
 
 function computeAge(dob: Date): number {
@@ -11,50 +9,35 @@ function computeAge(dob: Date): number {
 }
 
 function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-PH', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })
+  return new Date(date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function isToday(date: Date): boolean {
   const d = new Date(date)
   const now = new Date()
-  return (
-    d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate()
-  )
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
 }
 
 function PatientCard({ patient }: { patient: PatientSummary }) {
   const age = computeAge(patient.dateOfBirth)
   return (
     <Link href={`/patients/${patient.id}`} className="block">
-      <Card className="active:scale-[0.99] transition-transform">
-        <CardContent className="flex flex-col gap-1 py-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-base font-semibold leading-tight">
-              {patient.firstName}{patient.middleName ? ` ${patient.middleName}` : ''} {patient.lastName}
-            </p>
-            {patient.hasActiveLoyaltyCard && (
-              <Badge className="shrink-0 bg-emerald-100 text-emerald-800 border-emerald-200">
-                Loyalty Card
-              </Badge>
-            )}
-          </div>
-          <p className="text-base text-muted-foreground">{patient.phone}</p>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Age {age}</span>
-            <span>
-              {patient.lastVisitDate
-                ? `Last visit: ${formatDate(patient.lastVisitDate)}`
-                : 'No visits yet'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl bg-white border border-border shadow-sm p-4 flex items-center justify-between gap-3 active:bg-muted/40 transition-colors">
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-bold text-foreground leading-tight truncate">
+            {patient.firstName}{patient.middleName ? ` ${patient.middleName}` : ''} {patient.lastName}
+          </p>
+          <p className="text-base text-muted-foreground mt-0.5">{patient.phone}</p>
+          <p className="text-base text-muted-foreground">
+            Age {age} · {patient.lastVisitDate ? `Last visit ${formatDate(patient.lastVisitDate)}` : 'No visits yet'}
+          </p>
+        </div>
+        {patient.hasActiveLoyaltyCard && (
+          <span className="shrink-0 text-sm font-bold px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+            💳 Card
+          </span>
+        )}
+      </div>
     </Link>
   )
 }
@@ -109,14 +92,13 @@ export default function PatientListClient({
   const filtered = useMemo(() => {
     if (searchResults !== null) return searchResults
     let list = patients
-    if (tab === 'today') {
-      list = list.filter((p) => isToday(p.enrolledAt))
-    }
+    if (tab === 'today') list = list.filter((p) => isToday(p.enrolledAt))
     return list
   }, [patients, searchResults, tab])
 
   return (
     <div className="flex flex-col gap-4 pb-24">
+
       {/* Search */}
       <input
         type="search"
@@ -124,19 +106,19 @@ export default function PatientListClient({
         placeholder="Search by name or phone…"
         value={query}
         onChange={(e) => handleQueryChange(e.target.value)}
-        className="w-full min-h-[48px] rounded-lg border border-input bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        className="w-full min-h-[56px] rounded-2xl border-2 border-input bg-background px-5 text-lg outline-none focus:ring-2 focus:ring-ring"
       />
 
       {/* Tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {(['all', 'today'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 min-h-[48px] rounded-lg text-sm font-medium transition-colors ${
+            className={`flex-1 min-h-[56px] rounded-2xl text-lg font-bold transition-colors ${
               tab === t
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-muted text-muted-foreground'
             }`}
           >
             {t === 'all' ? 'All Patients' : 'Today'}
@@ -147,20 +129,20 @@ export default function PatientListClient({
       {/* List */}
       <div className="flex flex-col gap-3">
         {filtered.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-8">
-            {isSearching ? 'Searching…' : query ? 'No patients match your search.' : 'No patients yet.'}
+          <p className="text-center text-xl text-muted-foreground py-10">
+            {isSearching ? 'Searching…' : query ? 'No patients found.' : 'No patients yet.'}
           </p>
         ) : (
           filtered.map((p) => <PatientCard key={p.id} patient={p} />)
         )}
       </div>
 
-      {/* Load more — only show on All tab with no search active */}
+      {/* Load more */}
       {hasMore && searchResults === null && tab === 'all' && (
         <button
           onClick={loadMore}
           disabled={isPending}
-          className="w-full min-h-[48px] rounded-lg bg-muted text-muted-foreground text-sm font-medium hover:bg-muted/80 disabled:opacity-50 transition-colors"
+          className="w-full min-h-[56px] rounded-2xl bg-muted text-muted-foreground text-lg font-bold disabled:opacity-50 transition-colors"
         >
           {isPending ? 'Loading…' : 'Load more patients'}
         </button>
