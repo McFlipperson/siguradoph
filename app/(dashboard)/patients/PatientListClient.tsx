@@ -117,7 +117,7 @@ export default function PatientListClient({
             onClick={() => setTab(t)}
             className={`flex-1 min-h-[56px] rounded-2xl text-lg font-bold transition-colors ${
               tab === t
-                ? 'bg-blue-600 text-white shadow-md'
+                ? t === 'all' ? 'bg-blue-600 text-white shadow-md' : 'bg-emerald-500 text-white shadow-md'
                 : 'bg-muted text-muted-foreground'
             }`}
           >
