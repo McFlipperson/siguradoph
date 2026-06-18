@@ -190,7 +190,7 @@ export default function DashboardClient({ data }: Props) {
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{appt.patientName}</p>
-                    <p className="text-xs text-muted-foreground">{fmtTime(appt.scheduledAt)} · {appt.type}</p>
+                    <p className="text-sm text-muted-foreground">{fmtTime(appt.scheduledAt)} · {appt.type}</p>
                   </div>
                   <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${statusBadge(appt.status)}`}>
                     {appt.status.replace('_', ' ')}
@@ -213,7 +213,7 @@ export default function DashboardClient({ data }: Props) {
                 <CardContent className="p-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">Visit at {fmtTime(p.enrolledAt)}</p>
+                    <p className="text-sm text-muted-foreground">Visit at {fmtTime(p.enrolledAt)}</p>
                   </div>
                   <span className={`shrink-0 text-xs font-semibold px-3 py-1 rounded-full ${statusBadge('COMPLETED')}`}>
                     Seen
@@ -226,7 +226,7 @@ export default function DashboardClient({ data }: Props) {
 
         {data.appointments.length === 0 && data.walkIns.length === 0 && (
           <div className="rounded-2xl bg-muted/40 border border-border px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">No patients today yet.</p>
+            <p className="text-base text-muted-foreground">No patients today yet.</p>
           </div>
         )}
       </div>
@@ -266,7 +266,7 @@ export default function DashboardClient({ data }: Props) {
         <h2 className="text-base font-bold">Recent Receipts</h2>
         {data.recentInvoices.length === 0 ? (
           <div className="rounded-2xl bg-muted/40 border border-border px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground">No receipts yet.</p>
+            <p className="text-base text-muted-foreground">No receipts yet.</p>
           </div>
         ) : (
           <div className="rounded-2xl bg-white border border-border shadow-sm overflow-hidden">
@@ -278,18 +278,18 @@ export default function DashboardClient({ data }: Props) {
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm">OR #{inv.orNumber}</span>
+                    <span className="font-bold text-base">OR #{inv.orNumber}</span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${inv.paymentMethod === 'GCASH' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
                       {inv.paymentMethod}
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">{inv.patientName} · {new Date(inv.transactionDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
+                  <p className="text-sm text-muted-foreground truncate">{inv.patientName} · {new Date(inv.transactionDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</p>
                 </div>
                 <span className="font-extrabold text-base shrink-0 text-blue-700">₱{fmt(inv.grossAmount)}</span>
               </div>
             ))}
             <div className="border-t border-border px-4 py-3">
-              <button onClick={() => router.push('/invoices')} className="text-sm text-blue-600 font-semibold">
+              <button onClick={() => router.push('/invoices')} className="text-base text-blue-600 font-semibold">
                 View all receipts →
               </button>
             </div>

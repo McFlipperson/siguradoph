@@ -327,7 +327,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
   return (
     <div className="flex flex-col gap-4 pb-8">
       {/* Patient header */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-base text-muted-foreground">
         Patient:{' '}
         <span className="font-semibold text-foreground">
           {setup.patient.firstName} {setup.patient.lastName}
@@ -359,10 +359,10 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
         </CardHeader>
         <CardContent>
           {setup.serviceCatalog.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No services configured yet.</p>
+            <p className="text-base text-muted-foreground">No services configured yet.</p>
           ) : (
             <>
-              <p className="text-xs text-muted-foreground mb-3">
+              <p className="text-sm text-muted-foreground mb-3">
                 Tap a procedure to add it. Tap the same one again to add it a second time (e.g. two fillings in the same visit).
               </p>
             <div className="grid grid-cols-2 gap-2">
@@ -486,7 +486,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
               placeholder="0.00"
               min={0}
             />
-            <p className="text-xs text-muted-foreground mt-1">Enter the actual amount charged to this patient for this visit.</p>
+            <p className="text-sm text-muted-foreground mt-1">Enter the actual amount charged to this patient for this visit.</p>
           </CardContent>
         </Card>
       )}
@@ -532,7 +532,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
             {!setup.loyaltyCard && !familyCard && (
               <div className="space-y-3">
                 {!hasPendingRenewal && (
-                  <p className="text-sm text-muted-foreground">This patient does not have a loyalty card.</p>
+                  <p className="text-base text-muted-foreground">This patient does not have a loyalty card.</p>
                 )}
                 <div className="flex items-center justify-between gap-3">
                   <Label htmlFor="purchaseCard" className="flex-1 cursor-pointer">
@@ -765,7 +765,7 @@ export default function NewVisitForm({ setup, appointmentId }: { setup: VisitSet
       {isCleaningCategory && (
         <Card>
           <CardContent className="py-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               📅 A 6-month recall reminder will be scheduled automatically for this patient via Messenger.
             </p>
           </CardContent>

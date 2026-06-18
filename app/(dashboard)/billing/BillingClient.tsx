@@ -117,7 +117,7 @@ function SuccessScreen({ plan, onDone }: { plan: PlanDef; onDone: () => void }) 
       </div>
       <div className="space-y-1">
         <h2 className="text-xl font-bold">You&apos;re all set!</h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Your <strong>{plan.name}</strong> plan is active. All features are unlocked.
         </p>
       </div>
@@ -169,7 +169,7 @@ function PaymentPanel({
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="font-bold text-base">Pay via GCash</p>
-          <p className="text-sm text-muted-foreground">{plan.name} · {plan.price}/month</p>
+          <p className="text-base text-muted-foreground">{plan.name} · {plan.price}/month</p>
         </div>
         <button onClick={onClose} className="text-muted-foreground p-1 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg active:bg-muted">✕</button>
       </div>
@@ -203,7 +203,7 @@ function PaymentPanel({
           `Send exactly ₱${amountPesos.toFixed(2)}`,
           'Come back here and tap the button below',
         ].map((step, i) => (
-          <li key={i} className="flex gap-3 items-start text-sm">
+          <li key={i} className="flex gap-3 items-start text-base">
             <span className="shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center mt-0.5">{i + 1}</span>
             <span className="text-muted-foreground leading-snug">{step}</span>
           </li>
@@ -363,7 +363,7 @@ function PlanCard({ plan, currentPlan, gcashNumber, autoOpen = false }: { plan: 
 
       <ul className="space-y-1.5">
         {plan.features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-sm">
+          <li key={f} className="flex items-start gap-2 text-base">
             <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
             <span>{f}</span>
           </li>
@@ -521,7 +521,7 @@ export default function BillingClient({
                 'Full privacy compliance suite', 'Audit log & consent dashboard',
                 'Breach / ASIR incident tools', 'Employee management & payroll',
               ].map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
+                <li key={f} className="flex items-start gap-2 text-base">
                   <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
                   <span>{f}</span>
                 </li>
@@ -536,7 +536,7 @@ export default function BillingClient({
       {currentPlan === 'BASIC' && currentPlanDef && (
         <div className="space-y-4">
           <RenewalPanel plan={currentPlanDef} gcashNumber={gcashNumber} nextDueDate={nextDueDate} />
-          <p className="text-sm text-muted-foreground">Upgrade to Pro for the full compliance suite:</p>
+          <p className="text-base text-muted-foreground">Upgrade to Pro for the full compliance suite:</p>
           {plansToShow.filter(p => p.id !== 'BASIC').map((plan) => (
             <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} autoOpen={autoOpenPlan === plan.id} />
           ))}
@@ -546,7 +546,7 @@ export default function BillingClient({
       {/* FREE — upgrade cards */}
       {currentPlan === 'FREE' && (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">Upgrade to unlock more patients and features:</p>
+          <p className="text-base text-muted-foreground">Upgrade to unlock more patients and features:</p>
           {plansToShow.map((plan) => (
             <PlanCard key={plan.id} plan={plan} currentPlan={currentPlan} gcashNumber={gcashNumber} autoOpen={autoOpenPlan === plan.id} />
           ))}
@@ -558,7 +558,7 @@ export default function BillingClient({
       {currentPlan === 'FREE' && (
         <div className="rounded-2xl border bg-muted/30 px-4 py-4 space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">How it works</p>
-          <div className="space-y-1.5 text-sm text-muted-foreground">
+          <div className="space-y-1.5 text-base text-muted-foreground">
             <p>• Tap <strong className="text-foreground">Upgrade</strong>, scan the GCash QR, send the exact amount.</p>
             <p>• Tap <strong className="text-foreground">&ldquo;I&apos;ve paid&rdquo;</strong> — your plan activates instantly.</p>
             <p>• We verify your payment in the background. No waiting, no friction.</p>

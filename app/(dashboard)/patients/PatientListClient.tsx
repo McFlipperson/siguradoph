@@ -44,8 +44,8 @@ function PatientCard({ patient }: { patient: PatientSummary }) {
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">{patient.phone}</p>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <p className="text-base text-muted-foreground">{patient.phone}</p>
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <span>Age {age}</span>
             <span>
               {patient.lastVisitDate
